@@ -1,0 +1,64 @@
+{
+  "topics": [
+    {
+      "id": "education",
+      "name": "Education & Learning",
+      "subtopics": ["universities", "online learning", "teaching methods", "student life", "exams"]
+    },
+    {
+      "id": "environment",
+      "name": "Environment & Nature",
+      "subtopics": ["climate change", "pollution", "wildlife", "conservation", "natural disasters"]
+    },
+    {
+      "id": "technology",
+      "name": "Technology & Innovation",
+      "subtopics": ["artificial intelligence", "social media", "internet", "automation", "digital privacy"]
+    },
+    {
+      "id": "health",
+      "name": "Health & Wellbeing",
+      "subtopics": ["mental health", "nutrition", "exercise", "healthcare systems", "diseases"]
+    },
+    {
+      "id": "society",
+      "name": "Society & Culture",
+      "subtopics": ["urbanization", "immigration", "traditions", "inequality", "globalization"]
+    },
+    {
+      "id": "economy",
+      "name": "Economy & Business",
+      "subtopics": ["employment", "entrepreneurship", "trade", "poverty", "economic growth"]
+    },
+    {
+      "id": "government",
+      "name": "Government & Law",
+      "subtopics": ["democracy", "crime", "justice system", "public policy", "human rights"]
+    },
+    {
+      "id": "media",
+      "name": "Media & Communication",
+      "subtopics": ["advertising", "journalism", "fake news", "freedom of speech", "entertainment"]
+    },
+    {
+      "id": "science",
+      "name": "Science & Research",
+      "subtopics": ["space exploration", "genetics", "scientific method", "discoveries", "ethics in science"]
+    },
+    {
+      "id": "travel",
+      "name": "Travel & Tourism",
+      "subtopics": ["cultural tourism", "eco-tourism", "transportation", "hospitality", "travel experiences"]
+    },
+    {
+      "id": "food",
+      "name": "Food & Agriculture",
+      "subtopics": ["organic farming", "food security", "diet trends", "food industry", "traditional cuisine"]
+    },
+    {
+      "id": "arts",
+      "name": "Arts & Creativity",
+      "subtopics": ["music", "literature", "visual arts", "architecture", "performing arts"]
+    }
+  ]
+}

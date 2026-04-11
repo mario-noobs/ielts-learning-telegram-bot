@@ -1,0 +1,18 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+
+# Firebase credentials
+firebase_credentials.json
+
+# Audio cache
+*.mp3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
