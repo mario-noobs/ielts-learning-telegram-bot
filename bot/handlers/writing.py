@@ -163,30 +163,37 @@ async def share_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("No group found. Join a group first.")
         return
 
-    if query.data == "share_writing":
-        data = context.user_data.get("last_writing")
-        if not data:
-            await query.edit_message_text("Nothing to share.")
-            return
+    try:
+        if query.data == "share_writing":
+            data = context.user_data.get("last_writing")
+            if not data:
+                await query.edit_message_text("Nothing to share.")
+                return
 
-        share_text = (
-            f"\u270d\ufe0f {user.first_name} shared their writing:\n\n"
-            f"\"{data['text']}\"\n\n"
-            f"Feedback:\n{data['feedback']}"
+            share_text = (
+                f"\u270d\ufe0f {user.first_name} shared their writing:\n\n"
+                f"\"{data['text']}\"\n\n"
+                f"Feedback:\n{data['feedback']}"
+            )
+            await context.bot.send_message(chat_id=group_id, text=share_text[:4000])
+            await query.edit_message_text("Shared to group!")
+
+        elif query.data == "share_translation":
+            data = context.user_data.get("last_translation")
+            if not data:
+                await query.edit_message_text("Nothing to share.")
+                return
+
+            share_text = (
+                f"\U0001f310 {user.first_name} shared a translation:\n\n"
+                f"\"{data['text']}\"\n\n"
+                f"{data['result']}"
+            )
+            await context.bot.send_message(chat_id=group_id, text=share_text[:4000])
+            await query.edit_message_text("Shared to group!")
+
+    except Exception as e:
+        logger.error(f"Share failed: {e}")
+        await query.edit_message_text(
+            "Failed to share. Make sure the bot is still in the group and try /start in the group again."
         )
-        await context.bot.send_message(chat_id=group_id, text=share_text[:4000])
-        await query.edit_message_text("Shared to group!")
-
-    elif query.data == "share_translation":
-        data = context.user_data.get("last_translation")
-        if not data:
-            await query.edit_message_text("Nothing to share.")
-            return
-
-        share_text = (
-            f"\U0001f310 {user.first_name} shared a translation:\n\n"
-            f"\"{data['text']}\"\n\n"
-            f"{data['result']}"
-        )
-        await context.bot.send_message(chat_id=group_id, text=share_text[:4000])
-        await query.edit_message_text("Shared to group!")
