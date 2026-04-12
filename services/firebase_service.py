@@ -62,6 +62,12 @@ def get_all_users_in_group(group_id: int) -> list[dict]:
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
 
 
+def get_all_users() -> list[dict]:
+    """Return all registered users."""
+    docs = _get_db().collection("users").stream()
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
 def update_streak(telegram_id: int):
     user = get_user(telegram_id)
     if not user:
@@ -156,11 +162,12 @@ def save_quiz_result(telegram_id: int, quiz_data: dict):
     (_get_db().collection("users").document(str(telegram_id))
      .collection("quiz_history").document().set(doc))
 
-    # Update user stats
+    # Update user stats in a single atomic call
     user_ref = _get_db().collection("users").document(str(telegram_id))
-    user_ref.update({"total_quizzes": firestore.Increment(1)})
+    update_data = {"total_quizzes": firestore.Increment(1)}
     if quiz_data.get("is_correct"):
-        user_ref.update({"total_correct": firestore.Increment(1)})
+        update_data["total_correct"] = firestore.Increment(1)
+    user_ref.update(update_data)
 
 
 def get_quiz_stats(telegram_id: int) -> dict:
@@ -208,6 +215,12 @@ def update_group_settings(group_id: int, data: dict):
     _get_db().collection("groups").document(str(group_id)).update(data)
 
 
+def get_all_groups() -> list[dict]:
+    """Return all registered groups."""
+    docs = _get_db().collection("groups").stream()
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
 # ─── Daily Words (Group) ──────────────────────────────────────────
 
 def save_daily_words(group_id: int, date_str: str, words: list, topic: str):
@@ -222,6 +235,28 @@ def save_daily_words(group_id: int, date_str: str, words: list, topic: str):
 
 def get_daily_words(group_id: int, date_str: str) -> Optional[dict]:
     doc = (_get_db().collection("groups").document(str(group_id))
+           .collection("daily_words").document(date_str).get())
+    if doc.exists:
+        return doc.to_dict()
+    return None
+
+
+# ─── User Daily Words (DM) ───────────────────────────────────────
+
+def save_user_daily_words(telegram_id: int, date_str: str, words: list, topic: str):
+    """Save personal daily words for a user (DM feature)."""
+    doc = {
+        "words": words,
+        "topic": topic,
+        "generated_at": datetime.now(timezone.utc),
+    }
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("daily_words").document(date_str).set(doc))
+
+
+def get_user_daily_words(telegram_id: int, date_str: str) -> Optional[dict]:
+    """Get personal daily words for a user."""
+    doc = (_get_db().collection("users").document(str(telegram_id))
            .collection("daily_words").document(date_str).get())
     if doc.exists:
         return doc.to_dict()

@@ -216,12 +216,6 @@ async def set_time_callback(update: Update,
     time = query.data.replace("settime_", "")
     firebase_service.update_user(user.id, {"daily_time": time})
 
-    # Update scheduler if user has a group
-    user_data = firebase_service.get_user(user.id)
-    group_id = user_data.get("group_id") if user_data else None
-    if group_id:
-        setup_group_schedule(context.bot, group_id, time)
-
     await query.edit_message_text(
         f"\u2705 Daily vocabulary time updated to *{time}* (Vietnam time)!",
         parse_mode="Markdown"

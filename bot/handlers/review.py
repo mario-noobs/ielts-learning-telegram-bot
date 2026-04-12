@@ -25,6 +25,26 @@ async def review_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please /start first!")
         return
 
+    from services.rate_limit_service import check_rate_limit
+    allowed, limit_msg = check_rate_limit(user.id, "review")
+    if not allowed:
+        await update.message.reply_text(limit_msg)
+        return
+
+    # Auto-expire stale review sessions (older than 10 minutes)
+    import time as _time
+    if context.user_data.get("review_words"):
+        if _time.time() - context.user_data.get("review_created_at", 0) > 600:
+            for key in ("review_words", "review_questions", "review_index",
+                         "review_correct", "review_total", "review_current",
+                         "review_created_at"):
+                context.user_data.pop(key, None)
+        else:
+            await update.message.reply_text(
+                "You have an active review session! Finish it first."
+            )
+            return
+
     # Get due words
     due_words = firebase_service.get_due_words(user.id, limit=10)
 
@@ -36,30 +56,50 @@ async def review_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Store review session
-    context.user_data["review_words"] = due_words
-    context.user_data["review_index"] = 0
-    context.user_data["review_correct"] = 0
-    context.user_data["review_total"] = len(due_words)
-
     await update.message.reply_text(
-        f"\U0001f504 *Review Session*\n\n"
-        f"You have *{len(due_words)}* words to review.\n"
-        f"Let's go!\n",
-        parse_mode="Markdown"
+        f"\u23f3 Generating {len(due_words)} review questions..."
     )
 
-    # Send first question
-    await _send_review_question(update, context)
+    # Generate all review questions in a single AI call
+    try:
+        from services.ai_service import RateLimitError
+        questions = await quiz_service.generate_review_batch(due_words)
+
+        context.user_data["review_words"] = due_words
+        context.user_data["review_questions"] = questions
+        context.user_data["review_index"] = 0
+        context.user_data["review_correct"] = 0
+        context.user_data["review_total"] = len(questions)
+        context.user_data["review_created_at"] = _time.time()
+
+        await update.message.reply_text(
+            f"\U0001f504 *Review Session*\n\n"
+            f"You have *{len(questions)}* words to review.\n"
+            f"Let's go!\n",
+            parse_mode="Markdown"
+        )
+
+        # Send first question
+        await _send_review_question(update, context)
+
+    except RateLimitError as e:
+        from bot.utils import rate_limit_message
+        await update.message.reply_text(rate_limit_message(e))
+    except Exception as e:
+        logger.error(f"Review batch generation failed: {e}")
+        await update.message.reply_text(
+            "\u274c Failed to generate review questions. Please try again."
+        )
 
 
 async def _send_review_question(update: Update,
                                  context: ContextTypes.DEFAULT_TYPE):
-    """Send the next review question."""
+    """Send the next pre-generated review question."""
     words = context.user_data.get("review_words", [])
+    questions = context.user_data.get("review_questions", [])
     idx = context.user_data.get("review_index", 0)
 
-    if idx >= len(words):
+    if idx >= len(questions):
         # Review complete
         correct = context.user_data.get("review_correct", 0)
         total = context.user_data.get("review_total", 0)
@@ -73,41 +113,22 @@ async def _send_review_question(update: Update,
             parse_mode="Markdown"
         )
         # Clean up
-        for key in ("review_words", "review_index",
-                     "review_correct", "review_total"):
+        for key in ("review_words", "review_questions", "review_index",
+                     "review_correct", "review_total", "review_current",
+                     "review_created_at"):
             context.user_data.pop(key, None)
         return
 
-    word_data = words[idx]
+    word_data = words[idx] if idx < len(words) else {}
     strength = get_word_strength(word_data)
     emoji = get_strength_emoji(strength)
 
-    # Generate a quiz question for this word
-    try:
-        question = await quiz_service.generate_quiz_question.__wrapped__(
-            word_data
-        ) if False else None
-    except Exception:
-        question = None
+    question = questions[idx]
 
-    # Fallback: generate directly
-    if not question:
-        from services import ai_service
-        import random
-        quiz_type = random.choice(["multiple_choice", "synonym_antonym"])
-        question = await ai_service.generate_quiz(
-            word=word_data["word"],
-            definition=word_data.get("definition", ""),
-            quiz_type=quiz_type,
-        )
-        question["word_id"] = word_data["id"]
-
-    question = quiz_service.shuffle_options(question)
-
-    # Store current question
+    # Store current question for answer callbacks
     context.user_data["review_current"] = question
 
-    progress = f"[{idx + 1}/{len(words)}]"
+    progress = f"[{idx + 1}/{len(questions)}]"
     formatted = quiz_service.format_question(question, idx + 1)
     header = f"{emoji} {progress} _{strength}_ word\n\n"
 

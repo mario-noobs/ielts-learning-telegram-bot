@@ -141,6 +141,42 @@ async def generate_quiz(word: str, definition: str,
     return result
 
 
+async def generate_quiz_batch(words: list[dict],
+                              types: list[str]) -> list[dict]:
+    """Generate multiple quiz questions in a single AI call.
+
+    Args:
+        words: List of dicts with 'word' and 'definition' keys
+        types: List of quiz types, one per word (same length as words)
+    Returns:
+        List of question dicts
+    """
+    from prompts.quiz_prompt import GENERATE_QUIZ_BATCH
+
+    words_list = "\n".join(
+        f'{i+1}. "{w["word"]}" = "{w.get("definition", "")}"'
+        for i, w in enumerate(words)
+    )
+    types_list = ", ".join(types)
+
+    prompt = GENERATE_QUIZ_BATCH.format(
+        words_list=words_list,
+        types_list=types_list,
+        count=len(words),
+    )
+    results = await generate_json(prompt)
+
+    # Tag each result with its type and word_id
+    for i, result in enumerate(results):
+        if i < len(types):
+            result["type"] = types[i]
+        if i < len(words):
+            result["word"] = words[i]["word"]
+            if "word_id" in words[i]:
+                result["word_id"] = words[i]["word_id"]
+    return results
+
+
 async def generate_challenge(count: int, band: float, topic: str) -> list:
     from prompts.quiz_prompt import GENERATE_CHALLENGE
 

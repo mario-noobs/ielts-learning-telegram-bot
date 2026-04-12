@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,3 +35,9 @@ SRS_MAX_EASE = 3.0
 QUIZ_TYPES = ["multiple_choice", "fill_blank", "synonym_antonym", "paraphrase"]
 CHALLENGE_QUESTION_COUNT = 5
 CHALLENGE_DEADLINE_MINUTES = 60
+
+
+def local_date_str() -> str:
+    """Return today's date in the configured timezone as YYYY-MM-DD."""
+    tz = ZoneInfo(DEFAULT_TIMEZONE)
+    return datetime.now(tz).strftime("%Y-%m-%d")

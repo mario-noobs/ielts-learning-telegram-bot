@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 
 from services import ai_service, firebase_service
 from services.ai_service import RateLimitError
+from services.rate_limit_service import check_rate_limit
 from bot.utils import safe_send, rate_limit_message
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,11 @@ async def write_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = firebase_service.get_user(user.id)
     if not user_data:
         await update.message.reply_text("Please /start in the group first!")
+        return
+
+    allowed, limit_msg = check_rate_limit(user.id, "write")
+    if not allowed:
+        await update.message.reply_text(limit_msg)
         return
 
     if not context.args:
@@ -94,6 +100,11 @@ async def translate_command(update: Update,
     user_data = firebase_service.get_user(user.id)
     if not user_data:
         await update.message.reply_text("Please /start in the group first!")
+        return
+
+    allowed, limit_msg = check_rate_limit(user.id, "translate")
+    if not allowed:
+        await update.message.reply_text(limit_msg)
         return
 
     if not context.args:

@@ -50,6 +50,35 @@ async def generate_daily_words(group_id: int, count: int = 10,
     return words, topic
 
 
+async def generate_personal_daily_words(telegram_id: int, count: int = 10,
+                                         band: float = 7.0,
+                                         topics: list = None) -> tuple[list, str]:
+    """Generate personal daily words for a user's DM, using their own settings."""
+    if not topics:
+        topics = ["education", "environment", "technology"]
+
+    # Load topic display name
+    try:
+        with open("data/ielts_topics.json", "r") as f:
+            topic_data = json.load(f)
+        topic_map = {t["id"]: t["name"] for t in topic_data["topics"]}
+    except Exception:
+        topic_map = {}
+    topic_id = random.choice(topics)
+    topic = topic_map.get(topic_id, topic_id)
+
+    # Exclude words already in user's vocabulary
+    existing_words = firebase_service.get_user_word_list(telegram_id)
+    existing = set(w.lower() for w in existing_words)
+
+    # Generate via AI
+    words = await ai_service.generate_vocabulary(
+        count=count, band=band, topic=topic,
+        exclude_words=list(existing)[:100]
+    )
+    return words, topic
+
+
 def _build_word_doc(word_data: dict, topic: str) -> dict:
     """Build a word document from AI-generated data."""
     return {
@@ -78,16 +107,27 @@ async def save_daily_words_for_group(group_id: int, words: list,
     for user in users:
         user_id = int(user["id"])
         saved_user_ids.add(user_id)
+        existing_vocab = set(
+            w.lower() for w in firebase_service.get_user_word_list(user_id)
+        )
         for word_data in words:
-            firebase_service.add_word_to_user(user_id, _build_word_doc(word_data, topic))
+            if word_data.get("word", "").lower() not in existing_vocab:
+                firebase_service.add_word_to_user(
+                    user_id, _build_word_doc(word_data, topic)
+                )
 
     # Always save to the caller even if group query missed them
     if caller_id and caller_id not in saved_user_ids:
         logger.warning(f"User {caller_id} not found in group {group_id} query, saving directly")
-        # Also fix their group_id
         firebase_service.update_user(caller_id, {"group_id": group_id})
+        existing_vocab = set(
+            w.lower() for w in firebase_service.get_user_word_list(caller_id)
+        )
         for word_data in words:
-            firebase_service.add_word_to_user(caller_id, _build_word_doc(word_data, topic))
+            if word_data.get("word", "").lower() not in existing_vocab:
+                firebase_service.add_word_to_user(
+                    caller_id, _build_word_doc(word_data, topic)
+                )
 
 
 def format_daily_words(words: list, topic: str) -> list[str]:

@@ -38,6 +38,71 @@ async def generate_quiz_question(telegram_id: int,
     return question
 
 
+async def generate_quiz_batch(telegram_id: int, count: int = 5,
+                              types: list[str] = None) -> list[dict] | None:
+    """Generate all quiz questions in a single AI call.
+
+    Picks random words from user's vocabulary and generates questions
+    for all of them in one batch request.
+    """
+    words = firebase_service.get_user_vocabulary(telegram_id, limit=100)
+    if not words or len(words) < count:
+        return None
+
+    selected = random.sample(words, count)
+
+    if not types:
+        types = ["multiple_choice"] * 3 + ["fill_blank"] * 2
+        random.shuffle(types)
+
+    # Prepare word data for batch generation
+    word_inputs = [
+        {
+            "word": w["word"],
+            "definition": w.get("definition", ""),
+            "word_id": w["id"],
+        }
+        for w in selected
+    ]
+
+    questions = await ai_service.generate_quiz_batch(word_inputs, types)
+
+    # Ensure word_id is set from our selected words
+    for i, q in enumerate(questions):
+        if i < len(selected):
+            q["word_id"] = selected[i]["id"]
+        q = shuffle_options(q)
+        questions[i] = q
+
+    return questions
+
+
+async def generate_review_batch(words: list[dict]) -> list[dict]:
+    """Generate review questions for specific due words in a single AI call."""
+    types = []
+    for _ in words:
+        types.append(random.choice(["multiple_choice", "synonym_antonym"]))
+
+    word_inputs = [
+        {
+            "word": w["word"],
+            "definition": w.get("definition", ""),
+            "word_id": w["id"],
+        }
+        for w in words
+    ]
+
+    questions = await ai_service.generate_quiz_batch(word_inputs, types)
+
+    for i, q in enumerate(questions):
+        if i < len(words):
+            q["word_id"] = words[i]["id"]
+        q = shuffle_options(q)
+        questions[i] = q
+
+    return questions
+
+
 def shuffle_options(question: dict) -> dict:
     """Shuffle multiple choice options while tracking the correct index."""
     if question.get("type") not in ("multiple_choice", "synonym_antonym", "fill_blank"):

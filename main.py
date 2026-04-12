@@ -7,7 +7,8 @@ from telegram.ext import (
 import config
 from bot.handlers.start import get_start_handler, help_command
 from bot.handlers.vocabulary import (
-    daily_command, newdaily_command, word_command, audio_command, mywords_command
+    daily_command, newdaily_command, word_command, audio_command,
+    mywords_command, mydaily_command, share_mydaily_callback
 )
 from bot.handlers.quiz import (
     quiz_command, quiz_answer_callback, quiz_text_answer
@@ -28,7 +29,10 @@ from bot.handlers.settings import (
     groupsettings_command, gsettings_callback, gset_band_callback,
     gset_topic_toggle, gsave_topics_callback, gset_time_callback
 )
-from services.scheduler_service import start_scheduler, stop_scheduler
+from services.scheduler_service import (
+    start_scheduler, stop_scheduler, restore_group_schedules,
+    setup_greeting_schedule
+)
 
 # Logging
 logging.basicConfig(
@@ -43,7 +47,17 @@ def main():
         logger.error("TELEGRAM_BOT_TOKEN not set! Check your .env file.")
         return
 
-    app = ApplicationBuilder().token(config.TELEGRAM_BOT_TOKEN).build()
+    from telegram.request import HTTPXRequest
+    request = HTTPXRequest(
+        connect_timeout=10.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=10.0,
+    )
+    app = (ApplicationBuilder()
+           .token(config.TELEGRAM_BOT_TOKEN)
+           .request(request)
+           .build())
 
     # ─── Conversation handler for /start onboarding ────────────
     app.add_handler(get_start_handler())
@@ -60,6 +74,7 @@ def main():
     app.add_handler(CommandHandler("leaderboard", leaderboard_command))
 
     # ─── Private DM commands ──────────────────────────────────
+    app.add_handler(CommandHandler("mydaily", mydaily_command))
     app.add_handler(CommandHandler("review", review_command))
     app.add_handler(CommandHandler("write", write_command))
     app.add_handler(CommandHandler("translate", translate_command))
@@ -81,7 +96,11 @@ def main():
     app.add_handler(CallbackQueryHandler(
         review_answer_callback, pattern=r"^review_[A-D]$"
     ))
-    # Share to group
+    # Share mydaily to group
+    app.add_handler(CallbackQueryHandler(
+        share_mydaily_callback, pattern=r"^share_mydaily$"
+    ))
+    # Share writing/translation to group
     app.add_handler(CallbackQueryHandler(
         share_callback, pattern=r"^share_"
     ))
@@ -132,6 +151,8 @@ def main():
 
     # ─── Start scheduler ──────────────────────────────────────
     start_scheduler()
+    restore_group_schedules(app.bot)
+    setup_greeting_schedule(app.bot)
 
     # ─── Run bot ──────────────────────────────────────────────
     logger.info("IELTS Bot starting...")

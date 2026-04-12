@@ -78,6 +78,54 @@ Rules:
 - ALL fields required. DO NOT leave any field empty."""
 
 
+GENERATE_QUIZ_BATCH = """Generate quiz questions for these IELTS vocabulary words.
+
+Words:
+{words_list}
+
+Question types requested (in order): {types_list}
+
+STRICT: Generate exactly {count} questions, one per word, matching the requested type.
+Keep questions SHORT (max 15 words).
+
+Return ONLY this exact JSON array:
+[
+  {{
+    "type": "multiple_choice",
+    "word": "pedagogy",
+    "question": "What does 'pedagogy' mean?",
+    "options": ["teaching methods", "school building", "student group", "exam type"],
+    "correct_index": 0,
+    "explanation": "Pedagogy refers to the method of teaching."
+  }},
+  {{
+    "type": "fill_blank",
+    "word": "augment",
+    "question": "Technology can _____ classroom learning.",
+    "answer": "augment",
+    "options": ["augment", "diminish", "observe", "restrict"],
+    "correct_index": 0,
+    "hint": "First letter: A",
+    "explanation": "Augment means to increase or enhance."
+  }},
+  {{
+    "type": "synonym_antonym",
+    "word": "ubiquitous",
+    "question": "Which is a SYNONYM of 'ubiquitous'?",
+    "options": ["widespread", "rare", "ancient", "fragile"],
+    "correct_index": 0,
+    "explanation": "Ubiquitous means found everywhere."
+  }}
+]
+
+Rules:
+- multiple_choice: 4 short options, correct at index 0
+- fill_blank: use _____ for blank, include answer field AND 4 options with correct at index 0
+- synonym_antonym: 4 options, correct at index 0
+- ALL fields required. DO NOT leave any field empty.
+- Each question MUST use the corresponding word from the list."""
+
+
 EVALUATE_PARAPHRASE = """Original: "{original}"
 Word to avoid: "{word}"
 Student wrote: "{student_answer}"

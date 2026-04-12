@@ -1,6 +1,5 @@
 import logging
 import random
-from datetime import datetime, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
@@ -28,7 +27,7 @@ async def challenge_command(update: Update,
         await update.message.reply_text("Please /start first!")
         return
 
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = config.local_date_str()
 
     # Load or generate challenge
     challenge_key = f"challenge_{chat.id}_{date_str}"
@@ -244,7 +243,7 @@ async def challenge_results_command(update: Update,
                                      context: ContextTypes.DEFAULT_TYPE):
     """Handle /results — show challenge results."""
     chat = update.effective_chat
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = config.local_date_str()
 
     results = challenge_service.format_challenge_results(chat.id, date_str)
     await update.message.reply_text(results)

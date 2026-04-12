@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timezone
 from services import ai_service, firebase_service
 
 import config
@@ -22,7 +21,7 @@ async def create_daily_challenge(group_id: int) -> tuple[list, str]:
         topic=topic
     )
 
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = config.local_date_str()
     firebase_service.save_challenge(group_id, date_str, questions)
 
     return questions, date_str
@@ -90,12 +89,15 @@ def format_challenge_results(group_id: int, date_str: str) -> str:
         medal = medals[i] if i < 3 else f"  {i + 1}."
         lines.append(f"{medal} *{name}* \u2014 {score}/{total_q}")
 
-    # Update winner's challenge_wins
+    # Update winner's challenge_wins (only once — guard with close_challenge)
     if sorted_p:
-        winner_id = int(sorted_p[0][0])
-        firebase_service.update_user(winner_id, {
-            "challenge_wins": (firebase_service.get_user(winner_id) or {})
-            .get("challenge_wins", 0) + 1
-        })
+        challenge_data = firebase_service.get_challenge(group_id, date_str)
+        if challenge_data and challenge_data.get("status") != "closed":
+            from firebase_admin import firestore as fs
+            winner_id = int(sorted_p[0][0])
+            firebase_service.update_user(winner_id, {
+                "challenge_wins": fs.Increment(1)
+            })
+            firebase_service.close_challenge(group_id, date_str)
 
     return "\n".join(lines)

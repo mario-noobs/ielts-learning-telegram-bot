@@ -1,10 +1,10 @@
 import logging
-from datetime import datetime, timezone
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from services import ai_service, firebase_service, vocab_service, tts_service
 from services.ai_service import RateLimitError
+from services.rate_limit_service import check_rate_limit
 from bot.utils import safe_send, rate_limit_message
 import config
 
@@ -37,7 +37,7 @@ async def _generate_daily(update: Update, context: ContextTypes.DEFAULT_TYPE,
         return
 
     # Check if already generated today
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = config.local_date_str()
     existing = firebase_service.get_daily_words(group_id, date_str)
 
     if existing and not force:
@@ -116,6 +116,11 @@ async def word_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please /start first!")
         return
 
+    allowed, limit_msg = check_rate_limit(user.id, "word")
+    if not allowed:
+        await update.message.reply_text(limit_msg)
+        return
+
     if not context.args:
         await update.message.reply_text(
             "Usage: /word <word>\nExample: /word ubiquitous"
@@ -161,7 +166,7 @@ async def audio_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("This command works in group chats.")
         return
 
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = config.local_date_str()
     daily = firebase_service.get_daily_words(group_id, date_str)
 
     if not daily:
@@ -255,3 +260,142 @@ async def mywords_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines.append("\n\U0001f534 Weak  \U0001f7e1 Learning  \U0001f7e2 Good  \u2b50 Mastered")
 
     await safe_send(update.message, "\n".join(lines))
+
+
+async def mydaily_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /mydaily — personal daily vocabulary in DM."""
+    user = update.effective_user
+    chat = update.effective_chat
+
+    if chat.type != "private":
+        await update.message.reply_text(
+            "DM me for personal daily vocabulary! \U0001f4ac"
+        )
+        return
+
+    user_data = firebase_service.get_user(user.id)
+    if not user_data:
+        await update.message.reply_text("Please /start first!")
+        return
+
+    allowed, limit_msg = check_rate_limit(user.id, "mydaily")
+    if not allowed:
+        await update.message.reply_text(limit_msg)
+        return
+
+    date_str = config.local_date_str()
+
+    # Check if already generated today
+    existing = firebase_service.get_user_daily_words(user.id, date_str)
+    if existing:
+        messages = vocab_service.format_daily_words(
+            existing["words"], existing["topic"]
+        )
+        for msg in messages:
+            await safe_send(update.message, msg)
+
+        # Store for sharing
+        context.user_data["last_mydaily"] = {
+            "words": existing["words"],
+            "topic": existing["topic"],
+        }
+        if user_data.get("group_id"):
+            keyboard = [[InlineKeyboardButton(
+                "Share to group", callback_data="share_mydaily"
+            )]]
+            await update.message.reply_text(
+                "Want to share today's words with your group?",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        return
+
+    # Generate new words using user's personal settings
+    band = user_data.get("target_band", config.DEFAULT_BAND_TARGET)
+    topics = user_data.get("topics", ["education", "environment", "technology"])
+
+    await update.message.reply_text("\u23f3 Generating your personal vocabulary...")
+
+    try:
+        words, topic = await vocab_service.generate_personal_daily_words(
+            telegram_id=user.id,
+            count=config.DEFAULT_WORD_COUNT,
+            band=band,
+            topics=topics,
+        )
+
+        # Save to user's daily_words and vocabulary
+        firebase_service.save_user_daily_words(user.id, date_str, words, topic)
+
+        existing_vocab = set(
+            w.lower() for w in firebase_service.get_user_word_list(user.id)
+        )
+        for word_data in words:
+            if word_data.get("word", "").lower() not in existing_vocab:
+                firebase_service.add_word_to_user(
+                    user.id, vocab_service._build_word_doc(word_data, topic)
+                )
+
+        # Update streak
+        firebase_service.update_streak(user.id)
+
+        messages = vocab_service.format_daily_words(words, topic)
+        for msg in messages:
+            await safe_send(update.message, msg)
+
+        # Store for sharing
+        context.user_data["last_mydaily"] = {
+            "words": words,
+            "topic": topic,
+        }
+
+        if user_data.get("group_id"):
+            keyboard = [[InlineKeyboardButton(
+                "Share to group", callback_data="share_mydaily"
+            )]]
+            await update.message.reply_text(
+                "Want to share today's words with your group?",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+    except RateLimitError as e:
+        await update.message.reply_text(rate_limit_message(e))
+    except Exception as e:
+        logger.error(f"Failed to generate personal daily words: {e}")
+        await update.message.reply_text(
+            "\u274c Failed to generate vocabulary. Please try again later."
+        )
+
+
+async def share_mydaily_callback(update: Update,
+                                  context: ContextTypes.DEFAULT_TYPE):
+    """Handle share button from /mydaily."""
+    query = update.callback_query
+    await query.answer()
+    user = query.from_user
+
+    user_data = firebase_service.get_user(user.id)
+    group_id = user_data.get("group_id") if user_data else None
+
+    if not group_id:
+        await query.edit_message_text("No group found. Join a group first.")
+        return
+
+    data = context.user_data.get("last_mydaily")
+    if not data:
+        await query.edit_message_text("Nothing to share.")
+        return
+
+    try:
+        messages = vocab_service.format_daily_words(data["words"], data["topic"])
+        header = f"\U0001f4da {user.first_name} shared their daily vocabulary:\n\n"
+        for msg in messages:
+            await context.bot.send_message(
+                chat_id=group_id, text=(header + msg)[:4000]
+            )
+            header = ""  # Only add header to first message
+        await query.edit_message_text("Shared to group!")
+    except Exception as e:
+        logger.error(f"Share mydaily failed: {e}")
+        await query.edit_message_text(
+            "Failed to share. Make sure the bot is still in the group."
+        )
