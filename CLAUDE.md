@@ -48,3 +48,11 @@ There are no tests, no linter configuration, and no build step.
 ## Config
 
 All configuration lives in `config.py`, loaded from `.env` via `python-dotenv`. SRS parameters, quiz types, challenge settings, and rate limit constants are hardcoded there — not in env vars.
+
+## Deployment
+
+Pushing to `main` triggers `.github/workflows/deploy.yml`, which SSHes into the production VPS and runs `git pull` + `pip install` + `systemctl restart ielts-bot`. The workflow uses GitHub Actions secrets `SSH_HOST`, `SSH_USER`, and `SSH_PRIVATE_KEY` — no application secrets (Telegram token, Gemini key, Firebase credentials) ever leave the host.
+
+For the full deploy recipe, initial server setup, rollback procedure, and troubleshooting guide, see `.claude/skills/deploy/SKILL.md`.
+
+To deploy manually: `ssh ielts@<host>`, then `cd /home/ielts/ielts-bot && git pull origin main && ./venv/bin/pip install -r requirements.txt --quiet && sudo systemctl restart ielts-bot`.

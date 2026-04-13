@@ -13,12 +13,13 @@ Ship Q2 of the 2026 roadmap (Vocabulary depth): Q2-3 Smart Daily Greeting → Q2
 ## Status Board
 
 ### In Progress
-_(move stories here when development begins)_
+_(no stories currently in progress)_
 
 ### In Review
-_(move stories here when code is ready for review)_
+_(no stories currently in review)_
 
 ### Done
+- GH#7 — Deployment skill + auto-deploy on push to main — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/7
 - GH#6 — Fold enrichment into vocab generation (10x Gemini cost cut) — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/6
 - GH#5 — Bug: RPD exhaustion + background keeps retrying — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/5
 - GH#4 — Bug: enrichment burns RPM quota — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/4
@@ -48,6 +49,7 @@ _(Architect documents ADRs here)_
 - GH#4 ADR — Process-wide `GeminiGate` in ai_service.py: sliding-window token bucket with priority kwarg, background capped at 2 RPM / 30s sleep, foreground unrestricted up to 15 RPM, asyncio.Lock-guarded
 - GH#5 ADR — RPD-aware circuit breaker: daily-spend counter (80% cap for background), RPD 429 disables background until midnight UTC, new `BackgroundDisabled` exception for clean caller signaling
 - GH#6 ADR — Expand GENERATE_VOCABULARY prompt to return all 11 enrichment fields per word, write to enriched_words cache inline via new `persist_generated_words()` helper, remove 3 background enrichment call sites (11 Gemini calls → 1)
+- GH#7 ADR — SSH-to-VPS deploy with systemd + GitHub Actions (appleboy/ssh-action), host-resident secrets, git-pull mechanism, manual rollback via skill
 
 ---
 
@@ -74,3 +76,6 @@ _(Each agent appends a one-line entry when they complete work)_
 | 2026-04-13 | Reviewer | GH#4 APPROVED + closed |
 | 2026-04-13 | Reviewer | GH#5 APPROVED + closed |
 | 2026-04-13 | Reviewer | GH#6 APPROVED + closed |
+| 2026-04-13 | Orchestrator | Pipeline started: Deployment skill + auto-deploy on GitHub push (user-requested infra, off-roadmap) |
+| 2026-04-13 | Reviewer | GH#7 APPROVED + closed |
+| 2026-04-13 | Orchestrator | GH#7 shipped ✓ (files unstaged — awaiting human review + SSH secrets setup before first push) |
