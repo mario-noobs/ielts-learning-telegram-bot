@@ -2,10 +2,15 @@ GENERATE_VOCABULARY = """Generate {count} IELTS words for Band {band}+ on topic 
 {exclude_clause}
 
 STRICT RULES:
-- definition_en: MAX 10 words, short and simple
+- ipa: standard IPA transcription, e.g. /juːˈbɪkwɪtəs/
+- syllable_stress: syllables separated by " · ", stressed syllable in CAPS, e.g. "u · BIQ · ui · tous"
+- definition_en: MAX 15 words, short and simple
 - definition_vi: REQUIRED, Vietnamese with diacritics (ă, â, ê, ô, ơ, ư, đ, etc.)
-- example_en: 1 short sentence (max 15 words)
+- word_family: 3-5 related forms (noun, verb, adj, adv)
+- collocations: 2-3 common IELTS collocations with usage label (formal/neutral/academic)
+- example_en: 1 sentence appropriate for Band {band} (max 15 words)
 - example_vi: REQUIRED, Vietnamese translation of the example
+- ielts_tip: 1 short sentence about using this word in IELTS
 - DO NOT skip definition_vi or example_vi. Every field is MANDATORY.
 
 Return ONLY this JSON format, no other text:
@@ -13,11 +18,18 @@ Return ONLY this JSON format, no other text:
   {{
     "word": "ubiquitous",
     "ipa": "/juːˈbɪkwɪtəs/",
+    "syllable_stress": "u · BIQ · ui · tous",
     "part_of_speech": "adj",
-    "definition_en": "found everywhere",
+    "definition_en": "found everywhere, present in all places",
     "definition_vi": "có mặt ở khắp nơi",
+    "word_family": ["ubiquity", "ubiquitously"],
+    "collocations": [
+      {{"phrase": "ubiquitous presence", "label": "formal"}},
+      {{"phrase": "become ubiquitous", "label": "neutral"}}
+    ],
     "example_en": "Smartphones are ubiquitous in modern life.",
-    "example_vi": "Điện thoại thông minh có mặt khắp nơi trong cuộc sống hiện đại."
+    "example_vi": "Điện thoại thông minh có mặt khắp nơi trong cuộc sống hiện đại.",
+    "ielts_tip": "Use in essays about technology or globalization to show advanced vocabulary."
   }}
 ]"""
 

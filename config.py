@@ -10,7 +10,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Google Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-2.5-flash-lite"
 
 # Firebase
 FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")
@@ -24,6 +24,14 @@ DEFAULT_WORD_COUNT = int(os.getenv("DEFAULT_WORD_COUNT", "10"))
 # Rate limiting
 GEMINI_RPM_LIMIT = 15
 GEMINI_RETRY_DELAY = 5  # seconds
+
+# Gemini gate — background enrichment budget
+GEMINI_BACKGROUND_RPM = 2          # max background calls per 60 s window
+GEMINI_BACKGROUND_SLEEP = 30       # seconds between background enrichment calls
+
+# Gemini daily quota (free tier)
+GEMINI_DAILY_QUOTA = 1500                  # informational — actual API limit
+GEMINI_DAILY_BACKGROUND_CAP = 1200         # 80% — stop background to reserve for foreground
 
 # SRS defaults
 SRS_INITIAL_INTERVAL = 1  # days

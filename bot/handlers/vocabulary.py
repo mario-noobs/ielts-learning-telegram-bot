@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -80,11 +79,11 @@ async def _generate_daily(update: Update, context: ContextTypes.DEFAULT_TYPE,
         for msg in messages:
             await safe_send(message, msg)
 
-        # Background-enrich words into cache
+        # Persist enriched words to cache (sync, no Gemini calls)
         try:
-            asyncio.create_task(word_service.enrich_words_background(words, band))
+            word_service.persist_generated_words(words, band)
         except Exception:
-            logger.exception("Failed to schedule enrichment")
+            logger.exception("Failed to persist generated words")
 
         # Update streaks for all users
         users = firebase_service.get_all_users_in_group(group_id)
@@ -392,11 +391,11 @@ async def mydaily_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for msg in messages:
             await safe_send(update.message, msg)
 
-        # Background-enrich words into cache
+        # Persist enriched words to cache (sync, no Gemini calls)
         try:
-            asyncio.create_task(word_service.enrich_words_background(words, band))
+            word_service.persist_generated_words(words, band)
         except Exception:
-            logger.exception("Failed to schedule enrichment")
+            logger.exception("Failed to persist generated words")
 
         # Store for sharing
         context.user_data["last_mydaily"] = {

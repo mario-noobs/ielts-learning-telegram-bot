@@ -41,11 +41,11 @@ async def scheduled_daily_vocab(bot, group_id: int):
             await safe_send(bot, msg, chat_id=group_id)
         logger.info(f"Daily vocab posted to group {group_id}")
 
-        # Background-enrich words into cache
+        # Persist enriched words to cache (sync, no Gemini calls)
         try:
-            asyncio.create_task(word_service.enrich_words_background(words, band))
+            word_service.persist_generated_words(words, band)
         except Exception:
-            logger.exception("Failed to schedule enrichment")
+            logger.exception("Failed to persist generated words")
     except Exception as e:
         logger.error(f"Failed to post daily vocab: {e}")
 
