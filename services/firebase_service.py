@@ -131,6 +131,15 @@ def get_user_word_list(telegram_id: int) -> list[str]:
     return [doc.to_dict().get("word", "") for doc in docs]
 
 
+def get_mastered_words(telegram_id: int) -> list[dict]:
+    """Return all vocabulary docs with srs_interval > 30 (mastered)."""
+    docs = (_get_db().collection("users").document(str(telegram_id))
+            .collection("vocabulary")
+            .where("srs_interval", ">", 30)
+            .stream())
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
 def get_due_words(telegram_id: int, limit: int = 10) -> list[dict]:
     now = datetime.now(timezone.utc)
     docs = (_get_db().collection("users").document(str(telegram_id))
@@ -168,6 +177,17 @@ def save_quiz_result(telegram_id: int, quiz_data: dict):
     if quiz_data.get("is_correct"):
         update_data["total_correct"] = firestore.Increment(1)
     user_ref.update(update_data)
+
+
+def get_latest_quiz(telegram_id: int) -> Optional[dict]:
+    """Return the most recent quiz_history doc, or None."""
+    docs = (_get_db().collection("users").document(str(telegram_id))
+            .collection("quiz_history")
+            .order_by("created_at", direction=firestore.Query.DESCENDING)
+            .limit(1)
+            .stream())
+    results = [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return results[0] if results else None
 
 
 def get_quiz_stats(telegram_id: int) -> dict:
@@ -295,6 +315,27 @@ def close_challenge(group_id: int, date_str: str):
     doc_ref = (_get_db().collection("groups").document(str(group_id))
                .collection("challenges").document(date_str))
     doc_ref.update({"status": "closed"})
+
+
+# ─── Enriched Word Cache ──────────────────────────────────────────
+
+def get_enriched_word_doc(word: str) -> Optional[dict]:
+    """Fetch cached enriched word document. Returns None on miss."""
+    doc = _get_db().collection("enriched_words").document(word).get()
+    return doc.to_dict() if doc.exists else None
+
+
+def set_enriched_word_doc(word: str, data: dict):
+    """Write full enriched word document to cache."""
+    data["cached_at"] = datetime.now(timezone.utc)
+    _get_db().collection("enriched_words").document(word).set(data)
+
+
+def update_enriched_word_example(word: str, band_tier: str, example: dict):
+    """Add a band-tier example to an existing enriched word doc."""
+    _get_db().collection("enriched_words").document(word).update({
+        f"examples_by_band.{band_tier}": example
+    })
 
 
 # ─── Leaderboard ──────────────────────────────────────────────────

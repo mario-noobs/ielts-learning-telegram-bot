@@ -6,20 +6,22 @@
 ---
 
 ## Current Sprint Goal
-_Define your sprint goal here — e.g. "Ship the vocabulary handler end-to-end"_
+Ship Q2 of the 2026 roadmap (Vocabulary depth): Q2-3 Smart Daily Greeting → Q2-1 `/word` Enrichment → Q2-2 `/topic` Clusters. Foundation for Q3 pronunciation features.
 
 ---
 
 ## Status Board
 
 ### In Progress
-_(move stories here when work starts)_
+_(move stories here when implementation begins)_
 
 ### In Review
-_(move stories here when code is written, awaiting Reviewer)_
+_(move stories here when review begins)_
 
 ### Done
-_(move stories here after Reviewer approves)_
+- GH#3 — Cache-on-generate for AI vocab (Q2-1 follow-up) — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/3
+- GH#2 — /word Enrichment (Q2-1) — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/2
+- GH#1 — Smart Daily Greeting (Q2-3) — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/1
 
 ---
 
@@ -36,6 +38,10 @@ _(Architect documents ADRs here)_
 **Context:** python-telegram-bot v20 is fully async; mixing sync/async causes deadlocks.
 **Decision:** All handlers, services, and DB calls must be async. Use `asyncpg` or `aiosqlite`.
 **Consequences:** Slightly steeper learning curve; eliminates entire class of concurrency bugs.
+
+- GH#1 ADR — Inline `_pick_greeting_line()` helper in scheduler_service with 5-rule priority chain, 0 Gemini calls, ≤2 extra Firestore reads, no new fields
+- GH#2 ADR — New `word_service.py` with Firestore `enriched_words/{word}` cache (top-level `ipa` for Q3-1), band-bucketed examples with partial regen, two prompt templates, drop-in replacement of freeform `/word`
+- GH#3 ADR — Background `enrich_words_background()` in word_service.py, fired via `asyncio.create_task` from 4 entry points after daily message dispatch, sequential iteration with 4.5s sleep for Gemini rate-limit safety, cache pre-filter to skip enriched words, break-on-RateLimitError
 
 ---
 
@@ -54,3 +60,8 @@ _(Each agent appends a one-line entry when they complete work)_
 | Timestamp | Agent | Action |
 |-----------|-------|--------|
 | — | — | Project initialized |
+| 2026-04-13 | Orchestrator | Sprint started: Q2 2026 roadmap (Q2-3 → Q2-1 → Q2-2) |
+| 2026-04-13 | Architect | ADR-2 posted on GH#1: Smart Daily Greeting personalization architecture |
+| 2026-04-13 | Reviewer | GH#1 APPROVED + closed |
+| 2026-04-13 | Reviewer | GH#2 APPROVED + closed |
+| 2026-04-13 | Reviewer | GH#3 APPROVED + closed |

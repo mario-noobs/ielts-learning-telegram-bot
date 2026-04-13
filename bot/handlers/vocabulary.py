@@ -1,8 +1,9 @@
+import asyncio
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from services import ai_service, firebase_service, vocab_service, tts_service
+from services import ai_service, firebase_service, vocab_service, tts_service, word_service
 from services.ai_service import RateLimitError
 from services.rate_limit_service import check_rate_limit
 from bot.utils import safe_send, rate_limit_message
@@ -79,6 +80,12 @@ async def _generate_daily(update: Update, context: ContextTypes.DEFAULT_TYPE,
         for msg in messages:
             await safe_send(message, msg)
 
+        # Background-enrich words into cache
+        try:
+            asyncio.create_task(word_service.enrich_words_background(words, band))
+        except Exception:
+            logger.exception("Failed to schedule enrichment")
+
         # Update streaks for all users
         users = firebase_service.get_all_users_in_group(group_id)
         for u in users:
@@ -103,8 +110,49 @@ async def newdaily_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _generate_daily(update, context, force=True)
 
 
+def _format_enriched_word(data: dict, band_tier_str: str) -> str:
+    """Format enriched word data as a Telegram Markdown message."""
+    word = data.get("word", "")
+    ipa = data.get("ipa", "")
+    stress = data.get("syllable_stress", "")
+    pos = data.get("part_of_speech", "")
+    def_en = data.get("definition_en", "")
+    def_vi = data.get("definition_vi", "")
+    family = ", ".join(data.get("word_family", []))
+    example = data.get("examples_by_band", {}).get(band_tier_str, {})
+    tip = data.get("ielts_tip", "")
+
+    lines = [
+        f"\U0001f4d6 *{word}*  {ipa}  ({pos})",
+        f"\U0001f508 {stress}",
+        "",
+        f"\U0001f1ec\U0001f1e7 EN: {def_en}",
+        f"\U0001f1fb\U0001f1f3 VI: {def_vi}",
+        "",
+        f"\U0001f4d7 *Word family:* {family}",
+        "",
+        "\U0001f517 *Collocations:*",
+    ]
+
+    for c in data.get("collocations", []):
+        lines.append(f"\u2022 {c.get('phrase', '')} ({c.get('label', '')})")
+
+    if example:
+        lines.append("")
+        lines.append(f"\U0001f4dd *Example (Band {band_tier_str}):*")
+        lines.append(example.get("en", ""))
+        if example.get("vi"):
+            lines.append(f"\u2192 {example['vi']}")
+
+    if tip:
+        lines.append("")
+        lines.append(f"\U0001f4a1 *IELTS tip:* {tip}")
+
+    return "\n".join(lines)
+
+
 async def word_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /word <word> — explain a word (DM only)."""
+    """Handle /word <word> — enriched word lookup (DM only)."""
     user = update.effective_user
     chat = update.effective_chat
 
@@ -135,8 +183,10 @@ async def word_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                      parse_mode="Markdown")
 
     try:
-        explanation = await ai_service.explain_word(word, band)
-        await safe_send(update.message, explanation)
+        data = await word_service.get_enriched_word(word, band)
+        tier = word_service.band_tier(band)
+        msg = _format_enriched_word(data, tier)
+        await safe_send(update.message, msg)
     except RateLimitError as e:
         await update.message.reply_text(rate_limit_message(e))
     except Exception as e:
@@ -341,6 +391,12 @@ async def mydaily_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         messages = vocab_service.format_daily_words(words, topic)
         for msg in messages:
             await safe_send(update.message, msg)
+
+        # Background-enrich words into cache
+        try:
+            asyncio.create_task(word_service.enrich_words_background(words, band))
+        except Exception:
+            logger.exception("Failed to schedule enrichment")
 
         # Store for sharing
         context.user_data["last_mydaily"] = {

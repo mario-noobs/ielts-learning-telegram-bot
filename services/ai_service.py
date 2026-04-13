@@ -108,6 +108,24 @@ async def generate_vocabulary(count: int, band: float, topic: str,
     return await generate_json(prompt)
 
 
+async def enrich_word(word: str, band: float) -> dict:
+    """Generate full word enrichment data via Gemini. Returns parsed JSON dict."""
+    from prompts.word_enrichment_prompt import ENRICH_WORD
+    prompt = ENRICH_WORD.format(word=word, band=band)
+    return await generate_json(prompt)
+
+
+async def generate_band_example(word: str, part_of_speech: str,
+                                definition_en: str, band: float) -> dict:
+    """Generate a band-specific example sentence via Gemini. Returns parsed JSON dict."""
+    from prompts.word_enrichment_prompt import ENRICH_WORD_EXAMPLE
+    prompt = ENRICH_WORD_EXAMPLE.format(
+        word=word, part_of_speech=part_of_speech,
+        definition_en=definition_en, band=band
+    )
+    return await generate_json(prompt)
+
+
 async def explain_word(word: str, band: float) -> str:
     from prompts.vocab_prompt import EXPLAIN_WORD
 

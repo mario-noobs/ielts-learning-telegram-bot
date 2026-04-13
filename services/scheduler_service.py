@@ -1,8 +1,11 @@
+import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
-from services import vocab_service, challenge_service, firebase_service
+from services import vocab_service, challenge_service, firebase_service, word_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,12 @@ async def scheduled_daily_vocab(bot, group_id: int):
         for msg in messages:
             await safe_send(bot, msg, chat_id=group_id)
         logger.info(f"Daily vocab posted to group {group_id}")
+
+        # Background-enrich words into cache
+        try:
+            asyncio.create_task(word_service.enrich_words_background(words, band))
+        except Exception:
+            logger.exception("Failed to schedule enrichment")
     except Exception as e:
         logger.error(f"Failed to post daily vocab: {e}")
 
@@ -99,6 +108,69 @@ def setup_group_schedule(bot, group_id: int, daily_time: str = "08:00"):
     logger.info(f"Scheduled daily jobs for group {group_id} at {daily_time}")
 
 
+def _pick_greeting_line(user: dict, user_id: int, due_count: int) -> str | None:
+    """Evaluate rules 1-5 in priority order; return the personalized line.
+
+    Args:
+        user: The full user document dict (already loaded by caller).
+        user_id: Telegram user ID (int), needed for subcollection queries.
+        due_count: Number of due words (already computed by caller via get_due_words).
+
+    Returns:
+        A single formatted string for the greeting body, or None to fall back
+        to the existing default greeting block.
+    """
+    try:
+        # Rule 1: User has words due for SRS review (most common case, zero extra reads)
+        if due_count > 0:
+            return f"\U0001f4dd You have {due_count} words due for review. /review to keep your streak."
+
+        # Rule 2: Any word mastered yesterday (uses 48h window to handle timezone edge cases)
+        mastered_words = firebase_service.get_mastered_words(user_id)
+        now = datetime.now(timezone.utc)
+        mastered_recently = []
+        for w in mastered_words:
+            next_review = w.get("srs_next_review")
+            interval = w.get("srs_interval", 0)
+            if next_review and interval:
+                # Derive the date the word was last reviewed (approximate mastery date).
+                # SM-2 sets next_review = now + timedelta(days=interval), so
+                # mastery_date ≈ next_review - interval.
+                if hasattr(next_review, "timestamp"):
+                    mastery_date = next_review - timedelta(days=interval)
+                else:
+                    continue
+                # 48h window instead of strict "yesterday" to account for
+                # timezone differences between UTC storage and VN-time greeting
+                if (now - mastery_date).total_seconds() < 48 * 3600:
+                    mastered_recently.append(w)
+        if mastered_recently:
+            word_name = mastered_recently[0].get("word", "a word")
+            total_mastered = len(mastered_words)
+            return f"\u2b50 You locked in '{word_name}' yesterday. {total_mastered} words mastered total."
+
+        # Rule 3: No quiz in 3+ days
+        latest_quiz = firebase_service.get_latest_quiz(user_id)
+        if latest_quiz is None:
+            return "\u23f8\ufe0f Quiz streak paused for a while. /quiz to restart."
+        quiz_date = latest_quiz.get("created_at")
+        if quiz_date and hasattr(quiz_date, "timestamp"):
+            days_inactive = (now - quiz_date).days
+            if days_inactive >= 3:
+                return f"\u23f8\ufe0f Quiz streak paused for {days_inactive} days. /quiz to restart."
+
+        # Rule 4: Brand new user with no words at all
+        if user.get("total_words", 0) == 0:
+            return "\U0001f195 You haven't received any words yet. Try /mydaily."
+
+        # Rule 5: Default fallback — return None so caller uses the existing greeting body
+        return None
+
+    except Exception:
+        logger.warning(f"Greeting personalization failed for {user_id}", exc_info=True)
+        return None
+
+
 async def scheduled_daily_greeting(bot):
     """Send a daily greeting/reminder to all users via DM."""
     try:
@@ -117,25 +189,24 @@ async def scheduled_daily_greeting(bot):
                     "",
                     f"\U0001f525 Streak: {streak} day{'s' if streak != 1 else ''}",
                 ]
-                if due_count > 0:
-                    lines.append(
-                        f"\U0001f4dd Words due for review: {due_count}"
-                    )
-                    lines.append("  /review \u2014 Practice them now!")
+
+                personalized = _pick_greeting_line(user, user_id, due_count)
+                if personalized:
+                    lines.append(personalized)
                 else:
+                    # Default block (Rule 5 fallback or personalization error)
                     lines.append(
                         "\u2705 No words due \u2014 you're all caught up!"
                     )
-
-                lines.extend([
-                    "",
-                    "Quick actions:",
-                    "  /mydaily \u2014 Get personalized vocab",
-                    "  /quiz \u2014 Test yourself",
-                    "  /write \u2014 Practice writing",
-                    "",
-                    "Consistency is key. Let's go! \U0001f4aa",
-                ])
+                    lines.extend([
+                        "",
+                        "Quick actions:",
+                        "  /mydaily \u2014 Get personalized vocab",
+                        "  /quiz \u2014 Test yourself",
+                        "  /write \u2014 Practice writing",
+                        "",
+                        "Consistency is key. Let's go! \U0001f4aa",
+                    ])
 
                 await bot.send_message(
                     chat_id=user_id, text="\n".join(lines)
