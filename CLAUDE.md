@@ -51,8 +51,8 @@ All configuration lives in `config.py`, loaded from `.env` via `python-dotenv`. 
 
 ## Deployment
 
-Pushing to `main` triggers `.github/workflows/deploy.yml`, which SSHes into the production VPS and runs `git pull` + `pip install` + `systemctl restart ielts-bot`. The workflow uses GitHub Actions secrets `SSH_HOST`, `SSH_USER`, and `SSH_PRIVATE_KEY` — no application secrets (Telegram token, Gemini key, Firebase credentials) ever leave the host.
+Deploy is **manual**: the production host sits on a private LAN (`192.168.x.x`) and isn't reachable from GitHub-hosted runners, so push-triggered auto-deploy is disabled. The `.github/workflows/deploy.yml` workflow is kept around with `workflow_dispatch` only and will become the auto-deploy path once we move to a public VPS or add a self-hosted runner.
 
-For the full deploy recipe, initial server setup, rollback procedure, and troubleshooting guide, see `.claude/skills/deploy/SKILL.md`.
+To deploy: `ssh ielts@<host>`, then `cd /home/ielts/ielts-bot && git pull origin main && ./venv/bin/pip install -r requirements.txt --quiet && sudo systemctl restart ielts-bot`.
 
-To deploy manually: `ssh ielts@<host>`, then `cd /home/ielts/ielts-bot && git pull origin main && ./venv/bin/pip install -r requirements.txt --quiet && sudo systemctl restart ielts-bot`.
+For initial server setup, rollback, and troubleshooting, see `.claude/skills/deploy/SKILL.md`.

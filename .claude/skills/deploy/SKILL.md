@@ -83,7 +83,7 @@ journalctl -u ielts-bot -f       # tail logs to confirm startup
 
 ## Deploy Procedure
 
-Automatic deploys happen on every push to `main` via the GitHub Actions workflow at `.github/workflows/deploy.yml`. For manual deploys, SSH into the host and run:
+Deploy is **manual over SSH**. The production host sits on a private LAN and isn't reachable from GitHub-hosted runners, so the workflow at `.github/workflows/deploy.yml` is configured as `workflow_dispatch`-only and is currently unused. It will become the auto-deploy path once we move to a public VPS or add a self-hosted runner.
 
 ```bash
 ssh ielts@<host>

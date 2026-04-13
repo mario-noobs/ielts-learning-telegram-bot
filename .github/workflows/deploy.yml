@@ -1,12 +1,10 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "*.md"
-      - ".claude/**"
-      - "LICENSE"
+  # Manual-only: the production host lives on a private LAN and is unreachable
+  # from GitHub-hosted runners. Push-triggered auto-deploy stays disabled until
+  # we move to a public VPS or add a self-hosted runner. Deploy is done manually
+  # via SSH — see .claude/skills/deploy/SKILL.md.
   workflow_dispatch:
 
 concurrency:
