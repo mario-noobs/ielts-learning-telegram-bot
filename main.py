@@ -27,7 +27,9 @@ from bot.handlers.settings import (
     settings_command, settings_callback, set_band_callback,
     set_topic_toggle, save_topics_callback, set_time_callback,
     groupsettings_command, gsettings_callback, gset_band_callback,
-    gset_topic_toggle, gsave_topics_callback, gset_time_callback
+    gset_topic_toggle, gsave_topics_callback, gset_time_callback,
+    gset_challenge_time_callback, gset_word_count_callback,
+    gset_question_count_callback, gset_deadline_callback
 )
 from services.scheduler_service import (
     start_scheduler, stop_scheduler, restore_group_schedules,
@@ -135,6 +137,18 @@ def main():
     ))
     app.add_handler(CallbackQueryHandler(
         gset_time_callback, pattern=r"^gsettime_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        gset_challenge_time_callback, pattern=r"^gsetchtime_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        gset_word_count_callback, pattern=r"^gsetwc_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        gset_question_count_callback, pattern=r"^gsetqc_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        gset_deadline_callback, pattern=r"^gsetdl_"
     ))
 
     # ─── Text message handlers ──────────────────────────────

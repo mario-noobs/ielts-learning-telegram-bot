@@ -221,9 +221,13 @@ def get_group_settings(group_id: int) -> Optional[dict]:
 def create_group(group_id: int, settings: dict = None):
     default = {
         "daily_time": config.DEFAULT_DAILY_TIME,
+        "challenge_time": config.DEFAULT_CHALLENGE_TIME,
         "timezone": config.DEFAULT_TIMEZONE,
         "topics": ["education", "environment", "technology"],
         "default_band": config.DEFAULT_BAND_TARGET,
+        "word_count": config.DEFAULT_WORD_COUNT,
+        "challenge_question_count": config.DEFAULT_CHALLENGE_QUESTION_COUNT,
+        "challenge_deadline_minutes": config.DEFAULT_CHALLENGE_DEADLINE_MINUTES,
         "created_at": datetime.now(timezone.utc),
     }
     if settings:
@@ -285,14 +289,17 @@ def get_user_daily_words(telegram_id: int, date_str: str) -> Optional[dict]:
 
 # ─── Challenge (Group) ────────────────────────────────────────────
 
-def save_challenge(group_id: int, date_str: str, questions: list):
+def save_challenge(group_id: int, date_str: str, questions: list,
+                    deadline_minutes: int = None):
     now = datetime.now(timezone.utc)
+    if deadline_minutes is None:
+        deadline_minutes = config.CHALLENGE_DEADLINE_MINUTES
     doc = {
         "questions": questions,
         "participants": {},
         "status": "active",
         "created_at": now,
-        "expires_at": now + timedelta(minutes=config.CHALLENGE_DEADLINE_MINUTES),
+        "expires_at": now + timedelta(minutes=deadline_minutes),
     }
     (_get_db().collection("groups").document(str(group_id))
      .collection("challenges").document(date_str).set(doc))

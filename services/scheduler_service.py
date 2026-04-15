@@ -25,7 +25,7 @@ async def scheduled_daily_vocab(bot, group_id: int):
     try:
         import config
         group = firebase_service.get_group_settings(group_id)
-        count = config.DEFAULT_WORD_COUNT
+        count = group.get("word_count", config.DEFAULT_WORD_COUNT) if group else config.DEFAULT_WORD_COUNT
         band = group.get("default_band", 7.0) if group else 7.0
 
         words, topic = await vocab_service.generate_daily_words(
@@ -138,16 +138,24 @@ async def scheduled_challenge_expiry(bot, group_id: int, date_str: str):
         logger.error(f"Challenge expiry job failed for {group_id}/{date_str}: {e}")
 
 
-def setup_group_schedule(bot, group_id: int, daily_time: str = "08:00"):
+def setup_group_schedule(bot, group_id: int, daily_time: str = None,
+                         challenge_time: str = None):
     """Set up scheduled jobs for a group.
 
     Args:
         bot: Telegram Bot instance
         group_id: Telegram group chat ID
-        daily_time: Time in HH:MM format
+        daily_time: Vocab time in HH:MM (reads from group settings if None)
+        challenge_time: Challenge time in HH:MM (reads from group settings if None)
     """
+    if daily_time is None or challenge_time is None:
+        group = firebase_service.get_group_settings(group_id)
+        if daily_time is None:
+            daily_time = group.get("daily_time", config.DEFAULT_DAILY_TIME) if group else config.DEFAULT_DAILY_TIME
+        if challenge_time is None:
+            challenge_time = group.get("challenge_time", config.DEFAULT_CHALLENGE_TIME) if group else config.DEFAULT_CHALLENGE_TIME
+
     scheduler = get_scheduler()
-    hour, minute = map(int, daily_time.split(":"))
 
     # Remove existing jobs for this group
     job_ids = [f"daily_vocab_{group_id}", f"daily_challenge_{group_id}"]
@@ -156,29 +164,29 @@ def setup_group_schedule(bot, group_id: int, daily_time: str = "08:00"):
         if existing:
             existing.remove()
 
-    # Daily vocabulary at the scheduled time
+    # Daily vocabulary at configured time
+    v_hour, v_minute = map(int, daily_time.split(":"))
     scheduler.add_job(
         scheduled_daily_vocab,
         "cron",
-        hour=hour, minute=minute,
+        hour=v_hour, minute=v_minute,
         args=[bot, group_id],
         id=f"daily_vocab_{group_id}",
         replace_existing=True
     )
 
-    # Daily challenge 30 minutes after vocab
-    challenge_minute = (minute + 30) % 60
-    challenge_hour = hour if minute + 30 < 60 else (hour + 1) % 24
+    # Daily challenge at its own configured time
+    c_hour, c_minute = map(int, challenge_time.split(":"))
     scheduler.add_job(
         scheduled_daily_challenge,
         "cron",
-        hour=challenge_hour, minute=challenge_minute,
+        hour=c_hour, minute=c_minute,
         args=[bot, group_id],
         id=f"daily_challenge_{group_id}",
         replace_existing=True
     )
 
-    logger.info(f"Scheduled daily jobs for group {group_id} at {daily_time}")
+    logger.info(f"Scheduled: vocab at {daily_time}, challenge at {challenge_time} for group {group_id}")
 
 
 def _pick_greeting_line(user: dict, user_id: int, due_count: int) -> str | None:
@@ -324,7 +332,8 @@ def restore_group_schedules(bot):
         for group in groups:
             group_id = int(group["id"])
             daily_time = group.get("daily_time", config.DEFAULT_DAILY_TIME)
-            setup_group_schedule(bot, group_id, daily_time)
+            challenge_time = group.get("challenge_time", config.DEFAULT_CHALLENGE_TIME)
+            setup_group_schedule(bot, group_id, daily_time, challenge_time)
         logger.info(f"Restored schedules for {len(groups)} groups")
     except Exception as e:
         logger.error(f"Failed to restore group schedules: {e}")

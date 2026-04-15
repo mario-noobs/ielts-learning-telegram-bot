@@ -15,10 +15,13 @@ async def create_daily_challenge(group_id: int) -> tuple[list, str]:
     """Generate a daily challenge for the group with retry on 429.
 
     Retries up to 2 times with 5s doubling backoff on RateLimitError.
+    Reads question count and deadline from per-group settings.
     """
     group = firebase_service.get_group_settings(group_id)
     band = group.get("default_band", 7.0) if group else 7.0
     topics = group.get("topics", ["education"]) if group else ["education"]
+    question_count = group.get("challenge_question_count", config.DEFAULT_CHALLENGE_QUESTION_COUNT) if group else config.DEFAULT_CHALLENGE_QUESTION_COUNT
+    deadline_minutes = group.get("challenge_deadline_minutes", config.DEFAULT_CHALLENGE_DEADLINE_MINUTES) if group else config.DEFAULT_CHALLENGE_DEADLINE_MINUTES
 
     topic = random.choice(topics)
 
@@ -27,7 +30,7 @@ async def create_daily_challenge(group_id: int) -> tuple[list, str]:
     for attempt in range(3):
         try:
             questions = await ai_service.generate_challenge(
-                count=config.CHALLENGE_QUESTION_COUNT,
+                count=question_count,
                 band=band,
                 topic=topic
             )
@@ -49,7 +52,8 @@ async def create_daily_challenge(group_id: int) -> tuple[list, str]:
         raise last_err
 
     date_str = config.local_date_str()
-    firebase_service.save_challenge(group_id, date_str, questions)
+    firebase_service.save_challenge(group_id, date_str, questions,
+                                    deadline_minutes=deadline_minutes)
 
     return questions, date_str
 
@@ -62,15 +66,19 @@ def format_challenge_post(date_str: str, bot_username: str, group_id: int,
     """
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+    group = firebase_service.get_group_settings(group_id)
+    question_count = group.get("challenge_question_count", config.DEFAULT_CHALLENGE_QUESTION_COUNT) if group else config.DEFAULT_CHALLENGE_QUESTION_COUNT
+    deadline = group.get("challenge_deadline_minutes", config.DEFAULT_CHALLENGE_DEADLINE_MINUTES) if group else config.DEFAULT_CHALLENGE_DEADLINE_MINUTES
+
     topic_line = f" on {topic}" if topic else ""
     band_line = f" (Band {band})" if band else ""
 
     text = (
         f"\u26a1 *Daily IELTS Challenge* \u2014 {date_str}\n\n"
-        f"5 questions{topic_line}{band_line}\n"
-        f"\u23f0 You have {config.CHALLENGE_DEADLINE_MINUTES} minutes!\n\n"
+        f"{question_count} questions{topic_line}{band_line}\n"
+        f"\u23f0 You have {deadline} minutes!\n\n"
         f"Tap the button below to start answering in our DM.\n"
-        f"Finish all 5 to maximize your score!"
+        f"Finish all {question_count} to maximize your score!"
     )
 
     deep_link_url = f"https://t.me/{bot_username}?start=challenge_{group_id}_{date_str}"

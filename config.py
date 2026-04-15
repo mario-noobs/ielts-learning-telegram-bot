@@ -41,8 +41,15 @@ SRS_MAX_EASE = 3.0
 
 # Quiz
 QUIZ_TYPES = ["multiple_choice", "fill_blank", "synonym_antonym", "paraphrase"]
-CHALLENGE_QUESTION_COUNT = 5
-CHALLENGE_DEADLINE_MINUTES = 60
+
+# Challenge defaults (overridable per-group via /groupsettings)
+DEFAULT_CHALLENGE_TIME = os.getenv("DEFAULT_CHALLENGE_TIME", "08:30")
+DEFAULT_CHALLENGE_QUESTION_COUNT = int(os.getenv("DEFAULT_CHALLENGE_QUESTION_COUNT", "5"))
+DEFAULT_CHALLENGE_DEADLINE_MINUTES = int(os.getenv("DEFAULT_CHALLENGE_DEADLINE_MINUTES", "60"))
+
+# Legacy aliases (used by code that hasn't switched to per-group yet)
+CHALLENGE_QUESTION_COUNT = DEFAULT_CHALLENGE_QUESTION_COUNT
+CHALLENGE_DEADLINE_MINUTES = DEFAULT_CHALLENGE_DEADLINE_MINUTES
 
 
 def local_date_str() -> str:

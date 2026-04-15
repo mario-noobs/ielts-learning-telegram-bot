@@ -241,27 +241,46 @@ async def groupsettings_command(update: Update,
     band = group.get("default_band", 7.0)
     topics = group.get("topics", [])
     daily_time = group.get("daily_time", "08:00")
+    challenge_time = group.get("challenge_time", "08:30")
+    word_count = group.get("word_count", 10)
+    q_count = group.get("challenge_question_count", 5)
+    deadline = group.get("challenge_deadline_minutes", 60)
     topic_names = [n for tid, n in TOPIC_OPTIONS if tid in topics]
 
     keyboard = [
         [InlineKeyboardButton(
-            "Change Band", callback_data="gsettings_band"
+            "Band", callback_data="gsettings_band"
+        ),
+         InlineKeyboardButton(
+            "Topics", callback_data="gsettings_topics"
         )],
         [InlineKeyboardButton(
-            "Change Topics", callback_data="gsettings_topics"
+            "Vocab Time", callback_data="gsettings_time"
+        ),
+         InlineKeyboardButton(
+            "Challenge Time", callback_data="gsettings_chtime"
         )],
         [InlineKeyboardButton(
-            "Change Daily Time", callback_data="gsettings_time"
+            "Word Count", callback_data="gsettings_wordcount"
+        ),
+         InlineKeyboardButton(
+            "Question Count", callback_data="gsettings_qcount"
+        )],
+        [InlineKeyboardButton(
+            "Challenge Duration", callback_data="gsettings_deadline"
         )],
     ]
 
     await update.message.reply_text(
-        f"Group Settings (shared for /daily & /challenge)\n\n"
-        f"Band: {band}\n"
-        f"Topics: {', '.join(topic_names) or 'default'}\n"
-        f"Daily Time: {daily_time}\n\n"
+        f"*Group Settings*\n\n"
+        f"Band: *{band}*\n"
+        f"Topics: _{', '.join(topic_names) or 'default'}_\n"
+        f"Vocab Time: *{daily_time}*  |  Words: *{word_count}*\n"
+        f"Challenge Time: *{challenge_time}*  |  Questions: *{q_count}*\n"
+        f"Challenge Duration: *{deadline} min*\n\n"
         f"What to change?",
         reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
     )
 
 
@@ -326,6 +345,64 @@ async def gsettings_callback(update: Update,
         ]
         await query.edit_message_text(
             "Select daily vocab time (Vietnam time):",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif query.data == "gsettings_chtime":
+        keyboard = [
+            [InlineKeyboardButton("06:00", callback_data="gsetchtime_06:00"),
+             InlineKeyboardButton("07:00", callback_data="gsetchtime_07:00"),
+             InlineKeyboardButton("08:00", callback_data="gsetchtime_08:00")],
+            [InlineKeyboardButton("08:30", callback_data="gsetchtime_08:30"),
+             InlineKeyboardButton("09:00", callback_data="gsetchtime_09:00"),
+             InlineKeyboardButton("12:00", callback_data="gsetchtime_12:00")],
+            [InlineKeyboardButton("18:00", callback_data="gsetchtime_18:00"),
+             InlineKeyboardButton("20:00", callback_data="gsetchtime_20:00"),
+             InlineKeyboardButton("21:00", callback_data="gsetchtime_21:00")],
+        ]
+        await query.edit_message_text(
+            "Select daily challenge time (Vietnam time):",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif query.data == "gsettings_wordcount":
+        keyboard = [
+            [InlineKeyboardButton("5", callback_data="gsetwc_5"),
+             InlineKeyboardButton("7", callback_data="gsetwc_7"),
+             InlineKeyboardButton("10", callback_data="gsetwc_10")],
+            [InlineKeyboardButton("12", callback_data="gsetwc_12"),
+             InlineKeyboardButton("15", callback_data="gsetwc_15"),
+             InlineKeyboardButton("20", callback_data="gsetwc_20")],
+        ]
+        await query.edit_message_text(
+            "How many words per daily vocab post?",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif query.data == "gsettings_qcount":
+        keyboard = [
+            [InlineKeyboardButton("3", callback_data="gsetqc_3"),
+             InlineKeyboardButton("5", callback_data="gsetqc_5"),
+             InlineKeyboardButton("7", callback_data="gsetqc_7")],
+            [InlineKeyboardButton("10", callback_data="gsetqc_10"),
+             InlineKeyboardButton("15", callback_data="gsetqc_15")],
+        ]
+        await query.edit_message_text(
+            "How many questions per daily challenge?",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif query.data == "gsettings_deadline":
+        keyboard = [
+            [InlineKeyboardButton("30 min", callback_data="gsetdl_30"),
+             InlineKeyboardButton("60 min", callback_data="gsetdl_60"),
+             InlineKeyboardButton("90 min", callback_data="gsetdl_90")],
+            [InlineKeyboardButton("120 min", callback_data="gsetdl_120"),
+             InlineKeyboardButton("180 min", callback_data="gsetdl_180"),
+             InlineKeyboardButton("24 hours", callback_data="gsetdl_1440")],
+        ]
+        await query.edit_message_text(
+            "How long should the challenge stay open?",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
@@ -402,15 +479,81 @@ async def gsave_topics_callback(update: Update,
 
 async def gset_time_callback(update: Update,
                                context: ContextTypes.DEFAULT_TYPE):
-    """Handle group daily time change."""
+    """Handle group daily vocab time change."""
     query = update.callback_query
     await query.answer()
     chat = update.effective_chat
 
     time = query.data.replace("gsettime_", "")
     firebase_service.update_group_settings(chat.id, {"daily_time": time})
-    setup_group_schedule(context.bot, chat.id, time)
+    setup_group_schedule(context.bot, chat.id)
 
     await query.edit_message_text(
         f"\u2705 Daily vocab time updated to {time} (Vietnam time)!"
+    )
+
+
+async def gset_challenge_time_callback(update: Update,
+                                        context: ContextTypes.DEFAULT_TYPE):
+    """Handle group challenge time change."""
+    query = update.callback_query
+    await query.answer()
+    chat = update.effective_chat
+
+    time = query.data.replace("gsetchtime_", "")
+    firebase_service.update_group_settings(chat.id, {"challenge_time": time})
+    setup_group_schedule(context.bot, chat.id)
+
+    await query.edit_message_text(
+        f"\u2705 Challenge time updated to {time} (Vietnam time)!"
+    )
+
+
+async def gset_word_count_callback(update: Update,
+                                     context: ContextTypes.DEFAULT_TYPE):
+    """Handle group word count change."""
+    query = update.callback_query
+    await query.answer()
+    chat = update.effective_chat
+
+    count = int(query.data.replace("gsetwc_", ""))
+    firebase_service.update_group_settings(chat.id, {"word_count": count})
+
+    await query.edit_message_text(
+        f"\u2705 Daily vocab count updated to {count} words!"
+    )
+
+
+async def gset_question_count_callback(update: Update,
+                                         context: ContextTypes.DEFAULT_TYPE):
+    """Handle group challenge question count change."""
+    query = update.callback_query
+    await query.answer()
+    chat = update.effective_chat
+
+    count = int(query.data.replace("gsetqc_", ""))
+    firebase_service.update_group_settings(chat.id, {"challenge_question_count": count})
+
+    await query.edit_message_text(
+        f"\u2705 Challenge questions updated to {count}!"
+    )
+
+
+async def gset_deadline_callback(update: Update,
+                                   context: ContextTypes.DEFAULT_TYPE):
+    """Handle group challenge deadline change."""
+    query = update.callback_query
+    await query.answer()
+    chat = update.effective_chat
+
+    minutes = int(query.data.replace("gsetdl_", ""))
+    firebase_service.update_group_settings(chat.id, {"challenge_deadline_minutes": minutes})
+
+    if minutes >= 60:
+        display = f"{minutes // 60} hour{'s' if minutes >= 120 else ''}"
+    else:
+        display = f"{minutes} minutes"
+
+    await query.edit_message_text(
+        f"\u2705 Challenge duration updated to {display}!"
     )
