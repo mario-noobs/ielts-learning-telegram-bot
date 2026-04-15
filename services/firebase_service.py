@@ -327,7 +327,7 @@ def save_challenge_answer(group_id: int, date_str: str, user_id: int,
 
     now = datetime.now(timezone.utc)
     doc_ref.set({
-        f"responses.{q_idx}": is_correct,
+        "responses": {str(q_idx): is_correct},
         "started_at": now,
         "completed_at": None,
     }, merge=True)
