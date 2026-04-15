@@ -209,18 +209,20 @@ async def audio_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please provide a valid number.")
         return
 
-    # Get today's words
-    group_id = chat.id if chat.type in ("group", "supergroup") else None
-    if not group_id:
-        await update.message.reply_text("This command works in group chats.")
-        return
-
+    # Get today's words — works in both group and DM
     date_str = config.local_date_str()
-    daily = firebase_service.get_daily_words(group_id, date_str)
-
-    if not daily:
-        await update.message.reply_text("No daily words yet. Use /daily first.")
-        return
+    if chat.type in ("group", "supergroup"):
+        daily = firebase_service.get_daily_words(chat.id, date_str)
+        if not daily:
+            await update.message.reply_text("No daily words yet. Use /daily first.")
+            return
+    else:
+        # DM — try user's personal daily words
+        user = update.effective_user
+        daily = firebase_service.get_user_daily_words(user.id, date_str)
+        if not daily:
+            await update.message.reply_text("No daily words yet. Use /mydaily first.")
+            return
 
     words = daily.get("words", [])
     if idx < 0 or idx >= len(words):
@@ -241,6 +243,11 @@ async def audio_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption=f"\U0001f3a7 *{word}* \u2014 {words[idx].get('ipa', '')}",
                 parse_mode="Markdown"
             )
+    else:
+        await update.message.reply_text(
+            f"Failed to generate audio for '{word}'. Try again later."
+        )
+        return
 
     # Also send example sentence audio
     if example:
