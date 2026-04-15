@@ -21,9 +21,16 @@ TOPIC_OPTIONS = [
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /start — register user and begin onboarding."""
+    """Handle /start — register user and begin onboarding.
+
+    Also handles deep-link payloads like /start challenge_{group_id}_{date_str}.
+    """
     user = update.effective_user
     chat = update.effective_chat
+
+    # Deep-link: challenge payload (must check BEFORE onboarding)
+    if context.args and context.args[0].startswith("challenge_"):
+        return await _handle_challenge_deeplink(update, context)
 
     # Check if user already exists
     existing = firebase_service.get_user(user.id)
@@ -196,6 +203,36 @@ async def topics_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Let's start learning! \U0001f680",
         parse_mode="Markdown"
     )
+    return ConversationHandler.END
+
+
+async def _handle_challenge_deeplink(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Route challenge deep-link to the DM challenge flow."""
+    payload = context.args[0]  # "challenge_{group_id}_{date_str}"
+    # Parse: "challenge_{group_id}_{date_str}"
+    # group_id can be negative (e.g. -1001234567890)
+    parts = payload.split("_", 1)  # ["challenge", "{group_id}_{date_str}"]
+    if len(parts) != 2:
+        await update.message.reply_text("Invalid challenge link.")
+        return ConversationHandler.END
+
+    remainder = parts[1]  # "{group_id}_{date_str}"
+    # date_str is always YYYY-MM-DD (10 chars) at the end
+    # group_id is everything before the last underscore + 10-char date
+    last_underscore = remainder.rfind("_")
+    if last_underscore == -1:
+        await update.message.reply_text("Invalid challenge link.")
+        return ConversationHandler.END
+
+    try:
+        group_id = int(remainder[:last_underscore])
+        date_str = remainder[last_underscore + 1:]
+    except (ValueError, IndexError):
+        await update.message.reply_text("Invalid challenge link.")
+        return ConversationHandler.END
+
+    from bot.handlers.challenge import start_challenge_dm
+    await start_challenge_dm(update, context, group_id, date_str)
     return ConversationHandler.END
 
 

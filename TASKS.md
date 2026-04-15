@@ -19,6 +19,7 @@ _(no stories currently in progress)_
 _(no stories currently in review)_
 
 ### Done
+- GH#8 — Daily challenge state lost on restart (Firestore-backed redesign) — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/8
 - GH#7 — Deployment skill + auto-deploy on push to main — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/7
 - GH#6 — Fold enrichment into vocab generation (10x Gemini cost cut) — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/6
 - GH#5 — Bug: RPD exhaustion + background keeps retrying — https://github.com/mario-noobs/ielts-learning-telegram-bot/issues/5
@@ -50,6 +51,7 @@ _(Architect documents ADRs here)_
 - GH#5 ADR — RPD-aware circuit breaker: daily-spend counter (80% cap for background), RPD 429 disables background until midnight UTC, new `BackgroundDisabled` exception for clean caller signaling
 - GH#6 ADR — Expand GENERATE_VOCABULARY prompt to return all 11 enrichment fields per word, write to enriched_words cache inline via new `persist_generated_words()` helper, remove 3 background enrichment call sites (11 Gemini calls → 1)
 - GH#7 ADR — SSH-to-VPS deploy with systemd + GitHub Actions (appleboy/ssh-action), host-resident secrets, git-pull mechanism, manual rollback via skill
+- GH#8 ADR — Firestore-backed challenge state with per-user answer subcollection, lazy deadline enforcement, Gemini generation retry, and transactional `/results` close
 
 ---
 
@@ -79,3 +81,6 @@ _(Each agent appends a one-line entry when they complete work)_
 | 2026-04-13 | Orchestrator | Pipeline started: Deployment skill + auto-deploy on GitHub push (user-requested infra, off-roadmap) |
 | 2026-04-13 | Reviewer | GH#7 APPROVED + closed |
 | 2026-04-13 | Orchestrator | GH#7 shipped ✓ (files unstaged — awaiting human review + SSH secrets setup before first push) |
+| 2026-04-15 | Orchestrator | Pipeline started: Daily challenge flow redesign (user-reported bug — state lost on restart) |
+| 2026-04-15 | Reviewer | GH#8 APPROVED + closed |
+| 2026-04-15 | Orchestrator | GH#8 shipped ✓ — challenge flow redesigned (DM-based, Firestore-backed, auto-expiry) |

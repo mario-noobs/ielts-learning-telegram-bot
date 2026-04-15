@@ -1,6 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import config
@@ -286,11 +286,13 @@ def get_user_daily_words(telegram_id: int, date_str: str) -> Optional[dict]:
 # ─── Challenge (Group) ────────────────────────────────────────────
 
 def save_challenge(group_id: int, date_str: str, questions: list):
+    now = datetime.now(timezone.utc)
     doc = {
         "questions": questions,
         "participants": {},
         "status": "active",
-        "created_at": datetime.now(timezone.utc),
+        "created_at": now,
+        "expires_at": now + timedelta(minutes=config.CHALLENGE_DEADLINE_MINUTES),
     }
     (_get_db().collection("groups").document(str(group_id))
      .collection("challenges").document(date_str).set(doc))
@@ -311,10 +313,154 @@ def update_challenge_score(group_id: int, date_str: str,
     doc_ref.update({f"participants.{user_id}": score})
 
 
-def close_challenge(group_id: int, date_str: str):
+# ─── Challenge Answers (per-user subcollection) ─────────────────
+
+def save_challenge_answer(group_id: int, date_str: str, user_id: int,
+                          q_idx: int, is_correct: bool):
+    """Persist a single answer for a user in the challenge answers subcollection.
+
+    Creates the answer doc on first call; merges subsequent answers.
+    """
     doc_ref = (_get_db().collection("groups").document(str(group_id))
-               .collection("challenges").document(date_str))
-    doc_ref.update({"status": "closed"})
+               .collection("challenges").document(date_str)
+               .collection("answers").document(str(user_id)))
+
+    now = datetime.now(timezone.utc)
+    doc_ref.set({
+        f"responses.{q_idx}": is_correct,
+        "started_at": now,
+        "completed_at": None,
+    }, merge=True)
+
+
+def mark_challenge_answer_complete(group_id: int, date_str: str, user_id: int):
+    """Set completed_at timestamp on a user's answer doc."""
+    doc_ref = (_get_db().collection("groups").document(str(group_id))
+               .collection("challenges").document(date_str)
+               .collection("answers").document(str(user_id)))
+    doc_ref.update({"completed_at": datetime.now(timezone.utc)})
+
+
+def get_user_challenge_answers(group_id: int, date_str: str,
+                               user_id: int) -> Optional[dict]:
+    """Get a single user's answer doc from the challenge answers subcollection."""
+    doc = (_get_db().collection("groups").document(str(group_id))
+           .collection("challenges").document(date_str)
+           .collection("answers").document(str(user_id)).get())
+    if doc.exists:
+        return {"id": doc.id, **doc.to_dict()}
+    return None
+
+
+def get_all_challenge_answers(group_id: int, date_str: str) -> list[dict]:
+    """Get all answer docs for a challenge (one per participant)."""
+    docs = (_get_db().collection("groups").document(str(group_id))
+            .collection("challenges").document(date_str)
+            .collection("answers").stream())
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def close_challenge_atomic(group_id: int, date_str: str) -> Optional[dict]:
+    """Atomically close a challenge: compute scores, set winner, mark closed.
+
+    Uses a Firestore transaction to prevent double-close races.
+    Returns the challenge dict with final participants, or None if no challenge.
+    """
+    db = _get_db()
+    challenge_ref = (db.collection("groups").document(str(group_id))
+                     .collection("challenges").document(date_str))
+
+    @firestore.transactional
+    def _close_txn(txn):
+        challenge_doc = challenge_ref.get(transaction=txn)
+        if not challenge_doc.exists:
+            return None
+
+        challenge = challenge_doc.to_dict()
+        if challenge.get("status") == "closed":
+            # Already closed — return existing results (idempotent)
+            return {"id": challenge_doc.id, **challenge}
+
+        questions = challenge.get("questions", [])
+        total_q = len(questions)
+
+        # Read all answer docs (outside transaction is fine — they're immutable at close time)
+        answers = get_all_challenge_answers(group_id, date_str)
+
+        participants = {}
+        for ans in answers:
+            uid = ans["id"]
+            responses = ans.get("responses", {})
+            # D6 REVISED: score = count of correct answers regardless of completion
+            score = sum(1 for v in responses.values() if v)
+            participants[uid] = score
+
+        # Determine winner (highest score; tie-break: earliest completed_at)
+        winner_id = None
+        if participants:
+            def _sort_key(item):
+                uid, score = item
+                # Find completed_at for tie-breaking
+                ans_doc = next((a for a in answers if a["id"] == uid), None)
+                completed_at = None
+                if ans_doc:
+                    completed_at = ans_doc.get("completed_at")
+                # Higher score first (negate), then earlier completion
+                # If completed_at is None, sort last
+                if completed_at is None:
+                    # Use a far-future timestamp for incomplete users
+                    completed_at = datetime(9999, 1, 1, tzinfo=timezone.utc)
+                elif hasattr(completed_at, 'timestamp'):
+                    pass  # already a datetime
+                return (-score, completed_at)
+
+            sorted_p = sorted(participants.items(), key=_sort_key)
+            winner_id = int(sorted_p[0][0])
+
+        # Write final scores and close
+        txn.update(challenge_ref, {
+            "participants": participants,
+            "status": "closed",
+        })
+
+        # Increment winner's challenge_wins
+        if winner_id is not None and participants.get(str(winner_id), 0) > 0:
+            winner_ref = db.collection("users").document(str(winner_id))
+            txn.update(winner_ref, {
+                "challenge_wins": firestore.Increment(1),
+            })
+
+        result = {"id": challenge_doc.id, **challenge}
+        result["participants"] = participants
+        result["status"] = "closed"
+        return result
+
+    txn = db.transaction()
+    return _close_txn(txn)
+
+
+def get_active_challenges() -> list[dict]:
+    """Get all active challenges across all groups (for restart recovery)."""
+    results = []
+    groups = get_all_groups()
+    now = datetime.now(timezone.utc)
+    for group in groups:
+        group_id = group["id"]
+        docs = (_get_db().collection("groups").document(str(group_id))
+                .collection("challenges")
+                .where("status", "==", "active")
+                .stream())
+        for doc in docs:
+            data = doc.to_dict()
+            expires_at = data.get("expires_at")
+            if expires_at and hasattr(expires_at, 'timestamp'):
+                if expires_at > now:
+                    results.append({
+                        "group_id": group_id,
+                        "date_str": doc.id,
+                        **data,
+                    })
+    return results
 
 
 # ─── Enriched Word Cache ──────────────────────────────────────────

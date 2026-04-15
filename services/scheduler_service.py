@@ -10,6 +10,7 @@ from services import vocab_service, challenge_service, firebase_service, word_se
 logger = logging.getLogger(__name__)
 
 _scheduler = None
+_bot_username_cache = None
 
 
 def get_scheduler() -> AsyncIOScheduler:
@@ -51,18 +52,90 @@ async def scheduled_daily_vocab(bot, group_id: int):
 
 
 async def scheduled_daily_challenge(bot, group_id: int):
-    """Called by scheduler to post daily challenge."""
+    """Called by scheduler to post daily challenge with deep-link button."""
     try:
         questions, date_str = await challenge_service.create_daily_challenge(
             group_id
         )
-        message = challenge_service.format_challenge(questions, date_str)
+
+        # Get bot username for deep-link (cached)
+        global _bot_username_cache
+        if not _bot_username_cache:
+            bot_info = await bot.get_me()
+            _bot_username_cache = bot_info.username
+        bot_username = _bot_username_cache
+
+        # Get group info for topic/band display
+        group = firebase_service.get_group_settings(group_id)
+        topic = None
+        band = None
+        if group:
+            import random
+            topic = random.choice(group.get("topics", ["education"]))
+            band = group.get("default_band", 7.0)
+
+        text, markup = challenge_service.format_challenge_post(
+            date_str, bot_username, group_id, topic=topic, band=band
+        )
         await bot.send_message(
-            chat_id=group_id, text=message, parse_mode="Markdown"
+            chat_id=group_id, text=text,
+            reply_markup=markup, parse_mode="Markdown"
         )
         logger.info(f"Daily challenge posted to group {group_id}")
+
+        # Schedule expiry job
+        challenge = firebase_service.get_challenge(group_id, date_str)
+        if challenge:
+            expires_at = challenge.get("expires_at")
+            if expires_at:
+                schedule_challenge_expiry(bot, group_id, date_str, expires_at)
+
     except Exception as e:
         logger.error(f"Failed to post daily challenge: {e}")
+
+
+def schedule_challenge_expiry(bot, group_id: int, date_str: str, expires_at):
+    """Register a one-shot APScheduler job to close the challenge at expires_at."""
+    scheduler = get_scheduler()
+    job_id = f"challenge_expiry_{group_id}_{date_str}"
+
+    existing = scheduler.get_job(job_id)
+    if existing:
+        logger.info(f"Expiry job {job_id} already exists, skipping")
+        return
+
+    # If expires_at is already past, run immediately (misfire recovery)
+    now = datetime.now(timezone.utc)
+    if hasattr(expires_at, 'timestamp') and expires_at <= now:
+        run_date = now + timedelta(seconds=5)
+    else:
+        run_date = expires_at
+
+    scheduler.add_job(
+        scheduled_challenge_expiry,
+        trigger="date",
+        run_date=run_date,
+        args=[bot, group_id, date_str],
+        id=job_id,
+        misfire_grace_time=3600,  # allow up to 1 hour late
+    )
+    logger.info(f"Scheduled challenge expiry: {job_id} at {run_date}")
+
+
+async def scheduled_challenge_expiry(bot, group_id: int, date_str: str):
+    """One-shot expiry job: close the challenge and post leaderboard to group."""
+    try:
+        result = challenge_service.close_and_score(group_id, date_str)
+        if not result:
+            logger.warning(f"Expiry job: no challenge found for {group_id}/{date_str}")
+            return
+
+        text = challenge_service._build_results_text(result, date_str)
+        from bot.utils import safe_send
+        await safe_send(bot, text, chat_id=group_id)
+        logger.info(f"Challenge expiry: posted results to group {group_id}")
+    except Exception as e:
+        logger.error(f"Challenge expiry job failed for {group_id}/{date_str}: {e}")
 
 
 def setup_group_schedule(bot, group_id: int, daily_time: str = "08:00"):
@@ -242,7 +315,10 @@ def setup_greeting_schedule(bot):
 
 
 def restore_group_schedules(bot):
-    """Restore all group schedules from Firebase on bot startup."""
+    """Restore all group schedules from Firebase on bot startup.
+
+    Also restores pending challenge expiry jobs for active challenges.
+    """
     try:
         groups = firebase_service.get_all_groups()
         for group in groups:
@@ -252,6 +328,20 @@ def restore_group_schedules(bot):
         logger.info(f"Restored schedules for {len(groups)} groups")
     except Exception as e:
         logger.error(f"Failed to restore group schedules: {e}")
+
+    # Restore pending challenge expiry jobs
+    try:
+        active_challenges = firebase_service.get_active_challenges()
+        for ch in active_challenges:
+            group_id = int(ch["group_id"])
+            date_str = ch["date_str"]
+            expires_at = ch.get("expires_at")
+            if expires_at:
+                schedule_challenge_expiry(bot, group_id, date_str, expires_at)
+        if active_challenges:
+            logger.info(f"Restored {len(active_challenges)} challenge expiry jobs")
+    except Exception as e:
+        logger.error(f"Failed to restore challenge expiry jobs: {e}")
 
 
 def start_scheduler():
