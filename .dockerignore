@@ -1,0 +1,11 @@
+.git
+.github
+.claude
+__pycache__
+*.pyc
+.env
+firebase_credentials.json
+web/node_modules
+web/dist
+.pytest_cache
+tests/

@@ -12,7 +12,14 @@ _db = None
 def _get_db():
     global _db
     if _db is None:
-        cred = credentials.Certificate(config.FIREBASE_CREDENTIALS_PATH)
+        json_b64 = getattr(config, 'FIREBASE_CREDENTIALS_JSON', None)
+        if json_b64:
+            import base64
+            import json
+            cred_dict = json.loads(base64.b64decode(json_b64))
+            cred = credentials.Certificate(cred_dict)
+        else:
+            cred = credentials.Certificate(config.FIREBASE_CREDENTIALS_PATH)
         firebase_admin.initialize_app(cred)
         _db = firestore.client()
     return _db
@@ -499,3 +506,60 @@ def get_leaderboard(group_id: int) -> list[dict]:
         stats = get_quiz_stats(int(user["id"]))
         user["accuracy"] = stats["accuracy"]
     return sorted(users, key=lambda u: u.get("total_words", 0), reverse=True)
+
+
+# ─── Web Auth Operations ─────────────────────────────────────────
+
+def get_user_by_auth_uid(auth_uid: str) -> Optional[dict]:
+    """Find user by Firebase Auth UID (stored in auth_mapping collection)."""
+    mapping_doc = _get_db().collection("auth_mapping").document(auth_uid).get()
+    if mapping_doc.exists:
+        user_id = mapping_doc.to_dict().get("user_id")
+        if user_id:
+            # user_id may be a numeric telegram_id or a web_* string
+            try:
+                return get_user(int(user_id))
+            except (ValueError, TypeError):
+                # Web user — fetch by string key directly
+                doc = _get_db().collection("users").document(user_id).get()
+                if doc.exists:
+                    return {"id": doc.id, **doc.to_dict()}
+    return None
+
+
+def create_web_user(auth_uid: str, email: str, name: str,
+                    target_band: float = 7.0, topics: list = None) -> dict:
+    """Create a user from web registration (no telegram_id)."""
+    import uuid
+    user_id = f"web_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc)
+    user_data = {
+        "name": name,
+        "username": "",
+        "email": email,
+        "auth_uid": auth_uid,
+        "group_id": None,
+        "target_band": target_band,
+        "topics": topics or ["education", "environment", "technology"],
+        "daily_time": config.DEFAULT_DAILY_TIME,
+        "timezone": config.DEFAULT_TIMEZONE,
+        "streak": 0,
+        "last_active": now,
+        "total_words": 0,
+        "total_quizzes": 0,
+        "total_correct": 0,
+        "challenge_wins": 0,
+        "created_at": now,
+    }
+    _get_db().collection("users").document(user_id).set(user_data)
+    # Create auth mapping
+    _get_db().collection("auth_mapping").document(auth_uid).set({"user_id": user_id})
+    return {"id": user_id, **user_data}
+
+
+def link_telegram_to_auth(telegram_id: int, auth_uid: str):
+    """Link an existing Telegram user to a Firebase Auth account."""
+    _get_db().collection("auth_mapping").document(auth_uid).set(
+        {"user_id": str(telegram_id)}
+    )
+    update_user(telegram_id, {"auth_uid": auth_uid})

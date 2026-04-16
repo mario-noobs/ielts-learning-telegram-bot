@@ -16,4 +16,22 @@ firebase_credentials.json
 
 # OS
 .DS_Store
+
+# Claude Code
 .claude
+
+# Python
+*.egg-info/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+
+# Web frontend
+web/dist/
+web/.env
+
+# Docker
+*.log

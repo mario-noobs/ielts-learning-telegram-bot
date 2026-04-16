@@ -15,6 +15,9 @@ GEMINI_MODEL = "gemini-2.5-flash-lite"
 # Firebase
 FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")
 
+# Support base64-encoded Firebase credentials for containerized deploys
+FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON")
+
 # Bot defaults
 DEFAULT_DAILY_TIME = os.getenv("DEFAULT_DAILY_TIME", "08:00")
 DEFAULT_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Ho_Chi_Minh")
@@ -50,6 +53,12 @@ DEFAULT_CHALLENGE_DEADLINE_MINUTES = int(os.getenv("DEFAULT_CHALLENGE_DEADLINE_M
 # Legacy aliases (used by code that hasn't switched to per-group yet)
 CHALLENGE_QUESTION_COUNT = DEFAULT_CHALLENGE_QUESTION_COUNT
 CHALLENGE_DEADLINE_MINUTES = DEFAULT_CHALLENGE_DEADLINE_MINUTES
+
+
+# Web API
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("API_PORT", "8000"))
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 
 
 def local_date_str() -> str:

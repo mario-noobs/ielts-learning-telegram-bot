@@ -4,3 +4,6 @@ firebase-admin==6.6.0
 gTTS==2.5.4
 python-dotenv==1.0.1
 APScheduler==3.10.4
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic>=2.10.0
