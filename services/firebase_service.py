@@ -138,6 +138,35 @@ def get_user_word_list(telegram_id: int) -> list[str]:
     return [doc.to_dict().get("word", "") for doc in docs]
 
 
+def get_user_vocabulary_page(telegram_id, limit: int = 20,
+                              after_added_at: Optional[datetime] = None) -> list[dict]:
+    """Cursor-paginated vocabulary fetch ordered by added_at DESC.
+
+    Cursor is the `added_at` timestamp of the last item from the previous page.
+    """
+    query = (_get_db().collection("users").document(str(telegram_id))
+             .collection("vocabulary")
+             .order_by("added_at", direction=firestore.Query.DESCENDING))
+    if after_added_at is not None:
+        query = query.start_after({"added_at": after_added_at})
+    docs = query.limit(limit).stream()
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def count_words_by_topic(telegram_id) -> dict[str, int]:
+    """Return {topic_id: count} across the user's full vocabulary."""
+    docs = (_get_db().collection("users").document(str(telegram_id))
+            .collection("vocabulary")
+            .stream())
+    counts: dict[str, int] = {}
+    for doc in docs:
+        topic = doc.to_dict().get("topic") or ""
+        if not topic:
+            continue
+        counts[topic] = counts.get(topic, 0) + 1
+    return counts
+
+
 def get_mastered_words(telegram_id: int) -> list[dict]:
     """Return all vocabulary docs with srs_interval > 30 (mastered)."""
     docs = (_get_db().collection("users").document(str(telegram_id))
