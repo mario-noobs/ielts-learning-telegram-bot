@@ -1,10 +1,11 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from services import firebase_service, quiz_service
-from services.srs_service import get_word_strength, get_strength_emoji
 from bot.utils import safe_send
+from services import firebase_service, quiz_service
+from services.srs_service import get_strength_emoji, get_word_strength
 
 logger = logging.getLogger(__name__)
 

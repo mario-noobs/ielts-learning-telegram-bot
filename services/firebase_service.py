@@ -1,10 +1,10 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import config
+import firebase_admin
+from firebase_admin import credentials, firestore
 
+import config
 
 _db = None
 
@@ -394,9 +394,6 @@ def close_challenge_atomic(group_id: int, date_str: str) -> Optional[dict]:
         if challenge.get("status") == "closed":
             # Already closed — return existing results (idempotent)
             return {"id": challenge_doc.id, **challenge}
-
-        questions = challenge.get("questions", [])
-        total_q = len(questions)
 
         # Read all answer docs (outside transaction is fine — they're immutable at close time)
         answers = get_all_challenge_answers(group_id, date_str)

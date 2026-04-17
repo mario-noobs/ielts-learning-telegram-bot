@@ -13,7 +13,6 @@ from typing import Optional
 
 from services import firebase_service
 
-
 # ── User Operations ──────────────────────────────────────────────────
 
 async def get_user(telegram_id: int) -> Optional[dict]:

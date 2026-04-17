@@ -1,12 +1,13 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from services import ai_service, firebase_service, vocab_service, tts_service, word_service
+import config
+from bot.utils import rate_limit_message, safe_send
+from services import firebase_service, tts_service, vocab_service, word_service
 from services.ai_service import RateLimitError
 from services.rate_limit_service import check_rate_limit
-from bot.utils import safe_send, rate_limit_message
-import config
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +300,7 @@ async def mywords_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     page_words = words[start:start + page_size]
     total = len(words)
 
-    from services.srs_service import get_word_strength, get_strength_emoji
+    from services.srs_service import get_strength_emoji, get_word_strength
 
     lines = [f"\U0001f4da *Your Vocabulary* (page {page})\n"]
     for i, w in enumerate(page_words, start + 1):

@@ -1,8 +1,8 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes, CommandHandler, CallbackQueryHandler, ConversationHandler
-)
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler
+
 from services import firebase_service
 
 logger = logging.getLogger(__name__)

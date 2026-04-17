@@ -1,10 +1,11 @@
 import logging
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from bot.utils import safe_send
 from services import firebase_service
 from services.leaderboard_service import format_leaderboard
-from bot.utils import safe_send
 
 logger = logging.getLogger(__name__)
 

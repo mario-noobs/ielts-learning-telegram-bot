@@ -3,7 +3,7 @@ import logging
 
 import config
 from services import ai_service, firebase_service
-from services.ai_service import RateLimitError, BackgroundDisabled
+from services.ai_service import BackgroundDisabled, RateLimitError
 
 logger = logging.getLogger(__name__)
 

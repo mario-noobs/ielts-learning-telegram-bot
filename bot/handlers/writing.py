@@ -1,11 +1,12 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.utils import rate_limit_message, safe_send
 from services import ai_service, firebase_service
 from services.ai_service import RateLimitError
 from services.rate_limit_service import check_rate_limit
-from bot.utils import safe_send, rate_limit_message
 
 logger = logging.getLogger(__name__)
 

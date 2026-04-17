@@ -1,14 +1,13 @@
 import logging
 import random
-from datetime import datetime, timezone
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from services import firebase_service, challenge_service
-from services.ai_service import RateLimitError
-from bot.utils import safe_send, rate_limit_message
 import config
+from bot.utils import rate_limit_message, safe_send
+from services import challenge_service, firebase_service
+from services.ai_service import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -213,15 +212,11 @@ async def _send_challenge_question_dm(bot, user, group_id, date_str,
             options = [correct_word] + distractors
 
         random.shuffle(options)
-        correct_idx = options.index(correct_word)
         text = f"Q{q_num}/{total}  Fill in the blank:\n\n{question_text}\n"
     else:
         # MC / synonym_antonym
         options = list(q.get("options", []))
-        orig_correct_idx = q.get("correct_index", 0)
-        correct_answer = options[orig_correct_idx] if orig_correct_idx < len(options) else options[0]
         random.shuffle(options)
-        correct_idx = options.index(correct_answer)
         text = f"Q{q_num}/{total}  {question_text}\n"
 
     # Build inline buttons — callback_data: ch_{group_id}_{date_str}_{q_idx}_{letter}_{uid}
@@ -328,7 +323,6 @@ async def challenge_answer_callback(update: Update,
     # The user chose a letter (A/B/C/D). We need to figure out which option
     # text that corresponds to. The options are displayed in the message text.
     # Parse the option text from the message.
-    answer_idx = ord(answer_letter) - ord("A")
     message_text = query.message.text
     chosen_text = _parse_option_from_message(message_text, answer_letter)
 

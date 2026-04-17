@@ -1,9 +1,9 @@
-import json
-import time
 import asyncio
+import json
 import logging
+import time
 from collections import deque
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import google.generativeai as genai
 
@@ -315,8 +315,10 @@ async def explain_word(word: str, band: float) -> str:
 async def generate_quiz(word: str, definition: str,
                         quiz_type: str) -> dict:
     from prompts.quiz_prompt import (
-        GENERATE_MULTIPLE_CHOICE, GENERATE_FILL_BLANK,
-        GENERATE_SYNONYM_ANTONYM, GENERATE_PARAPHRASE
+        GENERATE_FILL_BLANK,
+        GENERATE_MULTIPLE_CHOICE,
+        GENERATE_PARAPHRASE,
+        GENERATE_SYNONYM_ANTONYM,
     )
 
     prompt_map = {
@@ -404,9 +406,7 @@ async def get_writing_feedback(text: str, band: float) -> str:
 # ─── Translation ───────────────────────────────────────────────────
 
 async def translate_text(text: str, band: float) -> str:
-    from prompts.translate_prompt import (
-        TRANSLATE_VI_TO_EN, TRANSLATE_EN_TO_VI, DETECT_LANGUAGE
-    )
+    from prompts.translate_prompt import DETECT_LANGUAGE, TRANSLATE_EN_TO_VI, TRANSLATE_VI_TO_EN
 
     # Detect language
     lang_prompt = DETECT_LANGUAGE.format(text=text)

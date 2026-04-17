@@ -1,5 +1,6 @@
-import random
 import logging
+import random
+
 from services import ai_service, firebase_service
 from services.srs_service import calculate_next_review
 

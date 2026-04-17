@@ -1,39 +1,57 @@
 import logging
+
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
-    MessageHandler, filters
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
 )
 
 import config
-from bot.handlers.start import get_start_handler, help_command
-from bot.handlers.vocabulary import (
-    daily_command, newdaily_command, word_command, audio_command,
-    mywords_command, mydaily_command, share_mydaily_callback
-)
-from bot.handlers.quiz import (
-    quiz_command, quiz_answer_callback, quiz_text_answer
-)
 from bot.handlers.challenge import (
-    challenge_command, challenge_answer_callback,
-    challenge_results_command
+    challenge_answer_callback,
+    challenge_command,
+    challenge_results_command,
 )
-from bot.handlers.review import (
-    review_command, review_answer_callback, review_text_answer
-)
-from bot.handlers.writing import write_command, translate_command, share_callback
 from bot.handlers.leaderboard import leaderboard_command
 from bot.handlers.progress import progress_command
+from bot.handlers.quiz import quiz_answer_callback, quiz_command, quiz_text_answer
+from bot.handlers.review import review_answer_callback, review_command, review_text_answer
 from bot.handlers.settings import (
-    settings_command, settings_callback, set_band_callback,
-    set_topic_toggle, save_topics_callback, set_time_callback,
-    groupsettings_command, gsettings_callback, gset_band_callback,
-    gset_topic_toggle, gsave_topics_callback, gset_time_callback,
-    gset_challenge_time_callback, gset_word_count_callback,
-    gset_question_count_callback, gset_deadline_callback
+    groupsettings_command,
+    gsave_topics_callback,
+    gset_band_callback,
+    gset_challenge_time_callback,
+    gset_deadline_callback,
+    gset_question_count_callback,
+    gset_time_callback,
+    gset_topic_toggle,
+    gset_word_count_callback,
+    gsettings_callback,
+    save_topics_callback,
+    set_band_callback,
+    set_time_callback,
+    set_topic_toggle,
+    settings_callback,
+    settings_command,
 )
+from bot.handlers.start import get_start_handler, help_command
+from bot.handlers.vocabulary import (
+    audio_command,
+    daily_command,
+    mydaily_command,
+    mywords_command,
+    newdaily_command,
+    share_mydaily_callback,
+    word_command,
+)
+from bot.handlers.writing import share_callback, translate_command, write_command
 from services.scheduler_service import (
-    start_scheduler, stop_scheduler, restore_group_schedules,
-    setup_greeting_schedule
+    restore_group_schedules,
+    setup_greeting_schedule,
+    start_scheduler,
+    stop_scheduler,
 )
 
 # Logging

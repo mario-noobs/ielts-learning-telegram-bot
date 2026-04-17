@@ -1,6 +1,7 @@
-import random
 import json
 import logging
+import random
+
 from services import ai_service, firebase_service
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ def format_daily_words(words: list, topic: str) -> list[str]:
     Returns a list of message strings, each under 4096 chars.
     """
     header = f"\U0001f4da Daily IELTS Vocabulary - {topic}\n\n"
-    footer = f"\n\U0001f3a7 /audio <number> to hear pronunciation"
+    footer = "\n\U0001f3a7 /audio <number> to hear pronunciation"
 
     messages = []
     current = header
@@ -161,7 +162,7 @@ def format_daily_words(words: list, topic: str) -> list[str]:
         entry = f"{i}. {word} {ipa} ({pos}) \u2728\n\n"
         entry += f"\U0001f1ec\U0001f1e7 EN: {def_en}\n"
         entry += f"\U0001f1fb\U0001f1f3 VI: {def_vi}\n" if def_vi else ""
-        entry += f"\n\U0001f4cc Example:\n"
+        entry += "\n\U0001f4cc Example:\n"
         entry += f"{ex_en}\n" if ex_en else ""
         entry += f"\u2192 {ex_vi}\n" if ex_vi else ""
         entry += "\n"

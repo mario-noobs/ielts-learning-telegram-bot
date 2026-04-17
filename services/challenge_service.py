@@ -3,10 +3,9 @@ import logging
 import random
 from datetime import datetime, timezone
 
+import config
 from services import ai_service, firebase_service
 from services.ai_service import RateLimitError
-
-import config
 
 logger = logging.getLogger(__name__)
 

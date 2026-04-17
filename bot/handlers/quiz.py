@@ -1,12 +1,13 @@
 import logging
 import random
 import time as _time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.utils import rate_limit_message
 from services import firebase_service, quiz_service
 from services.ai_service import RateLimitError
-from bot.utils import rate_limit_message
 
 logger = logging.getLogger(__name__)
 

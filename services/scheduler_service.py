@@ -1,11 +1,10 @@
-import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
-from services import vocab_service, challenge_service, firebase_service, word_service
+from services import challenge_service, firebase_service, vocab_service, word_service
 
 logger = logging.getLogger(__name__)
 
