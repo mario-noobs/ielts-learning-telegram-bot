@@ -167,6 +167,35 @@ def count_words_by_topic(telegram_id) -> dict[str, int]:
     return counts
 
 
+# ─── Quiz Sessions (Web) ──────────────────────────────────────────
+
+def save_quiz_session(telegram_id, session_id: str, questions: list[dict]) -> None:
+    """Persist a quiz session with full (unsanitized) question docs."""
+    doc = {
+        "questions": questions,
+        "answered_ids": [],
+        "created_at": datetime.now(timezone.utc),
+    }
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("quiz_sessions").document(session_id).set(doc))
+
+
+def get_quiz_session(telegram_id, session_id: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("quiz_sessions").document(session_id).get())
+    if doc.exists:
+        return doc.to_dict()
+    return None
+
+
+def mark_session_question_answered(telegram_id, session_id: str,
+                                    question_id: str) -> None:
+    """Append question_id to the session's answered_ids array."""
+    ref = (_get_db().collection("users").document(str(telegram_id))
+           .collection("quiz_sessions").document(session_id))
+    ref.update({"answered_ids": firestore.ArrayUnion([question_id])})
+
+
 def get_mastered_words(telegram_id: int) -> list[dict]:
     """Return all vocabulary docs with srs_interval > 30 (mastered)."""
     docs = (_get_db().collection("users").document(str(telegram_id))

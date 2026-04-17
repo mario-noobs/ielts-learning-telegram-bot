@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 import config
 from api.routes.auth import router as auth_router
 from api.routes.health import router as health_router
+from api.routes.quiz import router as quiz_router
 from api.routes.topics import router as topics_router
 from api.routes.vocabulary import router as vocabulary_router
 from api.routes.words import router as words_router
@@ -56,5 +57,6 @@ def create_app() -> FastAPI:
     app.include_router(vocabulary_router)
     app.include_router(words_router)
     app.include_router(topics_router)
+    app.include_router(quiz_router)
 
     return app
