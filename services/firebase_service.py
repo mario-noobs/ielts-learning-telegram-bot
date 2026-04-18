@@ -339,6 +339,28 @@ def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
     return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
+# ─── Daily Plans (US-4.1) ─────────────────────────────────────────
+
+def get_daily_plan(telegram_id, date_str: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("daily_plans").document(date_str).get())
+    if not doc.exists:
+        return None
+    return doc.to_dict()
+
+
+def save_daily_plan(telegram_id, date_str: str, plan: dict) -> None:
+    now = datetime.now(timezone.utc)
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("daily_plans").document(date_str)
+     .set({**plan, "generated_at": now}))
+
+
+def update_daily_plan(telegram_id, date_str: str, data: dict) -> None:
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("daily_plans").document(date_str).update(data))
+
+
 # ─── Listening Exercises ──────────────────────────────────────────
 
 def save_listening_exercise(telegram_id, exercise_data: dict) -> str:
