@@ -55,6 +55,26 @@ class TestNormalize:
         out = coaching_service._normalize_tips(raw)
         assert out[0]["id"] != out[1]["id"]
 
+    def test_long_duplicate_ids_do_not_infinite_loop(self):
+        # Two tips with the same 60-char id — regression guard for the
+        # slug-dedup path when the base slug would truncate to its own
+        # length under naive suffixing.
+        long_id = "w" * 60
+        raw = {
+            "tips": [
+                {"id": long_id, "skill": "writing", "tip_en": "a",
+                 "tip_vi": "a", "action_label": "x", "action_route": "/write"},
+                {"id": long_id, "skill": "writing", "tip_en": "b",
+                 "tip_vi": "b", "action_label": "x", "action_route": "/write"},
+                {"id": long_id, "skill": "writing", "tip_en": "c",
+                 "tip_vi": "c", "action_label": "x", "action_route": "/write"},
+            ],
+        }
+        out = coaching_service._normalize_tips(raw)
+        ids = [t["id"] for t in out]
+        assert len(ids) == len(set(ids))
+        assert all(len(i) <= 40 for i in ids)
+
     def test_caps_at_max_tips(self):
         raw = {
             "tips": [

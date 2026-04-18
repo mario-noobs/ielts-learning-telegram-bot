@@ -391,15 +391,19 @@ def get_progress_snapshot(telegram_id, date_str: str) -> Optional[dict]:
 
 
 def list_progress_snapshots(telegram_id, date_strs: list[str]) -> list[dict]:
-    """Return snapshots whose document id is in `date_strs` (skips missing)."""
-    out: list[dict] = []
-    col = (_get_db().collection("users").document(str(telegram_id))
+    """Return snapshots whose document id is in `date_strs` (skips missing).
+
+    Uses a single Firestore `get_all` batch call rather than N sequential
+    `document().get()` round-trips.
+    """
+    if not date_strs:
+        return []
+    db = _get_db()
+    col = (db.collection("users").document(str(telegram_id))
            .collection("progress_snapshots"))
-    for d in date_strs:
-        doc = col.document(d).get()
-        if doc.exists:
-            out.append(doc.to_dict())
-    return out
+    refs = [col.document(d) for d in date_strs]
+    snapshots = db.get_all(refs)
+    return [s.to_dict() for s in snapshots if s.exists]
 
 
 # ─── Progress Recommendations (US-5.3) ───────────────────────────

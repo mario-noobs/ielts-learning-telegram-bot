@@ -17,6 +17,11 @@ ALLOWED_SKILLS = {"vocabulary", "writing", "listening", "overall"}
 ALLOWED_ROUTES = {"/review", "/vocab", "/write", "/listening"}
 MAX_TIPS = 5
 MIN_TIPS = 3
+_SLUG_MAX_LEN = 40
+# Leave room for a "-NN" suffix on the dedup path so truncation can't
+# collapse a suffixed slug back onto the base and infinite-loop.
+_SLUG_BASE_MAX_LEN = _SLUG_MAX_LEN - 3
+_MAX_DEDUP_ATTEMPTS = 99
 
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
 
@@ -34,7 +39,7 @@ def current_week_key(now: datetime | None = None) -> str:
 
 def _slugify(value: str, default: str = "tip") -> str:
     cleaned = _SLUG_RE.sub("-", (value or "").lower()).strip("-")
-    return (cleaned or default)[:40]
+    return (cleaned or default)[:_SLUG_BASE_MAX_LEN]
 
 
 def _trend_summary(trend: list[dict]) -> str:
@@ -74,9 +79,12 @@ def _normalize_tips(raw: dict) -> list[dict]:
         base_slug = _slugify(str(item.get("id") or f"{skill}-{i}"))
         slug = base_slug
         suffix = 2
-        while slug in seen_ids:
-            slug = f"{base_slug}-{suffix}"[:40]
+        while slug in seen_ids and suffix <= _MAX_DEDUP_ATTEMPTS:
+            slug = f"{base_slug}-{suffix}"[:_SLUG_MAX_LEN]
             suffix += 1
+        if slug in seen_ids:
+            # Last resort: append the item index so we never collide.
+            slug = f"{base_slug}-i{i}"[:_SLUG_MAX_LEN]
         seen_ids.add(slug)
 
         tips.append({
