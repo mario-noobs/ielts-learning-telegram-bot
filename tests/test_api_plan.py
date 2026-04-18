@@ -1,6 +1,6 @@
-"""Integration tests for /api/v1/plan (US-4.1)."""
+"""Integration tests for /api/v1/plan (US-4.1 + US-4.3 live exam updates)."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -18,11 +18,15 @@ FAKE_USER = {
 }
 
 
+def _client(user: dict | None = None) -> TestClient:
+    app = create_app()
+    app.dependency_overrides[get_current_user] = lambda: dict(user or FAKE_USER)
+    return TestClient(app)
+
+
 @pytest.fixture()
 def client():
-    app = create_app()
-    app.dependency_overrides[get_current_user] = lambda: FAKE_USER
-    return TestClient(app)
+    return _client()
 
 
 def _fake_weakness(**overrides) -> dict:
@@ -64,9 +68,7 @@ class TestGetTodayPlan:
         body = res.json()
         assert 3 <= len(body["activities"]) <= 5
         assert body["total_minutes"] <= body["cap_minutes"]
-        # First call wrote to cache
         assert "plan" in captured
-        # SRS always first when due
         assert body["activities"][0]["id"] == "srs_review"
 
     def test_returns_cached_when_present(self, client):
@@ -94,10 +96,37 @@ class TestGetTodayPlan:
         assert body["completed_count"] == 1
         assert body["activities"][0]["completed"] is True
 
+    def test_mid_day_exam_date_change_updates_countdown(self):
+        """When the user sets an exam date after the plan is cached,
+        the countdown fields should reflect the current profile, not the
+        frozen copy in the plan doc."""
+        stored = {
+            "date": "2026-04-18",
+            "activities": [],
+            "total_minutes": 0,
+            "cap_minutes": 30,
+            "exam_urgent": False,
+            "days_until_exam": None,
+            "completed_count": 0,
+            "generated_at": datetime.now(timezone.utc),
+        }
+        exam = (datetime.now(timezone.utc).date() + timedelta(days=12)).isoformat()
+        user_with_exam = {**FAKE_USER, "exam_date": exam}
+        client = _client(user_with_exam)
+        with patch(
+            "api.routes.plan.firebase_service.get_daily_plan",
+            return_value=stored,
+        ):
+            res = client.get("/api/v1/plan/today")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["days_until_exam"] == 12
+        assert body["exam_urgent"] is True
+
 
 class TestCompleteActivity:
-    def test_marks_and_returns_updated_plan(self, client):
-        stored = {
+    def test_transactional_complete_marks_and_persists(self, client):
+        updated_plan = {
             "date": "2026-04-18",
             "activities": [
                 {"id": "a", "type": "writing", "title": "", "description": "",
@@ -105,53 +134,34 @@ class TestCompleteActivity:
                  "completed": False},
                 {"id": "b", "type": "listening", "title": "", "description": "",
                  "estimated_minutes": 8, "route": "/listening", "meta": {},
-                 "completed": False},
+                 "completed": True},
             ],
             "total_minutes": 18,
             "cap_minutes": 30,
-            "completed_count": 0,
+            "completed_count": 1,
         }
-        updates: dict = {}
-
-        def upd(_uid, _date, payload):
-            updates.update(payload)
-
         with patch(
-            "api.routes.plan.firebase_service.get_daily_plan",
-            return_value=stored,
-        ), patch(
-            "api.routes.plan.firebase_service.update_daily_plan",
-            side_effect=upd,
+            "api.routes.plan.firebase_service.complete_plan_activity",
+            return_value=updated_plan,
         ):
             res = client.post("/api/v1/plan/today/complete/b")
-
         assert res.status_code == 200
         body = res.json()
         assert body["completed_count"] == 1
         assert body["activities"][1]["completed"] is True
-        assert updates["completed_count"] == 1
 
     def test_missing_plan_returns_404(self, client):
         with patch(
-            "api.routes.plan.firebase_service.get_daily_plan",
+            "api.routes.plan.firebase_service.complete_plan_activity",
             return_value=None,
         ):
             res = client.post("/api/v1/plan/today/complete/anything")
         assert res.status_code == 404
 
     def test_unknown_activity_returns_404(self, client):
-        stored = {
-            "date": "2026-04-18",
-            "activities": [
-                {"id": "a", "type": "writing", "title": "", "description": "",
-                 "estimated_minutes": 10, "route": "/", "meta": {},
-                 "completed": False},
-            ],
-            "completed_count": 0,
-        }
         with patch(
-            "api.routes.plan.firebase_service.get_daily_plan",
-            return_value=stored,
+            "api.routes.plan.firebase_service.complete_plan_activity",
+            return_value="NOT_FOUND",
         ):
             res = client.post("/api/v1/plan/today/complete/ghost")
         assert res.status_code == 404
