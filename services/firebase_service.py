@@ -339,6 +339,75 @@ def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
     return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
+# ─── Daily Plans (US-4.1) ─────────────────────────────────────────
+
+def get_daily_plan(telegram_id, date_str: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("daily_plans").document(date_str).get())
+    if not doc.exists:
+        return None
+    return doc.to_dict()
+
+
+def save_daily_plan(telegram_id, date_str: str, plan: dict) -> None:
+    now = datetime.now(timezone.utc)
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("daily_plans").document(date_str)
+     .set({**plan, "generated_at": now}))
+
+
+def update_daily_plan(telegram_id, date_str: str, data: dict) -> None:
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("daily_plans").document(date_str).update(data))
+
+
+def complete_plan_activity(
+    telegram_id, date_str: str, activity_id: str,
+) -> Optional[dict]:
+    """Atomically mark a plan activity completed.
+
+    Returns the updated plan dict, None if no plan exists for the date,
+    or the string "NOT_FOUND" if the activity id is not in the plan.
+    The read/modify/write happens inside a Firestore transaction so
+    concurrent completions of different activities cannot clobber each
+    other.
+    """
+    db = _get_db()
+    plan_ref = (db.collection("users").document(str(telegram_id))
+                .collection("daily_plans").document(date_str))
+
+    @firestore.transactional
+    def _txn(txn):
+        snapshot = plan_ref.get(transaction=txn)
+        if not snapshot.exists:
+            return None
+
+        plan = snapshot.to_dict() or {}
+        activities = list(plan.get("activities") or [])
+        changed = False
+        for i, a in enumerate(activities):
+            if a.get("id") == activity_id and not a.get("completed"):
+                activities[i] = {**a, "completed": True}
+                changed = True
+                break
+
+        if not any(a.get("id") == activity_id for a in activities):
+            return "NOT_FOUND"
+
+        if not changed:
+            # Already completed — idempotent no-op
+            return plan
+
+        completed_count = sum(1 for a in activities if a.get("completed"))
+        txn.update(plan_ref, {
+            "activities": activities,
+            "completed_count": completed_count,
+        })
+        return {**plan, "activities": activities, "completed_count": completed_count}
+
+    return _txn(db.transaction())
+
+
 # ─── Listening Exercises ──────────────────────────────────────────
 
 def save_listening_exercise(telegram_id, exercise_data: dict) -> str:

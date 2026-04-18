@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UserCreate(BaseModel):
@@ -22,3 +22,16 @@ class UserProfile(BaseModel):
     total_quizzes: int = 0
     total_correct: int = 0
     challenge_wins: int = 0
+    exam_date: str | None = None
+    weekly_goal_minutes: int = 150
+
+
+class UserUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    target_band: float | None = Field(default=None, ge=4.0, le=9.0)
+    topics: list[str] | None = None
+    exam_date: str | None = Field(
+        default=None,
+        description="ISO date (YYYY-MM-DD) or empty string to clear",
+    )
+    weekly_goal_minutes: int | None = Field(default=None, ge=30, le=2000)
