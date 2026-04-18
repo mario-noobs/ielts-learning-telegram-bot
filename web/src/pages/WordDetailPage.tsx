@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { playPronunciation } from '../lib/audio'
@@ -170,12 +170,6 @@ export default function WordDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-5">
-      <div className="flex items-center justify-between">
-        <Link to="/vocab" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Từ vựng
-        </Link>
-      </div>
-
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex items-center justify-between">
           <p className="text-red-700">{error}</p>

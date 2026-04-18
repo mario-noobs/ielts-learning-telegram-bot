@@ -218,12 +218,12 @@ export default function WritingPage() {
     return (
       <div className="max-w-3xl mx-auto p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <Link to="/write/history" className="text-sm text-gray-500 hover:text-gray-700">
-            ← Lịch sử
+          <Link to="/write/history" className="text-sm text-muted-fg hover:text-fg">
+            Lịch sử bài viết
           </Link>
           <Link
             to="/write"
-            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-sm text-primary hover:text-primary-hover font-medium"
           >
             Viết bài mới
           </Link>
@@ -257,19 +257,14 @@ export default function WritingPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Trang chủ
-        </Link>
-        <div className="flex items-center gap-3 text-sm text-gray-600">
-          <span className="font-mono">{formatDuration(elapsed)}</span>
-          <span>
-            <span className={wordCount < MIN_WORDS ? 'text-red-600' : 'text-green-600'}>
-              {wordCount}
-            </span>{' '}
-            từ
-          </span>
-        </div>
+      <div className="flex items-center justify-end gap-3 text-sm text-muted-fg">
+        <span className="font-mono tabular-nums">{formatDuration(elapsed)}</span>
+        <span>
+          <span className={wordCount < MIN_WORDS ? 'text-danger' : 'text-success'}>
+            {wordCount}
+          </span>{' '}
+          từ
+        </span>
       </div>
 
       <div className="flex items-center gap-3">

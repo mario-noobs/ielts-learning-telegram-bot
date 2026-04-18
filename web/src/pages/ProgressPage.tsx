@@ -24,9 +24,6 @@ export default function ProgressPage() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Trang chủ
-        </Link>
         <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
           {error}
         </div>
@@ -54,13 +51,10 @@ export default function ProgressPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-5">
-      <div className="flex items-center justify-between">
-        <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Trang chủ
-        </Link>
+      <div className="flex items-center justify-end">
         <Link
           to="/settings"
-          className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          className="text-sm text-primary hover:text-primary-hover font-medium"
         >
           Đổi mục tiêu
         </Link>

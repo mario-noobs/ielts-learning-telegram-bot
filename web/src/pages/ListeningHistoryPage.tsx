@@ -29,13 +29,10 @@ export default function ListeningHistoryPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <Link to="/listening" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Listening
-        </Link>
+      <div className="flex items-center justify-end">
         <Link
           to="/listening"
-          className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          className="text-sm text-primary hover:text-primary-hover font-medium"
         >
           Bài mới
         </Link>
