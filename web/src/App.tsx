@@ -12,6 +12,7 @@ import ListeningHomePage from './pages/ListeningHomePage'
 import ListeningExercisePage from './pages/ListeningExercisePage'
 import ListeningHistoryPage from './pages/ListeningHistoryPage'
 import ProgressPage from './pages/ProgressPage'
+import SettingsPage from './pages/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/listening/history" element={<ProtectedRoute><ListeningHistoryPage /></ProtectedRoute>} />
           <Route path="/listening/:id" element={<ProtectedRoute><ListeningExercisePage /></ProtectedRoute>} />
           <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 
 from api.auth import get_current_user, security
-from api.models.user import LinkCodeRequest, UserCreate, UserProfile
+from api.models.user import LinkCodeRequest, UserCreate, UserProfile, UserUpdate
 from services import firebase_service
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
@@ -19,6 +19,14 @@ async def get_me(user: dict = Depends(get_current_user)) -> UserProfile:
 
 
 def _to_profile(user: dict) -> UserProfile:
+    exam_raw = user.get("exam_date")
+    if isinstance(exam_raw, datetime):
+        exam_date = exam_raw.date().isoformat()
+    elif exam_raw:
+        exam_date = str(exam_raw)
+    else:
+        exam_date = None
+
     return UserProfile(
         id=user["id"],
         name=user.get("name", ""),
@@ -30,7 +38,47 @@ def _to_profile(user: dict) -> UserProfile:
         total_quizzes=user.get("total_quizzes", 0),
         total_correct=user.get("total_correct", 0),
         challenge_wins=user.get("challenge_wins", 0),
+        exam_date=exam_date,
+        weekly_goal_minutes=int(user.get("weekly_goal_minutes") or 150),
     )
+
+
+@router.patch("/me", response_model=UserProfile)
+async def update_me(
+    body: UserUpdate,
+    user: dict = Depends(get_current_user),
+) -> UserProfile:
+    """Partial update of the authenticated user's profile."""
+    updates: dict = {}
+
+    if body.name is not None:
+        updates["name"] = body.name.strip()
+    if body.target_band is not None:
+        updates["target_band"] = float(body.target_band)
+    if body.topics is not None:
+        updates["topics"] = [t.strip() for t in body.topics if t and t.strip()]
+    if body.weekly_goal_minutes is not None:
+        updates["weekly_goal_minutes"] = int(body.weekly_goal_minutes)
+    if body.exam_date is not None:
+        if body.exam_date == "":
+            updates["exam_date"] = None
+        else:
+            try:
+                parsed = datetime.strptime(body.exam_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="exam_date must be YYYY-MM-DD.",
+                )
+            updates["exam_date"] = parsed.isoformat()
+
+    if updates:
+        await asyncio.to_thread(
+            firebase_service.update_user, user["id"], updates
+        )
+
+    merged = {**user, **updates}
+    return _to_profile(merged)
 
 
 @router.post("/users", response_model=UserProfile, status_code=status.HTTP_201_CREATED)
