@@ -52,7 +52,41 @@ def _to_view(doc: dict) -> ListeningExerciseView:
     )
 
 
-def _to_result(doc: dict) -> ListeningExerciseResult:
+def _to_result(doc: dict, *, hide_answers: bool = False) -> ListeningExerciseResult:
+    """Build the result payload.
+
+    When hide_answers is True (pre-submit reads), the transcript, gap-fill
+    answer key, and per-question correct indices/explanations are stripped
+    so the learner can't peek before submitting.
+    """
+    if hide_answers:
+        transcript = ""
+        blanks = [
+            {"index": b.get("index", i), "answer": ""}
+            for i, b in enumerate(doc.get("blanks") or [])
+        ]
+        questions = [
+            {
+                "question": q.get("question", ""),
+                "options": q.get("options", []),
+                "correct_index": -1,
+                "explanation_vi": "",
+            }
+            for q in (doc.get("questions") or [])
+        ]
+        dictation_diff: list[dict] = []
+        gap_fill_results: list[dict] = []
+        comprehension_results: list[dict] = []
+        misheard_words: list[str] = []
+    else:
+        transcript = doc.get("transcript", "")
+        blanks = doc.get("blanks", [])
+        questions = doc.get("questions", [])
+        dictation_diff = doc.get("dictation_diff", [])
+        gap_fill_results = doc.get("gap_fill_results", [])
+        comprehension_results = doc.get("comprehension_results", [])
+        misheard_words = doc.get("misheard_words", [])
+
     return ListeningExerciseResult(
         id=doc["id"],
         exercise_type=doc.get("exercise_type", "dictation"),
@@ -64,14 +98,14 @@ def _to_result(doc: dict) -> ListeningExerciseResult:
         created_at=doc.get("created_at"),
         submitted=bool(doc.get("submitted", False)),
         score=doc.get("score"),
-        transcript=doc.get("transcript", ""),
+        transcript=transcript,
         display_text=doc.get("display_text", ""),
-        blanks=doc.get("blanks", []),
-        questions=doc.get("questions", []),
-        dictation_diff=doc.get("dictation_diff", []),
-        gap_fill_results=doc.get("gap_fill_results", []),
-        comprehension_results=doc.get("comprehension_results", []),
-        misheard_words=doc.get("misheard_words", []),
+        blanks=blanks,
+        questions=questions,
+        dictation_diff=dictation_diff,
+        gap_fill_results=gap_fill_results,
+        comprehension_results=comprehension_results,
+        misheard_words=misheard_words,
     )
 
 
@@ -152,7 +186,7 @@ async def get_listening(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Exercise not found.",
         )
-    return _to_result(doc)
+    return _to_result(doc, hide_answers=not doc.get("submitted", False))
 
 
 @router.get("/{exercise_id}/audio")
@@ -196,6 +230,11 @@ async def submit_listening(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Exercise not found.",
+        )
+    if doc.get("submitted"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Exercise already submitted.",
         )
 
     exercise_type = doc.get("exercise_type", "dictation")

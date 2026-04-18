@@ -126,22 +126,15 @@ async def add_word(
 ) -> VocabularyWord:
     """Add a single word to the user's vocabulary with auto-enrichment.
 
-    Used by the listening misheard-word → SRS bridge. Deduplicates by word.
+    Used by the listening misheard-word → SRS bridge. Deduplicates by word
+    atomically inside a Firestore transaction so concurrent clicks can't
+    double-insert or double-increment total_words.
     """
     normalized = word_service.normalize_word(body.word)
     if not normalized:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Word cannot be empty.",
-        )
-
-    existing = await asyncio.to_thread(
-        firebase_service.get_user_word_list, user["id"]
-    )
-    if normalized in {w.lower() for w in existing}:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Word already in vocabulary.",
         )
 
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
@@ -160,9 +153,14 @@ async def add_word(
         "example_vi": example.get("vi", ""),
     }
 
-    word_id = await asyncio.to_thread(
-        firebase_service.add_word_to_user, user["id"], word_data
+    word_id, created = await asyncio.to_thread(
+        firebase_service.add_word_if_not_exists, user["id"], word_data
     )
+    if not created:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Word already in vocabulary.",
+        )
     doc = await asyncio.to_thread(
         firebase_service.get_word_by_id, user["id"], word_id
     )

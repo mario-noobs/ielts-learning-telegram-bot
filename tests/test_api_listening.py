@@ -259,9 +259,29 @@ class TestHistoryAndDetail:
         assert body["items"][0]["id"] == "b"
         assert body["items"][0]["submitted"] is True
 
-    def test_detail_returns_full(self, client):
+    def test_detail_pre_submit_hides_transcript_and_answers(self, client):
         exercise_id = "ex9"
         stored = _comp_doc(exercise_id)
+        stored["submitted"] = False
+        with patch(
+            "api.routes.listening.firebase_service.get_listening_exercise",
+            return_value=stored,
+        ):
+            res = client.get(f"/api/v1/listening/{exercise_id}")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["transcript"] == ""
+        assert body["submitted"] is False
+        # Options still exposed so the UI can render the question
+        assert body["questions"][0]["options"] == stored["questions"][0]["options"]
+        # But answer keys are hidden
+        assert body["questions"][0]["correct_index"] == -1
+        assert body["questions"][0]["explanation_vi"] == ""
+
+    def test_detail_post_submit_returns_full(self, client):
+        exercise_id = "ex9"
+        stored = _comp_doc(exercise_id)
+        stored["submitted"] = True
         with patch(
             "api.routes.listening.firebase_service.get_listening_exercise",
             return_value=stored,
@@ -273,6 +293,22 @@ class TestHistoryAndDetail:
         assert len(body["questions"]) == 2
         assert body["questions"][0]["correct_index"] == 1
 
+    def test_detail_pre_submit_hides_gap_fill_answers(self, client):
+        exercise_id = "ex10"
+        stored = _gap_fill_doc(exercise_id)
+        stored["submitted"] = False
+        with patch(
+            "api.routes.listening.firebase_service.get_listening_exercise",
+            return_value=stored,
+        ):
+            res = client.get(f"/api/v1/listening/{exercise_id}")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["transcript"] == ""
+        assert body["display_text"] == stored["display_text"]
+        assert len(body["blanks"]) == 3
+        assert all(b["answer"] == "" for b in body["blanks"])
+
     def test_detail_missing_returns_404(self, client):
         with patch(
             "api.routes.listening.firebase_service.get_listening_exercise",
@@ -280,3 +316,20 @@ class TestHistoryAndDetail:
         ):
             res = client.get("/api/v1/listening/nope")
         assert res.status_code == 404
+
+
+class TestResubmit:
+    def test_resubmit_returns_409(self, client):
+        exercise_id = "ex1"
+        stored = _dictation_doc(exercise_id)
+        stored["submitted"] = True
+        stored["score"] = 0.9
+        with patch(
+            "api.routes.listening.firebase_service.get_listening_exercise",
+            return_value=stored,
+        ):
+            res = client.post(
+                f"/api/v1/listening/{exercise_id}/submit",
+                json={"user_text": "anything"},
+            )
+        assert res.status_code == 409
