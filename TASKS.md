@@ -6,113 +6,114 @@
 ---
 
 ## Current Sprint Goal
-**M0: Foundation** — Extract FastAPI API layer from existing bot, add Firebase Auth, tests, CI, and public deploy. Safety net before any new features.
+**M6: Design System & Landing** — Ship MVP design system (tokens + 8 primitives) + conversion-focused landing page + reskin of M1–M5 screens. Drives trial signup. 5 plumbing stories (repositories, structlog, feature flags, Storybook, seed scripts) are M6 prerequisites.
 
 ---
 
-## Roadmap (2026)
+## Roadmap (2026–2027)
 
 | Milestone | Due | Epic | Status |
 |-----------|-----|------|--------|
-| M0: Foundation | 2026-05-15 | GH#9 | **Active** |
-| M1: Vocabulary Universe | 2026-06-15 | GH#10 | Backlog |
-| M2: Writing Lab | 2026-07-31 | GH#11 | Backlog |
-| M3: Listening Gym | 2026-09-15 | GH#12 | Backlog |
-| M4: Smart Daily Plan | 2026-10-15 | GH#13 | Backlog |
-| M5: Band Progress Map | 2026-11-15 | GH#14 | Backlog |
+| M0: Foundation | 2026-05-15 | GH#9 | Done |
+| M1: Vocabulary Universe | 2026-06-15 | GH#10 | Done |
+| M2: Writing Lab | 2026-07-31 | GH#11 | Done |
+| M3: Listening Gym | 2026-09-15 | GH#12 | Done |
+| M4: Smart Daily Plan | 2026-10-15 | GH#13 | Done |
+| M5: Band Progress Map | 2026-11-15 | GH#14 | Done |
+| **M6: Design System & Landing** | **2026-12-15** | **GH#92** | **Active** |
+| M7: i18n Foundation | 2027-01-15 | GH#93 | Backlog |
+| M8: Data Platform Migration — Phase 1 | 2027-02-28 | GH#94 | Backlog |
+| M9: Reading Lab | 2027-04-15 | GH#95 | Backlog |
+| M10: Data Platform Migration — Phase 2 (Cutover) | 2027-05-31 | GH#96 | Backlog |
 
 ---
 
 ## Status Board
 
-### M0: Foundation — In Progress
+### M6: Design System & Landing — In Progress
 
-| # | Story | Size | Status | Depends |
-|---|-------|------|--------|---------|
-| GH#33 | US-0.1: Service layer tests | M | Ready | — |
-| GH#34 | US-0.2: CI pipeline (ruff + pytest) | S | Ready | US-0.1 |
-| GH#35 | US-0.3: FastAPI skeleton + health | S | Ready | — |
-| GH#36 | US-0.4: Firebase Auth middleware | M | Ready | US-0.3 |
-| GH#37 | US-0.5: Async Firestore wrapper | S | Ready | US-0.3 |
-| GH#38 | US-0.6: Frontend scaffold (React+Vite) | M | Ready | US-0.4 |
-| GH#39 | US-0.7: Docker + deploy | S | Ready | US-0.3, US-0.6 |
+**Plumbing (prerequisites, M6 sprint):**
+| # | Story | Size | Status |
+|---|-------|------|--------|
+| GH#113 | US-P.1: Repository Protocol layer extraction | S | Ready |
+| GH#114 | US-P.2: structlog + request ID middleware | S | Ready |
+| GH#116 | US-P.3: Feature flag service | S | Ready |
+| GH#118 | US-P.4: Storybook 8 scaffold | S | Ready |
+| GH#119 | US-P.5: Seed scripts + `make dev` | S | Ready |
 
-**Parallel tracks:**
-- Track A: US-0.3 → US-0.4 → US-0.5 (API + Auth)
-- Track B: US-0.1 → US-0.2 (Tests + CI)
-- Track C: US-0.6 → US-0.7 (Frontend + Deploy, starts mid-sprint)
+**M6 Stories:**
+| # | Story | Size | Depends |
+|---|-------|------|---------|
+| GH#120 | US-M6.1: Design tokens + Tailwind preset | S | — |
+| GH#121 | US-M6.2: 8 primitives via shadcn + tokens | M | US-M6.1, US-P.4 |
+| GH#122 | US-M6.3: Landing hero + trial CTA | M | US-M6.2 |
+| GH#123 | US-M6.4: Pricing + testimonials + FAQ | S | US-M6.2 |
+| GH#124 | US-M6.5: Reskin M1–M5 via tokens | M | US-M6.2 |
+| GH#125 | US-M6.6: Empty states + illustrations | S | US-M6.2 |
 
 ### Done (previous sprints)
-- GH#8 — Daily challenge state lost on restart (Firestore-backed redesign)
-- GH#7 — Deployment skill + auto-deploy on push to main
-- GH#6 — Fold enrichment into vocab generation (10x Gemini cost cut)
-- GH#5 — Bug: RPD exhaustion + background keeps retrying
-- GH#4 — Bug: enrichment burns RPM quota
-- GH#3 — Cache-on-generate for AI vocab (Q2-1 follow-up)
-- GH#2 — /word Enrichment (Q2-1)
-- GH#1 — Smart Daily Greeting (Q2-3)
+- GH#1–GH#8 — Bot features (Q2 2026): Smart Daily Greeting, /word enrichment, AI caching, RPD/RPM bugfixes, deployment skill, daily challenge Firestore redesign
+- GH#9–GH#59 — Web app M0–M5 (Foundation → Band Progress Map): FastAPI + Auth + Tests + Deploy, Vocab Universe, Writing Lab, Listening Gym, Smart Daily Plan, Band Progress Map. 51 issues across 6 milestones.
+- GH#60–GH#91 — Follow-ups from M0–M5 (reviewer rework, docs fixes)
 
 ---
 
 ## Backlog
 
-### M1: Vocabulary Universe (GH#10)
+### M7: i18n Foundation (GH#93)
 | # | Story | Size | Depends |
 |---|-------|------|---------|
-| GH#40 | US-1.1: Vocabulary API (daily, list, detail) | M | M0 |
-| GH#41 | US-1.2: SRS review API | S | US-1.1 |
-| GH#42 | US-1.3: Daily vocabulary page | M | US-1.1 |
-| GH#43 | US-1.4: Flashcard review page | M | US-1.2 |
-| GH#44 | US-1.5: Topic browser + vocab home | M | US-1.1 |
-| GH#45 | US-1.6: Audio pronunciation | S | US-1.1 |
+| GH#126 | US-M7.1: react-i18next + VN/EN bundles | M | M6 DS in place |
+| GH#127 | US-M7.2: Language switcher + persistence | S | US-M7.1 |
+| GH#128 | US-M7.3: Error-code API contract refactor | M | US-M7.1 |
+| GH#129 | US-M7.4: Localized AI prompts + translation cache | M | US-M7.1 |
 
-### M2: Writing Lab (GH#11)
+### M8: Data Platform Migration — Phase 1 (GH#94)
 | # | Story | Size | Depends |
 |---|-------|------|---------|
-| GH#46 | US-2.1: IELTS 4-criteria scoring API | M | M1 |
-| GH#47 | US-2.2: Essay editor + word count | M | US-2.1 |
-| GH#48 | US-2.3: Score panel + annotations | M | US-2.2 |
-| GH#49 | US-2.4: Revision workflow + history | M | US-2.3 |
+| GH#130 | US-M8.1: Postgres schema + Alembic baseline | M | US-P.1 |
+| GH#131 | US-M8.2: Postgres repo implementations (dual-write capable) | M | US-M8.1 |
+| GH#132 | US-M8.3: Dual-write flag + per-collection rollout | S | US-M8.2, US-P.3 |
+| GH#133 | US-M8.4: Shadow-read diff job + dashboard | M | US-M8.3 |
+| GH#134 | US-M8.5: Backup pipeline (pg_dump → B2) | S | US-M8.1 |
 
-### M3: Listening Gym (GH#12)
+### M9: Reading Lab (GH#95)
 | # | Story | Size | Depends |
 |---|-------|------|---------|
-| GH#50 | US-3.1: Audio content service + prompts | M | M2 |
-| GH#51 | US-3.2: Listening API endpoints | M | US-3.1 |
-| GH#52 | US-3.3: Audio player + dictation page | M | US-3.2 |
-| GH#53 | US-3.4: Gap fill + comprehension pages | M | US-3.3 |
+| GH#135 | US-M9.1: Seed 30 Cambridge-style passages + copyright | M | — |
+| GH#136 | US-M9.2: Reading API (list/detail/session) | M | US-M9.1 |
+| GH#137 | US-M9.3: AI question generation + grading | M | US-M9.2 |
+| GH#138 | US-M9.4: Reading Lab frontend | M | US-M9.3, M6 DS |
+| GH#139 | US-M9.5: Integration (Daily Plan routing + Band Map axis) | S | US-M9.4 |
 
-### M4: Smart Daily Plan (GH#13)
+### M10: Data Platform Migration — Phase 2 Cutover (GH#96)
 | # | Story | Size | Depends |
 |---|-------|------|---------|
-| GH#54 | US-4.1: Weakness analysis + plan gen | M | M3 |
-| GH#55 | US-4.2: Home screen + task routing | M | US-4.1 |
-| GH#56 | US-4.3: Exam countdown + streak settings | S | US-4.2 |
-
-### M5: Band Progress Map (GH#14)
-| # | Story | Size | Depends |
-|---|-------|------|---------|
-| GH#57 | US-5.1: Band estimation + snapshots | M | M4 |
-| GH#58 | US-5.2: Progress dashboard + charts | M | US-5.1 |
-| GH#59 | US-5.3: AI coaching recommendations | S | US-5.1 |
+| GH#140 | US-M10.1: Canary read flip (1%) | S | M8 shadow-diff <0.1% for 30d |
+| GH#141 | US-M10.2: Graduated rollout 10/50/100% | M | US-M10.1 |
+| GH#142 | US-M10.3: Retire Firestore writes + final archive | S | US-M10.2 |
+| GH#143 | US-M10.4: DR drill + runbook | M | US-M10.3 |
 
 ---
 
 ## Architecture Decisions
 
-### Existing (Telegram bot)
-- ADR-1: Async-first architecture (accepted)
-- GH#1-8 ADRs: See closed issues for details
+### M0: Foundation ADRs (6) — complete
+See GH#15–GH#20 (ADR-M0-1 through ADR-M0-6).
 
-### M0: Foundation ADRs
+### M6–M10 ADRs (10)
 | # | ADR | Status |
 |---|-----|--------|
-| GH#15 | ADR-M0-1: API Framework — FastAPI | Proposed |
-| GH#16 | ADR-M0-2: Auth — Firebase Auth + Telegram Bridge | Proposed |
-| GH#17 | ADR-M0-3: Session Storage — Firestore subcollection | Proposed |
-| GH#18 | ADR-M0-4: Service Layer — Transport-agnostic refactoring | Proposed |
-| GH#19 | ADR-M0-5: Deployment — Docker + Railway | Proposed |
-| GH#20 | ADR-M0-6: Rate Limiting — Firestore counters | Proposed |
+| GH#97 | ADR-M6-1: Design System & Token Strategy | Proposed |
+| GH#98 | ADR-M6-2: Adopt shadcn/ui — copy-in, customize via tokens | Proposed |
+| GH#99 | ADR-M7-1: i18n Stack — react-i18next + ICU + error-code API | Proposed |
+| GH#101 | ADR-M7-2: AI Content Localization & Translation Cache | Proposed |
+| GH#102 | ADR-M8-1: Adopt Postgres (Supabase) as primary user-data store | Proposed |
+| GH#105 | ADR-M8-2: Repository Pattern for Data Access | Proposed |
+| GH#108 | ADR-M8-3: Shadow-Write Migration Strategy | Proposed |
+| GH#110 | ADR-M8-4: Backup & Disaster Recovery (pg_dump + B2, RPO 24h / RTO 2h) | Proposed |
+| GH#112 | ADR-M9-1: Reading Content Pipeline — Real Passages + AI Questions | Proposed |
+| GH#117 | ADR-M10-1: Feature-Flag Cutover & Firestore Sunset Plan | Proposed |
 
 ---
 
@@ -125,6 +126,9 @@
 | GH#24 | UX-M3: Listening Gym Screens | M3 |
 | GH#25 | UX-M4: Smart Daily Plan Screens | M4 |
 | GH#26 | UX-M5: Band Progress Map Screens | M5 |
+| GH#100 | UX-M6: Design System Foundation + Landing Page | M6 |
+| GH#104 | UX-M7: i18n UX Patterns | M7 |
+| GH#107 | UX-M9: Reading Lab Screens | M9 |
 
 ---
 
@@ -137,15 +141,24 @@
 | GH#30 | QA-M3: Listening Gym | M3 |
 | GH#31 | QA-M4: Smart Daily Plan | M4 |
 | GH#32 | QA-M5: Band Progress Map | M5 |
+| GH#103 | QA-M6: Design System Visual & A11y | M6 |
+| GH#106 | QA-M7: i18n Pseudo-Loc & Overflow | M7 |
+| GH#109 | QA-M8: Shadow-Write Verification + SRS Golden Replay | M8 |
+| GH#111 | QA-M9: Reading Grounding + Copyright Compliance | M9 |
+| GH#115 | QA-M10: Cutover Rollback Drill + Post-Cutover Soak | M10 |
 
 ---
 
 ## Open Questions
 - [x] Which LLM provider? → Gemini (free tier), with paid Gemini as fallback
-- [x] Multi-language? → Vietnamese-first, English only inside vocab content
-- [ ] Should speaking feedback include a simulated IELTS band score or just qualitative feedback?
-- [ ] Railway vs Fly.io vs DigitalOcean for hosting? (ADR-M0-5 proposes Railway)
+- [x] Multi-language? → Vietnamese-first, English inside vocab content; M7 adds UI VN/EN toggle
+- [x] Post-M5 user feedback (UI/UX bland, Firebase durability, i18n, killer features) — decided 2026-04-18 refinement
+- [x] Which new killer feature to prioritize? → Reading Lab only (Speaking/Mock/Predictor/Squads deferred)
+- [x] DB migration target? → Postgres via Supabase; user data only; groups/challenges stay on Firestore
+- [ ] Public VPS hosting move (needed for M10 DR drill on independent host) — deferred to M10 planning
+- [ ] Payment rail / billing stack for Pro tier — unaddressed (freemium $5–8/month target from initial roadmap)
 - [ ] When to upgrade from gTTS to Google Cloud TTS for listening exercises?
+- [ ] Should speaking feedback include a simulated IELTS band score or just qualitative feedback? (parked — Speaking Coach deferred)
 
 ---
 
@@ -157,3 +170,5 @@
 | 2026-04-13 | Orchestrator | Sprint started: Q2 2026 roadmap (Q2-3 → Q2-1 → Q2-2) |
 | 2026-04-13-15 | Various | GH#1-8 completed (see Done section) |
 | 2026-04-16 | PO + Designer + Architect + QA + TechLead + Developer | Refinement meeting: defined 5 killer features, 6 milestones (M0-M5), 51 GitHub issues created (#9-#59) |
+| 2026-04-17 | Various | M0–M5 delivered (GH#9–#91) |
+| 2026-04-18 | PO + Designer + Architect + QA + TechLead + Developer | Refinement meeting 2: post-M5 user feedback (UI/UX, DB durability, i18n). 5 new milestones M6–M10 defined; Reading Lab is the only new feature. 52 GitHub issues created (#92–#143): 5 Epics, 10 ADRs, 3 UX specs, 5 QA plans, 29 user stories. Other killer features (Speaking/Mock/Predictor/Squads) deferred. |
