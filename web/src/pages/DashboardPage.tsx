@@ -1,5 +1,6 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 
 interface UserProfile {
@@ -60,6 +61,12 @@ export default function DashboardPage() {
           <p className="text-gray-500 mt-1">Band mục tiêu: {profile.target_band}</p>
           <p className="text-gray-500">Từ vựng: {profile.total_words} từ</p>
           <p className="text-gray-500">Streak: {profile.streak} ngày</p>
+          <Link
+            to="/vocab"
+            className="inline-block mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+          >
+            Xem từ vựng →
+          </Link>
         </div>
       ) : !error ? (
         <div className="animate-pulse space-y-3">

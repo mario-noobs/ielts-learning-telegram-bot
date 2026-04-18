@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import VocabHomePage from './pages/VocabHomePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -17,6 +18,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/vocab" element={<ProtectedRoute><VocabHomePage /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
