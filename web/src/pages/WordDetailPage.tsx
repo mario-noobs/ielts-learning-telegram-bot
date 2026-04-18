@@ -8,6 +8,11 @@ interface EnrichedExample {
   vi: string
 }
 
+interface Collocation {
+  phrase: string
+  label: string
+}
+
 interface EnrichedWord {
   word: string
   ipa: string
@@ -16,7 +21,7 @@ interface EnrichedWord {
   definition_en: string
   definition_vi: string
   word_family: string[]
-  collocations: string[]
+  collocations: Collocation[]
   examples_by_band: Record<string, EnrichedExample>
   ielts_tip: string
 }
@@ -80,6 +85,26 @@ function Chips({ items }: { items: string[] }) {
       {items.map((it) => (
         <span key={it} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
           {it}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function CollocationList({ items }: { items: Collocation[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((c, i) => (
+        <span
+          key={`${c.phrase}-${i}`}
+          className="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-gray-100 text-gray-700 text-sm"
+        >
+          {c.phrase}
+          {c.label && (
+            <span className="px-2 py-0.5 rounded-full bg-white text-xs text-gray-500">
+              {c.label}
+            </span>
+          )}
         </span>
       ))}
     </div>
@@ -195,7 +220,7 @@ export default function WordDetailPage() {
 
           {data.collocations.length > 0 && (
             <Section title="Collocations">
-              <Chips items={data.collocations} />
+              <CollocationList items={data.collocations} />
             </Section>
           )}
 

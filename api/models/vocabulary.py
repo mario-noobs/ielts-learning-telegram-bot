@@ -55,6 +55,11 @@ class EnrichedExample(BaseModel):
     vi: str = ""
 
 
+class Collocation(BaseModel):
+    phrase: str
+    label: str = ""
+
+
 class EnrichedWord(BaseModel):
     word: str
     ipa: str = ""
@@ -63,7 +68,7 @@ class EnrichedWord(BaseModel):
     definition_en: str = ""
     definition_vi: str = ""
     word_family: list[str] = []
-    collocations: list[str] = []
+    collocations: list[Collocation] = []
     examples_by_band: dict[str, EnrichedExample] = {}
     ielts_tip: str = ""
 
