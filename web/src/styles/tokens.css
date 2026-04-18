@@ -1,0 +1,78 @@
+/*
+ * UX-1 design tokens — source of truth: web/DESIGN_SPECS.md
+ * Contrast verified WCAG AA. Do not hardcode hex elsewhere.
+ */
+
+:root {
+  /* Brand */
+  --color-primary: 13 148 136;        /* teal-600 #0D9488 */
+  --color-primary-fg: 255 255 255;
+  --color-primary-hover: 15 118 110;  /* teal-700 */
+  --color-accent: 234 88 12;          /* orange-600 #EA580C */
+  --color-accent-fg: 255 255 255;
+
+  /* Semantic */
+  --color-success: 21 128 61;         /* green-700 */
+  --color-warning: 180 83 9;          /* amber-700 */
+  --color-danger: 185 28 28;          /* red-700 */
+
+  /* Surfaces */
+  --color-bg: 255 255 255;
+  --color-surface: 248 250 252;       /* slate-50 */
+  --color-surface-raised: 255 255 255;
+  --color-border: 226 232 240;        /* slate-200 */
+
+  /* Text */
+  --color-fg: 15 23 42;               /* slate-900 */
+  --color-muted-fg: 71 85 105;        /* slate-600 */
+
+  /* Focus */
+  --color-ring: 13 148 136;           /* teal-600 */
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark {
+  --color-primary: 20 184 166;        /* teal-500 */
+  --color-primary-fg: 4 47 46;        /* teal-950 */
+  --color-primary-hover: 45 212 191;  /* teal-400 */
+  --color-accent: 251 146 60;         /* orange-400 */
+  --color-accent-fg: 67 20 7;         /* orange-950 */
+
+  --color-success: 34 197 94;         /* green-500 */
+  --color-warning: 245 158 11;        /* amber-500 */
+  --color-danger: 248 113 113;        /* red-400 */
+
+  --color-bg: 11 18 32;               /* custom dark */
+  --color-surface: 17 24 39;          /* slate-900 */
+  --color-surface-raised: 31 41 55;   /* slate-800 */
+  --color-border: 31 41 55;           /* slate-800 */
+
+  --color-fg: 241 245 249;            /* slate-100 */
+  --color-muted-fg: 148 163 184;      /* slate-400 */
+
+  --color-ring: 20 184 166;           /* teal-500 */
+}
+
+/* Reduced motion: clamp all durations to 0 so anything using --dur-* snaps */
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  .dark {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
