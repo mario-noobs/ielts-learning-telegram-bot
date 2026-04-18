@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { DailyPlan, greetingFor } from '../lib/plan'
+import EmptyState from '../components/EmptyState'
 import ErrorBanner from '../components/ErrorBanner'
 import Icon from '../components/Icon'
 import LinkTelegramCard from '../components/LinkTelegramCard'
@@ -142,15 +143,13 @@ export default function DashboardPage() {
           </div>
 
           {allDone ? (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-              <Icon name="PartyPopper" size="xl" variant="success" className="mx-auto" label="Hoàn thành" />
-              <p className="font-semibold text-green-800 mt-1">
-                Hoàn thành toàn bộ kế hoạch hôm nay!
-              </p>
-              <p className="text-xs text-green-700 mt-1">
-                Mai quay lại để tiếp tục streak nhé.
-              </p>
-            </div>
+            <EmptyState
+              illustration="plan-complete"
+              title="Hoàn thành kế hoạch hôm nay!"
+              description="Mai quay lại để tiếp tục streak nhé."
+              variant="celebration"
+              primaryAction={{ label: 'Xem tiến độ', to: '/progress' }}
+            />
           ) : (
             <div className="space-y-2">
               {plan.activities.map((a) => (

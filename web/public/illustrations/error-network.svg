@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Disconnected cloud</title>
+  <path d="M38 80a20 20 0 0 1-4-40 24 24 0 0 1 46-4 18 18 0 0 1 14 44" opacity="0.2" fill="currentColor" stroke="none"/>
+  <path d="M38 80a20 20 0 0 1-4-40 24 24 0 0 1 46-4 18 18 0 0 1 14 44"/>
+  <path d="M42 96l44 20M86 96l-44 20" stroke-width="3.5"/>
+  <circle cx="64" cy="106" r="3" fill="currentColor" stroke="none"/>
+</svg>

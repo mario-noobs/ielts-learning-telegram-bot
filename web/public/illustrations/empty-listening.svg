@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Headphones with sound waves</title>
+  <path d="M24 70a40 40 0 0 1 80 0v18H86a6 6 0 0 0-6 6v14a6 6 0 0 0 6 6h10a8 8 0 0 0 8-8V70Z" opacity="0.15" fill="currentColor" stroke="none"/>
+  <path d="M24 70v36a8 8 0 0 0 8 8h10a6 6 0 0 0 6-6V94a6 6 0 0 0-6-6H24"/>
+  <path d="M104 70v36a8 8 0 0 1-8 8H86a6 6 0 0 1-6-6V94a6 6 0 0 1 6-6h18"/>
+  <path d="M24 70a40 40 0 0 1 80 0"/>
+  <path d="M12 74c2-4 2-8 0-12M116 62c2 4 2 8 0 12" stroke-width="2.5"/>
+  <path d="M4 80c4-8 4-16 0-24M124 56c4 8 4 16 0 24" stroke-width="2"/>
+</svg>

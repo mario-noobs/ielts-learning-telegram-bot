@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 
@@ -339,6 +340,18 @@ export default function FlashcardReviewPage() {
   const currentQuestion = useMemo(() => questions[index], [questions, index])
 
   if (phase === 'pre') {
+    if (error && error.toLowerCase().includes('enough')) {
+      return (
+        <div className="max-w-lg mx-auto p-4">
+          <EmptyState
+            illustration="empty-vocab"
+            title="Chưa có từ đến hạn ôn"
+            description="Thêm từ vựng mới hoặc chờ SRS nhắc lại trong vài giờ tới."
+            primaryAction={{ label: 'Thêm từ vựng', to: '/vocab' }}
+          />
+        </div>
+      )
+    }
     return (
       <div className="max-w-lg mx-auto p-4">
         <div className="bg-white rounded-xl shadow-sm p-6">
@@ -349,13 +362,6 @@ export default function FlashcardReviewPage() {
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-4 text-red-700 text-sm">
               {error}
-              {error.toLowerCase().includes('enough') && (
-                <div className="mt-2">
-                  <Link to="/vocab" className="underline">
-                    Thêm từ vựng
-                  </Link>
-                </div>
-              )}
             </div>
           )}
           <button

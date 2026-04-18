@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Pen on paper</title>
+  <path d="M28 20h52l20 20v68H28z" opacity="0.15" fill="currentColor" stroke="none"/>
+  <path d="M28 20h52l20 20v68H28z"/>
+  <path d="M80 20v20h20"/>
+  <path d="M40 60h32M40 74h40M40 88h24" stroke-width="2.5"/>
+  <path d="M78 68l22-22 8 8-22 22-10 2Z" stroke-width="2.5"/>
+  <path d="M94 52l6 6"/>
+</svg>

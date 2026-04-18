@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Open book with seedling</title>
+  <path d="M20 40v60l44-12 44 12V40L64 52Z" opacity="0.25" fill="currentColor" stroke="none"/>
+  <path d="M20 40v60l44-12 44 12V40L64 52 20 40Z"/>
+  <path d="M64 52v48"/>
+  <path d="M30 54l22 6M30 68l22 6M30 82l22 6"/>
+  <path d="M76 60l22-6M76 74l22-6M76 88l22-6"/>
+  <path d="M64 28v12"/>
+  <path d="M58 28c0-4 3-7 6-7s6 3 6 7" stroke-width="2.5"/>
+  <path d="M52 32c0-3 3-6 6-6" stroke-width="2.5"/>
+</svg>

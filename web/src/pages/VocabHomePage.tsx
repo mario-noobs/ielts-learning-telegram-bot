@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import EmptyState from '../components/EmptyState'
 import PronunciationButton from '../components/PronunciationButton'
 
 type Strength = 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
@@ -322,7 +323,28 @@ export default function VocabHomePage() {
             ))}
           </div>
         ) : filteredWords.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">Không có từ nào phù hợp.</p>
+          words.length === 0 ? (
+            <EmptyState
+              illustration="empty-vocab"
+              title="Chưa có từ vựng nào"
+              description="Học từ qua Telegram bot hoặc bắt đầu một bài quiz để thêm từ đầu tiên."
+              primaryAction={{ label: 'Bắt đầu ôn tập', to: '/review' }}
+            />
+          ) : (
+            <EmptyState
+              illustration="empty-vocab"
+              title="Không có từ phù hợp"
+              description="Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm."
+              primaryAction={{
+                label: 'Xoá bộ lọc',
+                onClick: () => {
+                  setSelectedTopic(null)
+                  setSelectedStrength(null)
+                  setSearchRaw('')
+                },
+              }}
+            />
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredWords.map((w) => (

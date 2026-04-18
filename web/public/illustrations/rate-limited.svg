@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Hourglass</title>
+  <path d="M38 20h52M38 108h52"/>
+  <path d="M38 20v16c0 10 6 18 14 24l-4 4c-8 6-14 14-14 24v20" />
+  <path d="M90 20v16c0 10-6 18-14 24l4 4c8 6 14 14 14 24v20" />
+  <path d="M48 32c0 8 6 14 16 20 10-6 16-12 16-20" opacity="0.2" fill="currentColor" stroke="none"/>
+  <path d="M48 96c0-8 6-14 16-20 10 6 16 12 16 20" opacity="0.35" fill="currentColor" stroke="none"/>
+  <path d="M58 70l12 12M70 70l-12 12" stroke-width="2.5" opacity="0.5"/>
+</svg>
