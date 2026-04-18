@@ -11,6 +11,28 @@ import config
 
 logger = logging.getLogger(__name__)
 
+
+def _gemini_logger():
+    """Return a structlog logger bound with the current request_id, if any.
+
+    Lazily imported so non-API callers (e.g. the Telegram bot) don't have
+    to pay the structlog configuration cost on import. Falls back to a
+    plain structlog logger if the API logging module hasn't been wired
+    up yet.
+    """
+    try:
+        import structlog
+
+        from api.logging_config import request_id_ctx
+
+        log = structlog.get_logger("ai_service")
+        rid = request_id_ctx.get()
+        if rid:
+            log = log.bind(request_id=rid)
+        return log
+    except Exception:  # pragma: no cover — defensive
+        return None
+
 _model = None
 
 
@@ -223,15 +245,36 @@ async def generate(prompt: str, max_retries: int = 2,
     await _gate.acquire(priority)
     logger.info("Gemini call [%s] %s prompt_len=%d", priority, _gate.status(), len(prompt))
 
+    slog = _gemini_logger()
+    if slog is not None:
+        slog.info(
+            "ai.gemini.request",
+            model=config.GEMINI_MODEL,
+            priority=priority,
+            prompt_len=len(prompt),
+            gate_status=_gate.status(),
+        )
+
     for attempt in range(max_retries):
         try:
             model = _get_model()
+            t0 = time.monotonic()
             response = await asyncio.to_thread(
                 model.generate_content, prompt
             )
             if priority == "foreground":
                 _gate.record_call()
-            return response.text.strip()
+            text = response.text.strip()
+            if slog is not None:
+                slog.info(
+                    "ai.gemini.response",
+                    model=config.GEMINI_MODEL,
+                    priority=priority,
+                    latency_ms=round((time.monotonic() - t0) * 1000, 2),
+                    response_len=len(text),
+                    attempt=attempt + 1,
+                )
+            return text
         except Exception as e:
             error_str = str(e)
 
