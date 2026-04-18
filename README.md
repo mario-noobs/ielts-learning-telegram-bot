@@ -33,7 +33,25 @@ Telegram group bot for IELTS exam preparation (target 7.0+). AI-powered vocabula
 | TTS | gTTS (Google Text-to-Speech) | Unlimited |
 | Scheduler | APScheduler | - |
 
-## Setup
+## Quickstart (local dev)
+
+Spins up Firebase emulators + API + web with seeded demo data. macOS / Linux
+only. Requires Docker, Python 3.11+, and Node 20+.
+
+```bash
+make install
+make dev
+# visit http://localhost:5173  (login demo@ielts.test / demo1234)
+# emulator UI at http://localhost:4000
+```
+
+`make help` lists all targets. The Telegram bot is NOT started by `make dev`
+because it needs a real bot token — run `make bot` explicitly if you want it.
+
+Seeds live under `seeds/` and are deterministic — re-running `make seed`
+overwrites docs in place, never duplicates.
+
+## Setup (production / real Telegram bot)
 
 ### 1. Get API keys
 

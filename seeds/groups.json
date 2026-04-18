@@ -1,0 +1,17 @@
+[
+  {
+    "id": "-1001234567890",
+    "name": "IELTS Demo Study Group",
+    "admin_id": "demo-teacher",
+    "members": ["demo-student", "demo-advanced"],
+    "daily_time": "08:00",
+    "challenge_time": "08:30",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "topics": ["education", "environment", "technology"],
+    "default_band": 7.0,
+    "word_count": 10,
+    "challenge_question_count": 5,
+    "challenge_deadline_minutes": 60,
+    "created_at": "2026-01-01T00:00:00Z"
+  }
+]

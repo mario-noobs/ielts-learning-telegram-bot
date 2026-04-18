@@ -1,0 +1,14 @@
+// WARNING: These rules are PERMISSIVE and intended for the local Firebase
+// emulator only. They allow any client to read/write any document so that
+// development and seed scripts can operate without auth tokens.
+//
+// DO NOT deploy these rules to production. The production project uses a
+// stricter ruleset managed separately.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -19,6 +19,15 @@ FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_cre
 # Support base64-encoded Firebase credentials for containerized deploys
 FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON")
 
+# Firebase emulator mode (local dev only)
+# When FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST are set in the
+# environment, the firebase-admin SDK auto-routes to the emulator and we skip
+# real credentials. See services/firebase_service._get_db().
+FIRESTORE_EMULATOR_HOST = os.getenv("FIRESTORE_EMULATOR_HOST")
+FIREBASE_AUTH_EMULATOR_HOST = os.getenv("FIREBASE_AUTH_EMULATOR_HOST")
+FIREBASE_EMULATOR_PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "ielts-bot-dev")
+USE_FIREBASE_EMULATOR = bool(FIRESTORE_EMULATOR_HOST or FIREBASE_AUTH_EMULATOR_HOST)
+
 # Bot defaults
 DEFAULT_DAILY_TIME = os.getenv("DEFAULT_DAILY_TIME", "08:00")
 DEFAULT_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Ho_Chi_Minh")

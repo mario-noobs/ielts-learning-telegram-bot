@@ -1,0 +1,14 @@
+{
+  "demo-student": [
+    {"id": "quiz-01", "word": "curriculum", "question": "What does 'curriculum' mean?", "user_answer": "chương trình học", "correct_answer": "chương trình học", "is_correct": true, "quiz_type": "multiple_choice", "created_at": "2026-04-10T08:30:00Z"},
+    {"id": "quiz-02", "word": "pedagogy", "question": "Fill in the blank: Modern ___ emphasizes active learning.", "user_answer": "pedagogy", "correct_answer": "pedagogy", "is_correct": true, "quiz_type": "fill_blank", "created_at": "2026-04-11T08:32:00Z"},
+    {"id": "quiz-03", "word": "mitigate", "question": "Which is a synonym of 'mitigate'?", "user_answer": "increase", "correct_answer": "reduce", "is_correct": false, "quiz_type": "synonym_antonym", "created_at": "2026-04-12T08:35:00Z"},
+    {"id": "quiz-04", "word": "biodiversity", "question": "Paraphrase: 'The rainforest hosts remarkable biodiversity.'", "user_answer": "The rainforest contains many different species.", "correct_answer": "The rainforest contains many different species.", "is_correct": true, "quiz_type": "paraphrase", "created_at": "2026-04-13T08:35:00Z"},
+    {"id": "quiz-05", "word": "algorithm", "question": "What does 'algorithm' mean?", "user_answer": "thuật toán", "correct_answer": "thuật toán", "is_correct": true, "quiz_type": "multiple_choice", "created_at": "2026-04-14T08:30:00Z"},
+    {"id": "quiz-06", "word": "encryption", "question": "Fill in the blank: End-to-end ___ protects messages.", "user_answer": "encryption", "correct_answer": "encryption", "is_correct": true, "quiz_type": "fill_blank", "created_at": "2026-04-15T08:30:00Z"},
+    {"id": "quiz-07", "word": "eutrophication", "question": "What does 'eutrophication' mean?", "user_answer": "drought", "correct_answer": "excessive nutrients in water", "is_correct": false, "quiz_type": "multiple_choice", "created_at": "2026-04-15T09:10:00Z"},
+    {"id": "quiz-08", "word": "renewable", "question": "Which is a synonym of 'renewable'?", "user_answer": "sustainable", "correct_answer": "sustainable", "is_correct": true, "quiz_type": "synonym_antonym", "created_at": "2026-04-16T08:30:00Z"},
+    {"id": "quiz-09", "word": "redundancy", "question": "What does 'redundancy' mean in IT?", "user_answer": "repetition", "correct_answer": "duplication for reliability", "is_correct": false, "quiz_type": "multiple_choice", "created_at": "2026-04-17T08:30:00Z"},
+    {"id": "quiz-10", "word": "scholarship", "question": "Fill in the blank: She won a ___ to study abroad.", "user_answer": "scholarship", "correct_answer": "scholarship", "is_correct": true, "quiz_type": "fill_blank", "created_at": "2026-04-18T08:30:00Z"}
+  ]
+}
