@@ -96,6 +96,12 @@ export default function DashboardPage() {
               >
                 Luyện nghe →
               </Link>
+              <Link
+                to="/progress"
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Band Progress →
+              </Link>
             </div>
           </div>
 
