@@ -90,6 +90,12 @@ export default function DashboardPage() {
               >
                 Lịch sử bài viết →
               </Link>
+              <Link
+                to="/listening"
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Luyện nghe →
+              </Link>
             </div>
           </div>
 

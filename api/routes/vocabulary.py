@@ -6,13 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 import config
 from api.auth import get_current_user
 from api.models.vocabulary import (
+    AddWordRequest,
     DailyGenerateRequest,
     DailyWord,
     DailyWordsResponse,
     VocabularyWord,
     WordListResponse,
 )
-from services import firebase_service, vocab_service
+from services import firebase_service, vocab_service, word_service
 from services.srs_service import get_word_strength
 
 router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
@@ -116,6 +117,66 @@ async def generate_daily(
         words=[_to_daily_word(w) for w in words],
         generated_at=datetime.utcnow(),
     )
+
+
+@router.post("", response_model=VocabularyWord)
+async def add_word(
+    body: AddWordRequest,
+    user: dict = Depends(get_current_user),
+) -> VocabularyWord:
+    """Add a single word to the user's vocabulary with auto-enrichment.
+
+    Used by the listening misheard-word → SRS bridge. Deduplicates by word.
+    """
+    normalized = word_service.normalize_word(body.word)
+    if not normalized:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Word cannot be empty.",
+        )
+
+    existing = await asyncio.to_thread(
+        firebase_service.get_user_word_list, user["id"]
+    )
+    if normalized in {w.lower() for w in existing}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Word already in vocabulary.",
+        )
+
+    band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+    enriched = await word_service.get_enriched_word(normalized, band)
+
+    tier = _band_tier(band)
+    example = (enriched.get("examples_by_band", {}) or {}).get(tier, {}) or {}
+    word_data = {
+        "word": enriched.get("word", normalized),
+        "definition": enriched.get("definition_en", ""),
+        "definition_vi": enriched.get("definition_vi", ""),
+        "ipa": enriched.get("ipa", ""),
+        "part_of_speech": enriched.get("part_of_speech", ""),
+        "topic": body.topic or "",
+        "example_en": example.get("en", ""),
+        "example_vi": example.get("vi", ""),
+    }
+
+    word_id = await asyncio.to_thread(
+        firebase_service.add_word_to_user, user["id"], word_data
+    )
+    doc = await asyncio.to_thread(
+        firebase_service.get_word_by_id, user["id"], word_id
+    )
+    return _to_vocab_word(doc or {"id": word_id, **word_data})
+
+
+def _band_tier(band: float) -> str:
+    if band >= 7.5:
+        return "7.5+"
+    if band >= 7.0:
+        return "7.0"
+    if band >= 6.5:
+        return "6.5"
+    return "6.0"
 
 
 @router.get("/daily/{date}", response_model=DailyWordsResponse)
