@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AppShell from './components/AppShell'
+import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
@@ -28,14 +29,29 @@ function ProtectedShell() {
   return <AppShell />
 }
 
+function RootRoute() {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-dvh text-muted-fg">
+        Đang tải...
+      </div>
+    )
+  }
+  if (!user) return <LandingPage />
+  return <AppShell />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<RootRoute />}>
+            <Route index element={<DashboardPage />} />
+          </Route>
           <Route element={<ProtectedShell />}>
-            <Route path="/" element={<DashboardPage />} />
             <Route path="/vocab" element={<VocabHomePage />} />
             <Route path="/vocab/:id" element={<WordDetailPage />} />
             <Route path="/review" element={<FlashcardReviewPage />} />
