@@ -300,6 +300,39 @@ def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
     return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
+# ─── Listening Exercises ──────────────────────────────────────────
+
+def save_listening_exercise(telegram_id, exercise_data: dict) -> str:
+    now = datetime.now(timezone.utc)
+    doc = {**exercise_data, "created_at": now}
+    ref = (_get_db().collection("users").document(str(telegram_id))
+           .collection("listening_history").document())
+    ref.set(doc)
+    return ref.id
+
+
+def get_listening_exercise(telegram_id, exercise_id: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("listening_history").document(exercise_id).get())
+    if not doc.exists:
+        return None
+    return {"id": doc.id, **doc.to_dict()}
+
+
+def update_listening_exercise(telegram_id, exercise_id: str, data: dict) -> None:
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("listening_history").document(exercise_id).update(data))
+
+
+def list_listening_exercises(telegram_id, limit: int = 50) -> list[dict]:
+    docs = (_get_db().collection("users").document(str(telegram_id))
+            .collection("listening_history")
+            .order_by("created_at", direction=firestore.Query.DESCENDING)
+            .limit(limit)
+            .stream())
+    return [{"id": d.id, **d.to_dict()} for d in docs]
+
+
 # ─── Group Operations ─────────────────────────────────────────────
 
 def get_group_settings(group_id: int) -> Optional[dict]:
