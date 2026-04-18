@@ -18,3 +18,27 @@ services:
     environment:
       - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON:-}
     restart: unless-stopped
+
+  # Local development only: Firebase Auth + Firestore emulators + UI.
+  # Start with: `make emulators` or `docker-compose up firebase-emulators -d`.
+  # Not started by the default `docker-compose up` (has a profile).
+  firebase-emulators:
+    image: andreysenov/firebase-tools:latest
+    profiles: ["dev"]
+    working_dir: /home/node
+    command: >
+      firebase emulators:start
+      --project ielts-bot-dev
+      --only auth,firestore
+      --import=./seeds/firestore-export
+      --export-on-exit=./seeds/firestore-export
+    ports:
+      - "4000:4000"   # Emulator UI
+      - "8080:8080"   # Firestore
+      - "9099:9099"   # Auth
+      - "9150:9150"   # Firestore gRPC (used by SDK)
+    volumes:
+      - ./firebase.json:/home/node/firebase.json:ro
+      - ./firestore.rules:/home/node/firestore.rules:ro
+      - ./seeds:/home/node/seeds
+    restart: unless-stopped

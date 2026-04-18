@@ -26,9 +26,23 @@ def _get_db():
 
     This mirrors the pre-existing ``services.firebase_service._get_db``
     pattern — one app, one client, shared across every repo.
+
+    Emulator mode: when ``FIRESTORE_EMULATOR_HOST`` /
+    ``FIREBASE_AUTH_EMULATOR_HOST`` are set in the environment,
+    firebase-admin auto-routes all traffic to the local emulator and
+    we skip real service-account credentials. Just initialize the app
+    with an explicit projectId so collection paths resolve correctly.
     """
     global _db
     if _db is None:
+        if getattr(config, "USE_FIREBASE_EMULATOR", False):
+            if not firebase_admin._apps:
+                firebase_admin.initialize_app(
+                    options={"projectId": config.FIREBASE_EMULATOR_PROJECT_ID},
+                )
+            _db = firestore.client()
+            return _db
+
         json_b64 = getattr(config, "FIREBASE_CREDENTIALS_JSON", None)
         if json_b64:
             cred_dict = json.loads(base64.b64decode(json_b64))
