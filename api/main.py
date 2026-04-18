@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import config
+from api.logging_config import configure_logging
+from api.middleware import RequestIDMiddleware
 from api.routes.audio import router as audio_router
 from api.routes.auth import router as auth_router
 from api.routes.health import router as health_router
@@ -18,12 +20,23 @@ from api.routes.words import router as words_router
 from api.routes.writing import router as writing_router
 from services.ai_service import RateLimitError
 
+# Configure logging once at import time so even module-level loggers
+# (including services imported above) flow through the same pipeline.
+configure_logging()
+
 logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
+    # Re-run in case ENV/LOG_LEVEL changed between app instantiations
+    # (e.g. tests that twiddle config).
+    configure_logging()
+
     app = FastAPI(title="IELTS Web API", version="0.1.0")
 
+    # RequestIDMiddleware first so the context is set before CORS / routes
+    # emit any logs. Starlette runs middlewares in reverse-add order, so
+    # add CORS before RequestID to get RequestID on the outside.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.CORS_ORIGINS,
@@ -31,6 +44,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(RequestIDMiddleware)
 
     @app.exception_handler(RateLimitError)
     async def rate_limit_handler(request: Request, exc: RateLimitError) -> JSONResponse:

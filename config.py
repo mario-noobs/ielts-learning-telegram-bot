@@ -65,6 +65,10 @@ CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost
 # Tests may override this to 0 to force cache misses.
 FEATURE_FLAG_CACHE_TTL_SECONDS = int(os.getenv("FEATURE_FLAG_CACHE_TTL_SECONDS", "60"))
 
+# Observability
+ENV = os.getenv("ENV", "development")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
 
 def local_date_str() -> str:
     """Return today's date in the configured timezone as YYYY-MM-DD."""
