@@ -30,26 +30,41 @@
 
 ## Status Board
 
-### M6: Design System & Landing — In Progress
+### M6: Design System & Landing — **Sprint active (started 2026-04-18)**
 
-**Plumbing (prerequisites, M6 sprint):**
-| # | Story | Size | Status |
-|---|-------|------|--------|
-| GH#113 | US-P.1: Repository Protocol layer extraction | S | Ready |
-| GH#114 | US-P.2: structlog + request ID middleware | S | Ready |
-| GH#116 | US-P.3: Feature flag service | S | Ready |
-| GH#118 | US-P.4: Storybook 8 scaffold | S | Ready |
-| GH#119 | US-P.5: Seed scripts + `make dev` | S | Ready |
+Epic: **GH#92** — [milestone board](https://github.com/mario-noobs/ielts-bot/milestone/8)
+3-wave execution; status labels applied on each ticket for tracing.
 
-**M6 Stories:**
-| # | Story | Size | Depends |
-|---|-------|------|---------|
-| GH#120 | US-M6.1: Design tokens + Tailwind preset | S | — |
-| GH#121 | US-M6.2: 8 primitives via shadcn + tokens | M | US-M6.1, US-P.4 |
-| GH#122 | US-M6.3: Landing hero + trial CTA | M | US-M6.2 |
-| GH#123 | US-M6.4: Pricing + testimonials + FAQ | S | US-M6.2 |
-| GH#124 | US-M6.5: Reskin M1–M5 via tokens | M | US-M6.2 |
-| GH#125 | US-M6.6: Empty states + illustrations | S | US-M6.2 |
+**Wave 1 — In Progress (parallel, no deps)**
+| # | Story | Size | Role | Status |
+|---|-------|------|------|--------|
+| GH#120 | US-M6.1: Design tokens + Tailwind preset | S | Designer+Dev | 🟢 in-progress |
+| GH#113 | US-P.1: Repository Protocol layer extraction | S | Dev | 🟢 in-progress |
+| GH#114 | US-P.2: structlog + request ID middleware | S | Dev | 🟢 in-progress |
+| GH#116 | US-P.3: Feature flag service | S | Dev | 🟢 in-progress |
+| GH#118 | US-P.4: Storybook 8 scaffold | S | Dev | 🟢 in-progress |
+| GH#119 | US-P.5: Seed scripts + `make dev` | S | Dev | 🟢 in-progress |
+
+**Wave 2 — Blocked (starts when Wave 1 lands)**
+| # | Story | Size | Depends | Status |
+|---|-------|------|---------|--------|
+| GH#121 | US-M6.2: 8 primitives via shadcn + tokens | M | GH#120, GH#118 | 🔴 blocked |
+
+**Wave 3 — Blocked (parallel, starts when #121 lands)**
+| # | Story | Size | Depends | Status |
+|---|-------|------|---------|--------|
+| GH#122 | US-M6.3: Landing hero + trial CTA | M | GH#121 | 🔴 blocked |
+| GH#123 | US-M6.4: Pricing + testimonials + FAQ | S | GH#121 | 🔴 blocked |
+| GH#124 | US-M6.5: Reskin M1–M5 via tokens | M | GH#121 | 🔴 blocked |
+| GH#125 | US-M6.6: Empty states + illustrations | S | GH#121 | 🔴 blocked |
+
+**Supporting work (in-progress alongside Wave 1)**
+| # | Item | Owner | Drives |
+|---|------|-------|--------|
+| GH#97 | ADR-M6-1 Design System & Token Strategy | Architect | Gates US-M6.1 |
+| GH#98 | ADR-M6-2 shadcn/ui adoption | Architect | Gates US-M6.2 |
+| GH#100 | UX-M6 Design System + Landing spec | Designer | Gates US-M6.3/.6 |
+| GH#103 | QA-M6 Visual & A11y test plan | QA | CI hooks into US-P.4, gates US-M6.2/.5 |
 
 ### Done (previous sprints)
 - GH#1–GH#8 — Bot features (Q2 2026): Smart Daily Greeting, /word enrichment, AI caching, RPD/RPM bugfixes, deployment skill, daily challenge Firestore redesign
@@ -172,3 +187,4 @@ See GH#15–GH#20 (ADR-M0-1 through ADR-M0-6).
 | 2026-04-16 | PO + Designer + Architect + QA + TechLead + Developer | Refinement meeting: defined 5 killer features, 6 milestones (M0-M5), 51 GitHub issues created (#9-#59) |
 | 2026-04-17 | Various | M0–M5 delivered (GH#9–#91) |
 | 2026-04-18 | PO + Designer + Architect + QA + TechLead + Developer | Refinement meeting 2: post-M5 user feedback (UI/UX, DB durability, i18n). 5 new milestones M6–M10 defined; Reading Lab is the only new feature. 52 GitHub issues created (#92–#143): 5 Epics, 10 ADRs, 3 UX specs, 5 QA plans, 29 user stories. Other killer features (Speaking/Mock/Predictor/Squads) deferred. |
+| 2026-04-18 | Orchestrator | M6 sprint kickoff: 3-wave plan posted on Epic #92; all 11 M6 tickets (5 plumbing + 6 stories) + 4 supporting docs (ADRs #97/#98, UX #100, QA #103) stamped with Sprint Kickoff comments, owner, deps, exit criteria. Wave 1 labeled `status:in-progress`; Waves 2–3 labeled `status:blocked`. |
