@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { useReducedMotion } from '../lib/motion'
 import {
   AnnotatedEssay,
   ScorePanel,
@@ -129,6 +130,7 @@ export default function WritingPage() {
   const [submission, setSubmission] = useState<WritingSubmission | null>(null)
   const [originalForDiff, setOriginalForDiff] = useState<WritingSubmission | null>(null)
   const [targetBand, setTargetBand] = useState<number>(7.0)
+  const reducedMotion = useReducedMotion()
 
   const typeIntervalRef = useRef<number | null>(null)
 
@@ -176,16 +178,21 @@ export default function WritingPage() {
         body: JSON.stringify({ task_type: t }),
       })
       if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current)
-      let i = 0
-      typeIntervalRef.current = window.setInterval(() => {
-        i += 2
-        patchTask(t, { typewriter: res.prompt.slice(0, i) })
-        if (i >= res.prompt.length) {
-          window.clearInterval(typeIntervalRef.current!)
-          typeIntervalRef.current = null
-          patchTask(t, { prompt: res.prompt, visualization: res.visualization })
-        }
-      }, 15)
+      if (reducedMotion) {
+        // Reduced motion: show prompt instantly, no typewriter
+        patchTask(t, { typewriter: res.prompt, prompt: res.prompt, visualization: res.visualization })
+      } else {
+        let i = 0
+        typeIntervalRef.current = window.setInterval(() => {
+          i += 2
+          patchTask(t, { typewriter: res.prompt.slice(0, i) })
+          if (i >= res.prompt.length) {
+            window.clearInterval(typeIntervalRef.current!)
+            typeIntervalRef.current = null
+            patchTask(t, { prompt: res.prompt, visualization: res.visualization })
+          }
+        }, 15)
+      }
     } catch (e) {
       setError((e as Error).message)
     } finally {

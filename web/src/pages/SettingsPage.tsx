@@ -61,6 +61,13 @@ export default function SettingsPage() {
     }
   }
 
+  // Auto-dismiss the saved confirmation after 3s (audit #15)
+  useEffect(() => {
+    if (!saved) return
+    const t = setTimeout(() => setSaved(false), 3000)
+    return () => clearTimeout(t)
+  }, [saved])
+
   return (
     <div className="max-w-xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold text-gray-900">Cài đặt</h1>
@@ -72,7 +79,11 @@ export default function SettingsPage() {
       )}
 
       {saved && (
-        <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded text-sm text-green-700">
+        <div
+          role="status"
+          aria-live="polite"
+          className="bg-success/10 border-l-4 border-success p-3 rounded text-sm text-success"
+        >
           Đã lưu cài đặt.
         </div>
       )}
