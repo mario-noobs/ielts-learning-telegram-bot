@@ -1,0 +1,48 @@
+{
+  "demo-student": [
+    {
+      "id": "writing-01",
+      "task_type": "task_2",
+      "topic": "Education",
+      "prompt": "Some people believe that university students should pay the full cost of their studies. Do you agree or disagree?",
+      "essay": "In recent years, the question of who should bear the financial burden of higher education has become increasingly controversial. While some argue that students should pay the full cost of their university studies, I disagree with this view for several reasons. Firstly, placing the entire financial burden on students creates significant inequality, as talented individuals from low-income families may be forced to abandon their academic aspirations due to financial constraints. Secondly, an educated population benefits society as a whole through higher productivity, better civic engagement, and greater innovation, which justifies at least partial public funding. Finally, graduates already contribute to the economy through higher taxes over their lifetimes. For these reasons, I believe that university tuition should be subsidized, with students paying only a manageable share.",
+      "word_count": 126,
+      "band_score": 6.5,
+      "criteria_scores": {
+        "task_response": 6.5,
+        "coherence_cohesion": 6.5,
+        "lexical_resource": 6.0,
+        "grammar": 7.0
+      },
+      "feedback": "Good structure and clear position. Work on vocabulary range — consider synonyms for 'students' and 'education'. Some minor grammar slips but overall solid.",
+      "suggestions": [
+        "Replace 'students' with 'undergraduates' or 'learners' in places to vary vocabulary.",
+        "Use more complex linking phrases like 'In light of this' or 'Conversely'.",
+        "Add a specific example to strengthen your second reason."
+      ],
+      "created_at": "2026-04-05T14:20:00Z"
+    },
+    {
+      "id": "writing-02",
+      "task_type": "task_2",
+      "topic": "Environment",
+      "prompt": "Some say individuals can do little to combat climate change and governments and corporations must lead. To what extent do you agree?",
+      "essay": "The debate over whether individuals or institutions should take primary responsibility for addressing climate change has intensified as environmental crises multiply. While I acknowledge that governments and corporations must spearhead systemic change, I partially disagree with the notion that individuals are powerless, and believe that personal action remains indispensable. On one hand, only large institutions possess the regulatory and financial leverage to decommission coal plants, build renewable infrastructure, and enforce emissions standards at scale. Without these top-down interventions, individual efforts are akin to emptying the ocean with a teaspoon. On the other hand, consumer behaviour drives corporate strategy. When millions of households adopt plant-based diets, invest in energy-efficient homes, or boycott high-emissions brands, markets reconfigure. Moreover, grassroots movements have historically been the catalyst for legislative reform. In conclusion, while institutions must lead, individual choices and activism shape the demand signals that make systemic change politically feasible.",
+      "word_count": 158,
+      "band_score": 7.0,
+      "criteria_scores": {
+        "task_response": 7.0,
+        "coherence_cohesion": 7.0,
+        "lexical_resource": 7.0,
+        "grammar": 7.5
+      },
+      "feedback": "Strong argument with balanced analysis. Vocabulary is varied and topical. A few sophisticated constructions. Could push toward Band 8 by tightening conclusions.",
+      "suggestions": [
+        "Use hedging language ('arguably', 'to some extent') where assertions are strong.",
+        "Your conclusion slightly repeats — rephrase for sharper impact.",
+        "Introduce a counterexample to pre-empt objections."
+      ],
+      "created_at": "2026-04-12T15:00:00Z"
+    }
+  ]
+}

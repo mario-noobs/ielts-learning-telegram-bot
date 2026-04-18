@@ -35,3 +35,9 @@ web/.env
 
 # Docker
 *.log
+
+# Firebase emulator runtime state
+seeds/firestore-export/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
