@@ -50,6 +50,11 @@ class DailyGenerateRequest(BaseModel):
     topics: list[str] | None = None
 
 
+class AddWordRequest(BaseModel):
+    word: str = Field(min_length=1, max_length=40)
+    topic: str = ""
+
+
 class EnrichedExample(BaseModel):
     en: str = ""
     vi: str = ""

@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import tempfile
@@ -9,6 +10,32 @@ logger = logging.getLogger(__name__)
 # Cache directory for audio files
 AUDIO_CACHE_DIR = os.path.join(tempfile.gettempdir(), "ielts_bot_audio")
 os.makedirs(AUDIO_CACHE_DIR, exist_ok=True)
+
+
+def _passage_filepath(text: str) -> str:
+    digest = hashlib.sha1(text.strip().encode("utf-8")).hexdigest()[:20]
+    return os.path.join(AUDIO_CACHE_DIR, f"passage_{digest}.mp3")
+
+
+def generate_passage_audio(text: str) -> str | None:
+    """Generate audio for a multi-sentence passage. Cached by content hash."""
+    text = (text or "").strip()
+    if not text:
+        return None
+    filepath = _passage_filepath(text)
+    if os.path.exists(filepath):
+        return filepath
+    try:
+        gTTS(text=text, lang="en", slow=False).save(filepath)
+        return filepath
+    except Exception as e:
+        logger.error(f"Failed to generate passage audio: {e}")
+        return None
+
+
+def passage_audio_path(text: str) -> str:
+    """Return the deterministic path for a passage (no generation)."""
+    return _passage_filepath(text)
 
 
 def generate_audio(word: str) -> str | None:

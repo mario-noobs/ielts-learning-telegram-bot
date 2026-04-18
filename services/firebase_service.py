@@ -121,6 +121,45 @@ def add_word_to_user(telegram_id: int, word_data: dict) -> str:
     return doc_ref.id
 
 
+def add_word_if_not_exists(telegram_id, word_data: dict) -> tuple[str, bool]:
+    """Atomically add a word to a user's vocabulary, deduped by lowercased `word`.
+
+    Returns (word_id, created). `created` is False if a matching word already
+    exists — in that case word_id is the existing doc's id and total_words is
+    not incremented.
+    """
+    db = _get_db()
+    word = str(word_data.get("word", "")).strip().lower()
+    user_ref = db.collection("users").document(str(telegram_id))
+    vocab_ref = user_ref.collection("vocabulary")
+
+    @firestore.transactional
+    def _txn(txn) -> tuple[str, bool]:
+        existing = list(
+            vocab_ref.where("word", "==", word).limit(1).get(transaction=txn)
+        )
+        if existing:
+            return existing[0].id, False
+
+        doc_ref = vocab_ref.document()
+        now = datetime.now(timezone.utc)
+        txn.set(doc_ref, {
+            **word_data,
+            "word": word,
+            "srs_interval": config.SRS_INITIAL_INTERVAL,
+            "srs_ease": config.SRS_INITIAL_EASE,
+            "srs_next_review": now,
+            "srs_reps": 0,
+            "times_correct": 0,
+            "times_incorrect": 0,
+            "added_at": now,
+        })
+        txn.update(user_ref, {"total_words": firestore.Increment(1)})
+        return doc_ref.id, True
+
+    return _txn(db.transaction())
+
+
 def get_user_vocabulary(telegram_id: int, limit: int = 50) -> list[dict]:
     docs = (_get_db().collection("users").document(str(telegram_id))
             .collection("vocabulary")
@@ -294,6 +333,39 @@ def get_writing_submission(telegram_id, submission_id: str) -> Optional[dict]:
 def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
     docs = (_get_db().collection("users").document(str(telegram_id))
             .collection("writing_history")
+            .order_by("created_at", direction=firestore.Query.DESCENDING)
+            .limit(limit)
+            .stream())
+    return [{"id": d.id, **d.to_dict()} for d in docs]
+
+
+# ─── Listening Exercises ──────────────────────────────────────────
+
+def save_listening_exercise(telegram_id, exercise_data: dict) -> str:
+    now = datetime.now(timezone.utc)
+    doc = {**exercise_data, "created_at": now}
+    ref = (_get_db().collection("users").document(str(telegram_id))
+           .collection("listening_history").document())
+    ref.set(doc)
+    return ref.id
+
+
+def get_listening_exercise(telegram_id, exercise_id: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("listening_history").document(exercise_id).get())
+    if not doc.exists:
+        return None
+    return {"id": doc.id, **doc.to_dict()}
+
+
+def update_listening_exercise(telegram_id, exercise_id: str, data: dict) -> None:
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("listening_history").document(exercise_id).update(data))
+
+
+def list_listening_exercises(telegram_id, limit: int = 50) -> list[dict]:
+    docs = (_get_db().collection("users").document(str(telegram_id))
+            .collection("listening_history")
             .order_by("created_at", direction=firestore.Query.DESCENDING)
             .limit(limit)
             .stream())
