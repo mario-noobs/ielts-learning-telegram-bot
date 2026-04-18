@@ -7,9 +7,12 @@ import {
   VietnameseSummary,
 } from '../components/WritingFeedback'
 import WritingDiff from '../components/WritingDiff'
+import TaskVisualization from '../components/TaskVisualization'
 import {
   countWords,
   formatDuration,
+  Task1Visualization,
+  TaskPromptResponse,
   TaskType,
   WritingSubmission,
 } from '../lib/writing'
@@ -58,30 +61,35 @@ function PromptCard({
   typewriter,
   loading,
   onGenerate,
+  visualization,
 }: {
   prompt: string
   typewriter: string
   loading: boolean
   onGenerate: () => void
+  visualization: Task1Visualization | null
 }) {
   const display = loading || !prompt ? typewriter : prompt
   return (
-    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-semibold text-indigo-900 uppercase tracking-wide">
-          Đề bài
-        </h2>
-        <button
-          onClick={onGenerate}
-          disabled={loading}
-          className="text-xs text-indigo-700 hover:text-indigo-900 underline disabled:opacity-50"
-        >
-          {prompt ? 'Đề khác' : 'Tạo đề'}
-        </button>
+    <div className="space-y-3">
+      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-indigo-900 uppercase tracking-wide">
+            Đề bài
+          </h2>
+          <button
+            onClick={onGenerate}
+            disabled={loading}
+            className="text-xs text-indigo-700 hover:text-indigo-900 underline disabled:opacity-50"
+          >
+            {prompt ? 'Đề khác' : 'Tạo đề'}
+          </button>
+        </div>
+        <p className="text-indigo-900 whitespace-pre-line min-h-[3rem]">
+          {display || 'Chưa có đề. Bấm "Tạo đề" để bắt đầu.'}
+        </p>
       </div>
-      <p className="text-indigo-900 whitespace-pre-line min-h-[3rem]">
-        {display || 'Chưa có đề. Bấm "Tạo đề" để bắt đầu.'}
-      </p>
+      {visualization && prompt && <TaskVisualization viz={visualization} />}
     </div>
   )
 }
@@ -93,6 +101,7 @@ export default function WritingPage() {
   const [taskType, setTaskType] = useState<TaskType>('task2')
   const [prompt, setPrompt] = useState('')
   const [typewriter, setTypewriter] = useState('')
+  const [visualization, setVisualization] = useState<Task1Visualization | null>(null)
   const [promptLoading, setPromptLoading] = useState(false)
 
   const [text, setText] = useState('')
@@ -143,8 +152,9 @@ export default function WritingPage() {
     setError(null)
     setPrompt('')
     setTypewriter('')
+    setVisualization(null)
     try {
-      const res = await apiFetch<{ prompt: string }>('/api/v1/writing/prompt', {
+      const res = await apiFetch<TaskPromptResponse>('/api/v1/writing/prompt', {
         method: 'POST',
         body: JSON.stringify({ task_type: taskType }),
       })
@@ -157,6 +167,7 @@ export default function WritingPage() {
           window.clearInterval(typeIntervalRef.current!)
           typeIntervalRef.current = null
           setPrompt(res.prompt)
+          setVisualization(res.visualization)
         }
       }, 15)
     } catch (e) {
@@ -253,6 +264,7 @@ export default function WritingPage() {
             setTaskType(t)
             setPrompt('')
             setTypewriter('')
+            setVisualization(null)
           }}
           disabled={!!startedAt}
         />
@@ -263,6 +275,7 @@ export default function WritingPage() {
         typewriter={typewriter}
         loading={promptLoading}
         onGenerate={generatePrompt}
+        visualization={visualization}
       />
 
       {error && (

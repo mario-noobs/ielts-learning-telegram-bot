@@ -83,13 +83,77 @@ async def score_essay(text: str, task_type: str, prompt: str) -> dict:
     return normalize_feedback(raw)
 
 
-async def generate_task_prompt(task_type: str, band: float) -> str:
+_ALLOWED_CHART_TYPES = {"line", "bar", "pie", "table"}
+
+
+def _normalize_visualization(raw: dict) -> dict:
+    chart_type = str(raw.get("chart_type", "line")).lower()
+    if chart_type not in _ALLOWED_CHART_TYPES:
+        chart_type = "line"
+
+    def _coerce_floats(values):
+        out = []
+        for v in values or []:
+            try:
+                out.append(float(v))
+            except (TypeError, ValueError):
+                out.append(0.0)
+        return out
+
+    series = []
+    for s in raw.get("series") or []:
+        if not isinstance(s, dict):
+            continue
+        series.append({
+            "name": str(s.get("name", "")).strip(),
+            "values": _coerce_floats(s.get("values")),
+        })
+
+    slices = []
+    for s in raw.get("slices") or []:
+        if not isinstance(s, dict):
+            continue
+        try:
+            value = float(s.get("value", 0))
+        except (TypeError, ValueError):
+            value = 0.0
+        slices.append({"label": str(s.get("label", "")).strip(), "value": value})
+
+    table_rows = []
+    for row in raw.get("table_rows") or []:
+        if not isinstance(row, list):
+            continue
+        table_rows.append([str(cell) for cell in row])
+
+    return {
+        "chart_type": chart_type,
+        "title": str(raw.get("title", "")).strip(),
+        "x_axis_label": str(raw.get("x_axis_label", "")).strip(),
+        "y_axis_label": str(raw.get("y_axis_label", "")).strip(),
+        "x_labels": [str(x) for x in (raw.get("x_labels") or [])],
+        "series": series,
+        "slices": slices,
+        "table_headers": [str(h) for h in (raw.get("table_headers") or [])],
+        "table_rows": table_rows,
+        "y_min": raw.get("y_min"),
+        "y_max": raw.get("y_max"),
+    }
+
+
+async def generate_task_prompt(task_type: str, band: float) -> dict:
     from prompts.writing_score_prompt import (
         TASK1_PROMPT_GENERATOR,
         TASK2_PROMPT_GENERATOR,
     )
 
-    template = TASK1_PROMPT_GENERATOR if task_type == "task1" else TASK2_PROMPT_GENERATOR
-    filled = template.format(band=band)
+    if task_type == "task1":
+        filled = TASK1_PROMPT_GENERATOR.format(band=band)
+        raw = await ai_service.generate_json(filled, priority="foreground")
+        prompt = str(raw.get("prompt", "")).strip()
+        viz = raw.get("visualization")
+        visualization = _normalize_visualization(viz) if isinstance(viz, dict) else None
+        return {"prompt": prompt, "visualization": visualization}
+
+    filled = TASK2_PROMPT_GENERATOR.format(band=band)
     text = await ai_service.generate(filled, priority="foreground")
-    return text.strip()
+    return {"prompt": text.strip(), "visualization": None}

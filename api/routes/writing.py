@@ -120,8 +120,8 @@ async def generate_prompt(
     user: dict = Depends(get_current_user),
 ) -> TaskPromptResponse:
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
-    prompt = await writing_service.generate_task_prompt(body.task_type, band)
-    return TaskPromptResponse(prompt=prompt)
+    result = await writing_service.generate_task_prompt(body.task_type, band)
+    return TaskPromptResponse(**result)
 
 
 @router.get("/history", response_model=WritingHistoryResponse)

@@ -49,16 +49,39 @@ Rules:
 """
 
 
-TASK1_PROMPT_GENERATOR = """You are an IELTS item writer. Generate ONE IELTS Academic Writing TASK 1 question at Band {band}.
+TASK1_PROMPT_GENERATOR = """You are an IELTS item writer. Generate ONE IELTS Academic Writing TASK 1 question at Band {band}, together with the underlying visualization data so the learner can actually see a chart.
 
-The output MUST describe visual data the learner cannot actually see — pick exactly one of: bar chart, line graph, pie chart, table, process diagram, or map. Invent concrete figures (years, percentages, countries, or stages) so the task is self-contained.
+Pick exactly one chart_type: "line", "bar", "pie", or "table". Invent plausible realistic numbers.
 
-Format:
-- Line 1: "The {{chart_type}} below shows ..." (one sentence describing what the visual depicts, including units and time range where relevant).
-- Line 2: "Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
-- Then 3-5 bullet points starting with "- " listing the key data points.
+Return ONLY valid JSON (no markdown fences, no commentary) matching this schema:
 
-Return ONLY the task text in English. No preamble, no markdown headings, no word-count reminder, no answer.
+{{
+  "prompt": "The <chart_type> below shows ... . Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
+  "visualization": {{
+    "chart_type": "line|bar|pie|table",
+    "title": "<short title with units>",
+    "x_axis_label": "<x axis label, empty for pie/table>",
+    "y_axis_label": "<y axis label with units, empty for pie/table>",
+    "x_labels": ["<category or year 1>", "<category or year 2>", "..."],
+    "series": [
+      {{"name": "<series name>", "values": [<number>, <number>, ...]}}
+    ],
+    "slices": [
+      {{"label": "<slice label>", "value": <number>}}
+    ],
+    "table_headers": ["<col1>", "<col2>"],
+    "table_rows": [["<r1c1>", "<r1c2>"]],
+    "y_min": 0,
+    "y_max": 100
+  }}
+}}
+
+Rules:
+- "line" or "bar": populate x_labels, series (1-4 series, each with values.length === x_labels.length); leave slices / table_* empty.
+- "pie": populate 3-6 slices whose values sum to 100 (percentages); leave x_labels/series/table_* empty.
+- "table": populate table_headers (2-5 cols) and table_rows (3-6 rows, same column count); leave x_labels/series/slices empty.
+- Keep the prompt text single-paragraph, 2-3 sentences, ending with the standard "Summarise..." line.
+- Never output values the chart type does not use.
 """
 
 

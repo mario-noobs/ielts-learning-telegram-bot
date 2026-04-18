@@ -181,11 +181,36 @@ class TestRevise:
 
 
 class TestPrompt:
-    def test_generates_task_prompt(self, client):
+    def test_generates_task2_prompt(self, client):
         with patch("api.routes.writing.writing_service.generate_task_prompt",
-                   new=AsyncMock(return_value="Some topic to write about.")):
+                   new=AsyncMock(return_value={
+                       "prompt": "Some topic to write about.",
+                       "visualization": None,
+                   })):
             res = client.post(
                 "/api/v1/writing/prompt", json={"task_type": "task2"},
             )
         assert res.status_code == 200
-        assert res.json()["prompt"].startswith("Some topic")
+        body = res.json()
+        assert body["prompt"].startswith("Some topic")
+        assert body["visualization"] is None
+
+    def test_generates_task1_with_visualization(self, client):
+        viz = {
+            "chart_type": "line", "title": "Internet usage", "x_axis_label": "Year",
+            "y_axis_label": "%", "x_labels": ["2000", "2020"],
+            "series": [{"name": "Japan", "values": [15, 80]}],
+            "slices": [], "table_headers": [], "table_rows": [],
+            "y_min": 0, "y_max": 100,
+        }
+        with patch("api.routes.writing.writing_service.generate_task_prompt",
+                   new=AsyncMock(return_value={
+                       "prompt": "The line graph below shows ...", "visualization": viz,
+                   })):
+            res = client.post(
+                "/api/v1/writing/prompt", json={"task_type": "task1"},
+            )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["visualization"]["chart_type"] == "line"
+        assert body["visualization"]["series"][0]["values"] == [15, 80]

@@ -74,8 +74,33 @@ class TaskPromptRequest(BaseModel):
     task_type: str = Field(default="task2", pattern=r"^(task1|task2)$")
 
 
+class Task1Series(BaseModel):
+    name: str
+    values: list[float] = []
+
+
+class Task1Slice(BaseModel):
+    label: str
+    value: float
+
+
+class Task1Visualization(BaseModel):
+    chart_type: str = "line"
+    title: str = ""
+    x_axis_label: str = ""
+    y_axis_label: str = ""
+    x_labels: list[str] = []
+    series: list[Task1Series] = []
+    slices: list[Task1Slice] = []
+    table_headers: list[str] = []
+    table_rows: list[list[str]] = []
+    y_min: float | None = None
+    y_max: float | None = None
+
+
 class TaskPromptResponse(BaseModel):
     prompt: str
+    visualization: Task1Visualization | None = None
 
 
 class WritingReviseRequest(BaseModel):

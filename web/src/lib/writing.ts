@@ -51,6 +51,37 @@ export interface WritingHistoryItem {
   original_id: string | null
 }
 
+export type ChartType = 'line' | 'bar' | 'pie' | 'table'
+
+export interface Task1Series {
+  name: string
+  values: number[]
+}
+
+export interface Task1Slice {
+  label: string
+  value: number
+}
+
+export interface Task1Visualization {
+  chart_type: ChartType
+  title: string
+  x_axis_label: string
+  y_axis_label: string
+  x_labels: string[]
+  series: Task1Series[]
+  slices: Task1Slice[]
+  table_headers: string[]
+  table_rows: string[][]
+  y_min: number | null
+  y_max: number | null
+}
+
+export interface TaskPromptResponse {
+  prompt: string
+  visualization: Task1Visualization | null
+}
+
 export const CRITERIA: { key: keyof WritingScores; label: string }[] = [
   { key: 'task_achievement', label: 'Task Achievement' },
   { key: 'coherence_cohesion', label: 'Coherence & Cohesion' },
