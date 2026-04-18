@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import EmptyState from '../components/EmptyState'
 import { WritingHistoryItem } from '../lib/writing'
 
 function BandTrend({ items }: { items: WritingHistoryItem[] }) {
@@ -103,9 +104,12 @@ export default function WritingHistoryPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-xl p-6 text-center text-gray-500">
-          Bạn chưa nộp bài nào. Bắt đầu tại <Link to="/write" className="text-indigo-600 underline">/write</Link>.
-        </div>
+        <EmptyState
+          illustration="empty-writing"
+          title="Chưa có bài viết nào"
+          description="Luyện Task 1 hoặc Task 2 để nhận chấm band và phản hồi chi tiết."
+          primaryAction={{ label: 'Viết bài mới', to: '/write' }}
+        />
       ) : (
         <>
           <BandTrend items={items} />

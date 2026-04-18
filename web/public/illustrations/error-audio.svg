@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Muted speaker</title>
+  <path d="M24 50h18l24-20v68L42 78H24Z" opacity="0.2" fill="currentColor" stroke="none"/>
+  <path d="M24 50h18l24-20v68L42 78H24Z"/>
+  <path d="M86 50l22 28M108 50 86 78" stroke-width="3.5"/>
+</svg>

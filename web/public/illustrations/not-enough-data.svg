@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Partial chart with question mark</title>
+  <path d="M20 108V20M20 108h88"/>
+  <rect x="32" y="84" width="12" height="24" opacity="0.25" fill="currentColor" stroke="currentColor"/>
+  <rect x="52" y="72" width="12" height="36" opacity="0.25" fill="currentColor" stroke="currentColor"/>
+  <rect x="72" y="60" width="12" height="48" stroke-dasharray="4 4"/>
+  <rect x="92" y="44" width="12" height="64" stroke-dasharray="4 4"/>
+  <path d="M86 28c0-6 5-10 10-10s10 4 10 10c0 6-6 8-10 12" stroke-width="3"/>
+  <circle cx="96" cy="44" r="1.5" fill="currentColor" stroke="none"/>
+</svg>

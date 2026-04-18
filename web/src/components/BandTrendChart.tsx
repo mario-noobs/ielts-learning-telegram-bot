@@ -1,3 +1,4 @@
+import EmptyState from './EmptyState'
 import { TrendPoint } from '../lib/progress'
 
 const SERIES: { key: keyof TrendPoint; label: string; color: string }[] = [
@@ -29,8 +30,13 @@ export default function BandTrendChart({
 
   if (trend.length === 0) {
     return (
-      <div className="h-52 flex items-center justify-center text-sm text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
-        Chưa có dữ liệu — hoàn thành vài bài để xem xu hướng.
+      <div className="bg-surface-raised rounded-xl border border-border py-4">
+        <EmptyState
+          illustration="not-enough-data"
+          title="Chưa đủ dữ liệu để vẽ xu hướng"
+          description="Hoàn thành vài bài viết, nghe, hoặc ôn từ để bắt đầu theo dõi band."
+          primaryAction={{ label: 'Luyện bài ngay', to: '/' }}
+        />
       </div>
     )
   }

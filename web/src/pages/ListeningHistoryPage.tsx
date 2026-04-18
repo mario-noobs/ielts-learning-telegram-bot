@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { EXERCISE_LABELS, ListeningHistoryItem } from '../lib/listening'
@@ -55,7 +56,12 @@ export default function ListeningHistoryPage() {
           ))}
         </div>
       ) : items && items.length === 0 ? (
-        <p className="text-sm text-gray-500">Chưa có bài luyện nào.</p>
+        <EmptyState
+          illustration="empty-listening"
+          title="Chưa có bài luyện nghe nào"
+          description="Chọn một dạng bài ở Listening Gym để bắt đầu buổi luyện đầu tiên."
+          primaryAction={{ label: 'Bắt đầu luyện', to: '/listening' }}
+        />
       ) : (
         <div className="space-y-2">
           {items?.map((it) => {

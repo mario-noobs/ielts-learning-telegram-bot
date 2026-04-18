@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
+  <title>Rising chart</title>
+  <path d="M20 108V20" />
+  <path d="M20 108h88" />
+  <path d="M30 92l22-22 16 14 28-32" stroke-width="3"/>
+  <path d="M80 52h16v16" stroke-width="2.5"/>
+  <circle cx="30" cy="92" r="4" fill="currentColor"/>
+  <circle cx="52" cy="70" r="4" fill="currentColor"/>
+  <circle cx="68" cy="84" r="4" fill="currentColor"/>
+  <circle cx="96" cy="52" r="4" fill="currentColor"/>
+</svg>
