@@ -1,3 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600&display=swap');
+
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Be Vietnam Pro', 'Noto Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-bg text-fg;
+  }
+
+  /* Consistent focus ring for keyboard users on every interactive element */
+  :where(button, a, input, textarea, select, [role="button"], [tabindex]):focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--color-bg)),
+      0 0 0 4px rgb(var(--color-ring));
+    border-radius: inherit;
+  }
+}
