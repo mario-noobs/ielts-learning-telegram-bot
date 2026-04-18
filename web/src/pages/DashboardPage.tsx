@@ -71,12 +71,20 @@ export default function DashboardPage() {
             <p className="text-gray-500 mt-1">Band mục tiêu: {profile.target_band}</p>
             <p className="text-gray-500">Từ vựng: {profile.total_words} từ</p>
             <p className="text-gray-500">Streak: {profile.streak} ngày</p>
-            <Link
-              to="/vocab"
-              className="inline-block mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-            >
-              Xem từ vựng →
-            </Link>
+            <div className="mt-4 flex flex-wrap gap-4">
+              <Link
+                to="/vocab"
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Xem từ vựng →
+              </Link>
+              <Link
+                to="/write"
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Luyện viết →
+              </Link>
+            </div>
           </div>
 
           {isWebPlaceholder(profile) && <LinkTelegramCard onLinked={load} />}
