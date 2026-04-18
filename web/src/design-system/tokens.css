@@ -1,6 +1,10 @@
 /*
- * UX-1 design tokens — source of truth: web/DESIGN_SPECS.md
- * Contrast verified WCAG AA. Do not hardcode hex elsewhere.
+ * IELTS Coach design tokens — source of truth for M6 design-system package.
+ * Originally shipped in UX-1 (milestone #7). Contrast verified WCAG AA.
+ *
+ * Do not hardcode hex elsewhere. Consume via Tailwind utilities
+ * (e.g. `bg-primary`, `text-fg`) or via the `tokens` object in ./tokens.ts.
+ * See ./README.md and ../../../DESIGN_SPECS.md for full docs.
  */
 
 :root {
