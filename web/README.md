@@ -2,6 +2,10 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Storybook
+
+Storybook 8 is wired up for the design system. Run `npm run storybook` to launch it on [http://localhost:6006](http://localhost:6006); stories live next to components as `*.stories.tsx`. The preview loads `src/index.css`, so Tailwind classes and CSS tokens work out of the box, and the toolbar theme switch toggles the `.dark` class on `<html>`. `npm run build-storybook` produces a static build and is run in CI to catch broken stories.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh

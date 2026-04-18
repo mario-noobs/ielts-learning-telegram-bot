@@ -30,3 +30,24 @@ jobs:
 
       - name: Check coverage
         run: pytest tests/ --cov=services --cov=bot.utils --cov-report=term-missing --cov-fail-under=15
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Storybook
+        run: npm run build-storybook -- --quiet
