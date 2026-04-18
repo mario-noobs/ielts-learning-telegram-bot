@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 
@@ -64,10 +63,6 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-xl mx-auto p-4 space-y-4">
-      <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-        ← Trang chủ
-      </Link>
-
       <h1 className="text-2xl font-bold text-gray-900">Cài đặt</h1>
 
       {error && (

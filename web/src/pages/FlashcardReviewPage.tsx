@@ -291,9 +291,6 @@ export default function FlashcardReviewPage() {
     return (
       <div className="max-w-lg mx-auto p-4">
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <Link to="/vocab" className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-block">
-            ← Từ vựng
-          </Link>
           <h1 className="text-2xl font-bold mb-2">Ôn tập Flashcard</h1>
           <p className="text-gray-600 mb-6">
             Ôn lại từ đến hạn bằng câu hỏi trắc nghiệm và điền vào chỗ trống.
