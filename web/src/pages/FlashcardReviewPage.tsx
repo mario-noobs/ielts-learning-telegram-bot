@@ -52,14 +52,21 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   const pct = total > 0 ? (current / total) * 100 : 0
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
+      <div className="flex justify-between text-xs text-muted-fg mb-1 tabular-nums">
         <span>
           {current} / {total}
         </span>
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div
+        className="h-2 bg-border rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={current}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-label={`Câu ${current} trên ${total}`}
+      >
         <div
-          className="h-full bg-blue-500 transition-all duration-300"
+          className="h-full bg-primary transition-[width] duration-slow ease-out-soft"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -86,21 +93,27 @@ function MultipleChoice({
   }, [question, onSubmit])
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {question.options.map((opt, i) => {
-        const letter = String.fromCharCode(65 + i)
-        return (
-          <button
-            key={letter}
-            onClick={() => onSubmit(letter)}
-            className="text-left p-4 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50"
-          >
-            <span className="font-semibold text-blue-600 mr-2">{letter}.</span>
-            {opt}
-          </button>
-        )
-      })}
-    </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {question.options.map((opt, i) => {
+          const letter = String.fromCharCode(65 + i)
+          return (
+            <button
+              key={letter}
+              onClick={() => onSubmit(letter)}
+              aria-label={`Đáp án ${letter}: ${opt}`}
+              className="text-left p-4 min-h-[44px] rounded-xl border-2 border-border bg-surface-raised hover:border-primary hover:bg-primary/5 transition-colors duration-base"
+            >
+              <span className="font-semibold text-primary mr-2">{letter}.</span>
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-muted-fg mt-3 text-center">
+        Mẹo: bấm phím {question.options.map((_, i) => i + 1).join(' / ')} trên bàn phím
+      </p>
+    </>
   )
 }
 
@@ -123,8 +136,9 @@ function FillBlank({ onSubmit }: { onSubmit: (text: string) => void }) {
         onKeyDown={(e) => {
           if (e.key === 'Enter') submit()
         }}
-        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none"
-        placeholder="Câu trả lời..."
+        aria-label="Điền từ thích hợp"
+        className="w-full px-4 py-3 min-h-[44px] border-2 border-border bg-surface-raised rounded-xl focus:border-primary focus:outline-none"
+        placeholder="Ví dụ: abandon"
       />
       <button
         onClick={submit}

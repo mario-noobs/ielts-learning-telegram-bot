@@ -54,9 +54,24 @@ export default function BandTrendChart({
 
   const targetY = y(target)
 
+  const firstBand = trend[0].overall_band
+  const lastBand = trend[n - 1].overall_band
+  const trendDelta = lastBand - firstBand
+  const trendDescription = `Xu hướng Overall Band ${n} ngày: từ ${firstBand.toFixed(1)} đến ${lastBand.toFixed(1)}, ${
+    trendDelta >= 0 ? 'tăng' : 'giảm'
+  } ${Math.abs(trendDelta).toFixed(1)} band. Mục tiêu ${target.toFixed(1)}.`
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-3 space-y-2">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+    <div className="bg-surface-raised rounded-xl border border-border p-3 space-y-2">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full"
+        role="img"
+        aria-labelledby="trend-title"
+        aria-describedby="trend-desc"
+      >
+        <title id="trend-title">Biểu đồ xu hướng Band Progress</title>
+        <desc id="trend-desc">{trendDescription}</desc>
         {/* Grid */}
         {[4, 5, 6, 7, 8, 9].map((v) => (
           <g key={v}>
