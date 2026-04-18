@@ -1,124 +1,97 @@
+"""Firestore data-access module (legacy surface).
+
+As of US-P.1 (#113) the user-scoped collections below are owned by the
+``services/repositories/`` package. The functions here remain as the
+public surface that handlers, services, and ``async_firebase`` already
+import — they now delegate to the repository layer so the M8 Postgres
+migration (#130) touches only the repo impls, not 40+ call sites.
+
+In-scope (delegated to repos):
+- ``users/{uid}`` profile
+- ``users/{uid}/vocabulary``
+- ``users/{uid}/quiz_history``
+- ``users/{uid}/writing_history``
+- ``users/{uid}/daily_words`` (DM-scoped)
+- ``auth_mapping`` (web-auth linkage to ``users/``)
+
+Out of scope (unchanged — stays on Firestore permanently):
+- ``groups/`` and all subcollections (``daily_words``, ``challenges``,
+  ``challenges/*/answers``)
+- ``users/{uid}/quiz_sessions``, ``users/{uid}/daily_plans``,
+  ``users/{uid}/listening_history``, ``users/{uid}/progress_snapshots``,
+  ``users/{uid}/progress_recommendations``
+- ``enriched_words`` cache
+- ``auth_link_codes`` (DM/bot linking flow)
+
+The ``_get_db()`` helper is preserved because the out-of-scope paths
+still reach Firestore directly through this module.
+"""
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import firestore
 
 import config
+from services.repositories import (
+    get_daily_words_repo,
+    get_quiz_history_repo,
+    get_user_repo,
+    get_vocab_repo,
+    get_writing_history_repo,
+)
+from services.repositories.firestore.user_repo import _get_db as _get_db  # noqa: F401
 
-_db = None
-
-
-def _get_db():
-    global _db
-    if _db is None:
-        json_b64 = getattr(config, 'FIREBASE_CREDENTIALS_JSON', None)
-        if json_b64:
-            import base64
-            import json
-            cred_dict = json.loads(base64.b64decode(json_b64))
-            cred = credentials.Certificate(cred_dict)
-        else:
-            cred = credentials.Certificate(config.FIREBASE_CREDENTIALS_PATH)
-        firebase_admin.initialize_app(cred)
-        _db = firestore.client()
-    return _db
+# ``_get_db`` is re-exported above so legacy call sites (api/auth.py,
+# api/routes/auth.py, this module's out-of-scope group/plan/listening
+# helpers) can keep importing ``firebase_service._get_db``. The single
+# lazy-init lives in ``services.repositories.firestore.user_repo`` —
+# there is exactly one Firebase app and one Firestore client per
+# process.
 
 
-# ─── User Operations ───────────────────────────────────────────────
+# ─── User Operations (delegated to UserRepo) ───────────────────────
 
 def get_user(telegram_id: int) -> Optional[dict]:
-    doc = _get_db().collection("users").document(str(telegram_id)).get()
-    if doc.exists:
-        return {"id": doc.id, **doc.to_dict()}
-    return None
+    user = get_user_repo().get(telegram_id)
+    return user.model_dump() if user else None
 
 
 def create_user(telegram_id: int, name: str, username: str = "",
                 group_id: int = None, target_band: float = 7.0,
                 topics: list = None) -> dict:
-    now = datetime.now(timezone.utc)
-    user_data = {
-        "name": name,
-        "username": username or "",
-        "group_id": group_id,
-        "target_band": target_band,
-        "topics": topics or ["education", "environment", "technology"],
-        "daily_time": config.DEFAULT_DAILY_TIME,
-        "timezone": config.DEFAULT_TIMEZONE,
-        "streak": 0,
-        "last_active": now,
-        "total_words": 0,
-        "total_quizzes": 0,
-        "total_correct": 0,
-        "challenge_wins": 0,
-        "created_at": now,
-    }
-    _get_db().collection("users").document(str(telegram_id)).set(user_data)
-    return {"id": str(telegram_id), **user_data}
+    user = get_user_repo().create(
+        telegram_id,
+        name,
+        username=username,
+        group_id=group_id,
+        target_band=target_band,
+        topics=topics,
+    )
+    return user.model_dump()
 
 
 def update_user(telegram_id: int, data: dict):
-    _get_db().collection("users").document(str(telegram_id)).update(data)
+    get_user_repo().update(telegram_id, data)
 
 
 def get_all_users_in_group(group_id: int) -> list[dict]:
-    docs = (_get_db().collection("users")
-            .where("group_id", "==", group_id)
-            .stream())
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return [u.model_dump() for u in get_user_repo().list_by_group(group_id)]
 
 
 def get_all_users() -> list[dict]:
     """Return all registered users."""
-    docs = _get_db().collection("users").stream()
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return [u.model_dump() for u in get_user_repo().list_all()]
 
 
 def update_streak(telegram_id: int):
-    user = get_user(telegram_id)
-    if not user:
-        return
-    now = datetime.now(timezone.utc)
-    last = user.get("last_active")
-    if last:
-        if hasattr(last, "timestamp"):
-            last = last
-        delta = (now.date() - last.date()).days if hasattr(last, "date") else 1
-        if delta == 1:
-            new_streak = user.get("streak", 0) + 1
-        elif delta == 0:
-            new_streak = user.get("streak", 0)
-        else:
-            new_streak = 1
-    else:
-        new_streak = 1
-    update_user(telegram_id, {"streak": new_streak, "last_active": now})
+    get_user_repo().update_streak(telegram_id)
 
 
-# ─── Vocabulary Operations ─────────────────────────────────────────
+# ─── Vocabulary Operations (delegated to VocabRepo) ────────────────
 
 def add_word_to_user(telegram_id: int, word_data: dict) -> str:
-    now = datetime.now(timezone.utc)
-    word_doc = {
-        **word_data,
-        "srs_interval": config.SRS_INITIAL_INTERVAL,
-        "srs_ease": config.SRS_INITIAL_EASE,
-        "srs_next_review": now,
-        "srs_reps": 0,
-        "times_correct": 0,
-        "times_incorrect": 0,
-        "added_at": now,
-    }
-    doc_ref = (_get_db().collection("users").document(str(telegram_id))
-               .collection("vocabulary").document())
-    doc_ref.set(word_doc)
-
-    # Increment total_words
-    user_ref = _get_db().collection("users").document(str(telegram_id))
-    user_ref.update({"total_words": firestore.Increment(1)})
-
-    return doc_ref.id
+    return get_vocab_repo().add_word(telegram_id, word_data)
 
 
 def add_word_if_not_exists(telegram_id, word_data: dict) -> tuple[str, bool]:
@@ -128,53 +101,18 @@ def add_word_if_not_exists(telegram_id, word_data: dict) -> tuple[str, bool]:
     exists — in that case word_id is the existing doc's id and total_words is
     not incremented.
     """
-    db = _get_db()
-    word = str(word_data.get("word", "")).strip().lower()
-    user_ref = db.collection("users").document(str(telegram_id))
-    vocab_ref = user_ref.collection("vocabulary")
-
-    @firestore.transactional
-    def _txn(txn) -> tuple[str, bool]:
-        existing = list(
-            vocab_ref.where("word", "==", word).limit(1).get(transaction=txn)
-        )
-        if existing:
-            return existing[0].id, False
-
-        doc_ref = vocab_ref.document()
-        now = datetime.now(timezone.utc)
-        txn.set(doc_ref, {
-            **word_data,
-            "word": word,
-            "srs_interval": config.SRS_INITIAL_INTERVAL,
-            "srs_ease": config.SRS_INITIAL_EASE,
-            "srs_next_review": now,
-            "srs_reps": 0,
-            "times_correct": 0,
-            "times_incorrect": 0,
-            "added_at": now,
-        })
-        txn.update(user_ref, {"total_words": firestore.Increment(1)})
-        return doc_ref.id, True
-
-    return _txn(db.transaction())
+    return get_vocab_repo().add_word_if_not_exists(telegram_id, word_data)
 
 
 def get_user_vocabulary(telegram_id: int, limit: int = 50) -> list[dict]:
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("vocabulary")
-            .order_by("added_at", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-            .stream())
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return [
+        v.model_dump() for v in get_vocab_repo().list_by_user(telegram_id, limit)
+    ]
 
 
 def get_user_word_list(telegram_id: int) -> list[str]:
     """Get just the word strings for deduplication."""
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("vocabulary")
-            .stream())
-    return [doc.to_dict().get("word", "") for doc in docs]
+    return get_vocab_repo().list_word_strings(telegram_id)
 
 
 def get_user_vocabulary_page(telegram_id, limit: int = 20,
@@ -183,30 +121,19 @@ def get_user_vocabulary_page(telegram_id, limit: int = 20,
 
     Cursor is the `added_at` timestamp of the last item from the previous page.
     """
-    query = (_get_db().collection("users").document(str(telegram_id))
-             .collection("vocabulary")
-             .order_by("added_at", direction=firestore.Query.DESCENDING))
-    if after_added_at is not None:
-        query = query.start_after({"added_at": after_added_at})
-    docs = query.limit(limit).stream()
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return [
+        v.model_dump()
+        for v in get_vocab_repo().list_page(telegram_id, limit, after_added_at)
+    ]
 
 
 def count_words_by_topic(telegram_id) -> dict[str, int]:
     """Return {topic_id: count} across the user's full vocabulary."""
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("vocabulary")
-            .stream())
-    counts: dict[str, int] = {}
-    for doc in docs:
-        topic = doc.to_dict().get("topic") or ""
-        if not topic:
-            continue
-        counts[topic] = counts.get(topic, 0) + 1
-    return counts
+    return get_vocab_repo().count_by_topic(telegram_id)
 
 
 # ─── Quiz Sessions (Web) ──────────────────────────────────────────
+# Not migrated — quiz_sessions is a short-lived cache, not core user data.
 
 def save_quiz_session(telegram_id, session_id: str, questions: list[dict]) -> None:
     """Persist a quiz session with full (unsanitized) question docs."""
@@ -237,109 +164,62 @@ def mark_session_question_answered(telegram_id, session_id: str,
 
 def get_mastered_words(telegram_id: int) -> list[dict]:
     """Return all vocabulary docs with srs_interval > 30 (mastered)."""
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("vocabulary")
-            .where("srs_interval", ">", 30)
-            .stream())
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return [v.model_dump() for v in get_vocab_repo().get_mastered(telegram_id)]
 
 
 def get_due_words(telegram_id: int, limit: int = 10) -> list[dict]:
-    now = datetime.now(timezone.utc)
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("vocabulary")
-            .where("srs_next_review", "<=", now)
-            .limit(limit)
-            .stream())
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return [v.model_dump() for v in get_vocab_repo().get_due(telegram_id, limit)]
 
 
 def update_word_srs(telegram_id: int, word_id: str, data: dict):
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("vocabulary").document(word_id).update(data))
+    get_vocab_repo().update_srs(telegram_id, word_id, data)
 
 
 def get_word_by_id(telegram_id: int, word_id: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("vocabulary").document(word_id).get())
-    if doc.exists:
-        return {"id": doc.id, **doc.to_dict()}
-    return None
+    v = get_vocab_repo().get_by_id(telegram_id, word_id)
+    return v.model_dump() if v else None
 
 
-# ─── Quiz History ──────────────────────────────────────────────────
+# ─── Quiz History (delegated to QuizHistoryRepo) ───────────────────
 
 def save_quiz_result(telegram_id: int, quiz_data: dict):
-    now = datetime.now(timezone.utc)
-    doc = {**quiz_data, "created_at": now}
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("quiz_history").document().set(doc))
-
-    # Update user stats in a single atomic call
-    user_ref = _get_db().collection("users").document(str(telegram_id))
-    update_data = {"total_quizzes": firestore.Increment(1)}
-    if quiz_data.get("is_correct"):
-        update_data["total_correct"] = firestore.Increment(1)
-    user_ref.update(update_data)
+    get_quiz_history_repo().save_result(telegram_id, quiz_data)
 
 
 def get_latest_quiz(telegram_id: int) -> Optional[dict]:
     """Return the most recent quiz_history doc, or None."""
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("quiz_history")
-            .order_by("created_at", direction=firestore.Query.DESCENDING)
-            .limit(1)
-            .stream())
-    results = [{"id": doc.id, **doc.to_dict()} for doc in docs]
-    return results[0] if results else None
+    entry = get_quiz_history_repo().get_latest(telegram_id)
+    return entry.model_dump() if entry else None
 
 
 def get_quiz_stats(telegram_id: int) -> dict:
-    user = get_user(telegram_id)
-    if not user:
-        return {"total": 0, "correct": 0, "accuracy": 0}
-    total = user.get("total_quizzes", 0)
-    correct = user.get("total_correct", 0)
-    accuracy = round((correct / total * 100), 1) if total > 0 else 0
-    return {"total": total, "correct": correct, "accuracy": accuracy}
+    return get_user_repo().get_quiz_stats(telegram_id).model_dump()
 
 
-# ─── Writing History ───────────────────────────────────────────────
+# ─── Writing History (delegated to WritingHistoryRepo) ─────────────
 
 def save_writing(telegram_id: int, writing_data: dict):
-    now = datetime.now(timezone.utc)
-    doc = {**writing_data, "created_at": now}
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("writing_history").document().set(doc))
+    get_writing_history_repo().save(telegram_id, writing_data)
 
 
 def save_writing_submission(telegram_id, writing_data: dict) -> str:
-    now = datetime.now(timezone.utc)
-    doc = {**writing_data, "created_at": now}
-    ref = (_get_db().collection("users").document(str(telegram_id))
-           .collection("writing_history").document())
-    ref.set(doc)
-    return ref.id
+    return get_writing_history_repo().save_submission(telegram_id, writing_data)
 
 
 def get_writing_submission(telegram_id, submission_id: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("writing_history").document(submission_id).get())
-    if not doc.exists:
-        return None
-    return {"id": doc.id, **doc.to_dict()}
+    entry = get_writing_history_repo().get_submission(telegram_id, submission_id)
+    return entry.model_dump() if entry else None
 
 
 def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("writing_history")
-            .order_by("created_at", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-            .stream())
-    return [{"id": d.id, **d.to_dict()} for d in docs]
+    return [
+        e.model_dump()
+        for e in get_writing_history_repo().list_submissions(telegram_id, limit)
+    ]
 
 
 # ─── Daily Plans (US-4.1) ─────────────────────────────────────────
+# Not migrated — kept on Firestore for now, pending separate refinement.
 
 def get_daily_plan(telegram_id, date_str: str) -> Optional[dict]:
     doc = (_get_db().collection("users").document(str(telegram_id))
@@ -409,6 +289,7 @@ def complete_plan_activity(
 
 
 # ─── Listening Exercises ──────────────────────────────────────────
+# Not migrated — listening_history is out of scope for US-P.1.
 
 def save_listening_exercise(telegram_id, exercise_data: dict) -> str:
     now = datetime.now(timezone.utc)
@@ -442,6 +323,7 @@ def list_listening_exercises(telegram_id, limit: int = 50) -> list[dict]:
 
 
 # ─── Progress Snapshots (US-5.1) ──────────────────────────────────
+# Not migrated — progress_snapshots are computed/cached views.
 
 def save_progress_snapshot(telegram_id, date_str: str, snapshot: dict) -> None:
     """Upsert a progress snapshot for the given local date."""
@@ -495,6 +377,7 @@ def save_progress_recommendations(
 
 
 # ─── Group Operations ─────────────────────────────────────────────
+# OUT OF SCOPE for US-P.1 — groups stay on Firestore permanently.
 
 def get_group_settings(group_id: int) -> Optional[dict]:
     doc = _get_db().collection("groups").document(str(group_id)).get()
@@ -531,6 +414,7 @@ def get_all_groups() -> list[dict]:
 
 
 # ─── Daily Words (Group) ──────────────────────────────────────────
+# OUT OF SCOPE — group daily words stay on Firestore.
 
 def save_daily_words(group_id: int, date_str: str, words: list, topic: str):
     doc = {
@@ -550,29 +434,25 @@ def get_daily_words(group_id: int, date_str: str) -> Optional[dict]:
     return None
 
 
-# ─── User Daily Words (DM) ───────────────────────────────────────
+# ─── User Daily Words (DM — delegated to DailyWordsRepo) ─────────
 
 def save_user_daily_words(telegram_id: int, date_str: str, words: list, topic: str):
     """Save personal daily words for a user (DM feature)."""
-    doc = {
-        "words": words,
-        "topic": topic,
-        "generated_at": datetime.now(timezone.utc),
-    }
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("daily_words").document(date_str).set(doc))
+    get_daily_words_repo().save(telegram_id, date_str, words, topic)
 
 
 def get_user_daily_words(telegram_id: int, date_str: str) -> Optional[dict]:
     """Get personal daily words for a user."""
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("daily_words").document(date_str).get())
-    if doc.exists:
-        return doc.to_dict()
-    return None
+    dto = get_daily_words_repo().get(telegram_id, date_str)
+    if not dto:
+        return None
+    # Legacy callers expect the raw doc body without the id; the date_str
+    # is always known at the call site.
+    return dto.model_dump(exclude={"id"})
 
 
 # ─── Challenge (Group) ────────────────────────────────────────────
+# OUT OF SCOPE — group challenges stay on Firestore.
 
 def save_challenge(group_id: int, date_str: str, questions: list,
                     deadline_minutes: int = None):
@@ -606,6 +486,7 @@ def update_challenge_score(group_id: int, date_str: str,
 
 
 # ─── Challenge Answers (per-user subcollection) ─────────────────
+# OUT OF SCOPE — group data stays on Firestore.
 
 def save_challenge_answer(group_id: int, date_str: str, user_id: int,
                           q_idx: int, is_correct: bool):
@@ -753,6 +634,7 @@ def get_active_challenges() -> list[dict]:
 
 
 # ─── Enriched Word Cache ──────────────────────────────────────────
+# Not migrated — shared cache, not per-user data.
 
 def get_enriched_word_doc(word: str) -> Optional[dict]:
     """Fetch cached enriched word document. Returns None on miss."""
@@ -783,64 +665,30 @@ def get_leaderboard(group_id: int) -> list[dict]:
     return sorted(users, key=lambda u: u.get("total_words", 0), reverse=True)
 
 
-# ─── Web Auth Operations ─────────────────────────────────────────
+# ─── Web Auth Operations (delegated to UserRepo) ─────────────────
 
 def get_user_by_auth_uid(auth_uid: str) -> Optional[dict]:
     """Find user by Firebase Auth UID (stored in auth_mapping collection)."""
-    mapping_doc = _get_db().collection("auth_mapping").document(auth_uid).get()
-    if mapping_doc.exists:
-        user_id = mapping_doc.to_dict().get("user_id")
-        if user_id:
-            # user_id may be a numeric telegram_id or a web_* string
-            try:
-                return get_user(int(user_id))
-            except (ValueError, TypeError):
-                # Web user — fetch by string key directly
-                doc = _get_db().collection("users").document(user_id).get()
-                if doc.exists:
-                    return {"id": doc.id, **doc.to_dict()}
-    return None
+    user = get_user_repo().get_by_auth_uid(auth_uid)
+    return user.model_dump() if user else None
 
 
 def create_web_user(auth_uid: str, email: str, name: str,
                     target_band: float = 7.0, topics: list = None) -> dict:
     """Create a user from web registration (no telegram_id)."""
-    import uuid
-    user_id = f"web_{uuid.uuid4().hex[:12]}"
-    now = datetime.now(timezone.utc)
-    user_data = {
-        "name": name,
-        "username": "",
-        "email": email,
-        "auth_uid": auth_uid,
-        "group_id": None,
-        "target_band": target_band,
-        "topics": topics or ["education", "environment", "technology"],
-        "daily_time": config.DEFAULT_DAILY_TIME,
-        "timezone": config.DEFAULT_TIMEZONE,
-        "streak": 0,
-        "last_active": now,
-        "total_words": 0,
-        "total_quizzes": 0,
-        "total_correct": 0,
-        "challenge_wins": 0,
-        "created_at": now,
-    }
-    _get_db().collection("users").document(user_id).set(user_data)
-    # Create auth mapping
-    _get_db().collection("auth_mapping").document(auth_uid).set({"user_id": user_id})
-    return {"id": user_id, **user_data}
+    user = get_user_repo().create_web_user(
+        auth_uid, email, name, target_band=target_band, topics=topics,
+    )
+    return user.model_dump()
 
 
 def link_telegram_to_auth(telegram_id: int, auth_uid: str):
     """Link an existing Telegram user to a Firebase Auth account."""
-    _get_db().collection("auth_mapping").document(auth_uid).set(
-        {"user_id": str(telegram_id)}
-    )
-    update_user(telegram_id, {"auth_uid": auth_uid})
+    get_user_repo().link_telegram_to_auth(telegram_id, auth_uid)
 
 
 # ─── Link Code Operations (US-1.7) ────────────────────────────
+# Not migrated — short-lived auth tokens, not core user data.
 
 LINK_CODE_TTL_SECONDS = 5 * 60
 
