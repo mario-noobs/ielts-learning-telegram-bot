@@ -2,11 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import {
+  AnnotatedEssay,
+  ScorePanel,
+  VietnameseSummary,
+} from '../components/WritingFeedback'
+import {
   countWords,
   formatDuration,
   TaskType,
   WritingSubmission,
 } from '../lib/writing'
+
+interface UserProfile {
+  target_band: number
+}
 
 const MIN_WORDS = 20
 
@@ -89,8 +98,15 @@ export default function WritingPage() {
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [now, setNow] = useState<number>(Date.now())
   const [submission, setSubmission] = useState<WritingSubmission | null>(null)
+  const [targetBand, setTargetBand] = useState<number>(7.0)
 
   const typeIntervalRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    apiFetch<UserProfile>('/api/v1/me')
+      .then((p) => setTargetBand(p.target_band))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!startedAt || submission) return
@@ -152,17 +168,26 @@ export default function WritingPage() {
   if (submission) {
     return (
       <div className="max-w-3xl mx-auto p-4 space-y-4">
-        <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-xl">
-          <p className="text-green-800 font-medium">
-            Đã nộp bài! Band ước tính: {submission.overall_band}
-          </p>
-          <p className="text-green-700 text-sm mt-1">
-            Giao diện chấm điểm chi tiết đang được bổ sung (US-2.3).
-          </p>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
+            ← Trang chủ
+          </Link>
+          <button
+            onClick={() => {
+              setSubmission(null)
+              setText('')
+              setPrompt('')
+              setTypewriter('')
+              setStartedAt(null)
+            }}
+            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            Viết bài mới
+          </button>
         </div>
-        <pre className="bg-white rounded-xl p-4 text-sm text-gray-800 whitespace-pre-wrap">
-          {submission.text}
-        </pre>
+        <ScorePanel submission={submission} targetBand={targetBand} />
+        <VietnameseSummary summary={submission.summary_vi} />
+        <AnnotatedEssay submission={submission} />
       </div>
     )
   }
