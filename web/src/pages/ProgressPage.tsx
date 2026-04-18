@@ -33,11 +33,11 @@ export default function ProgressPage() {
   if (!data) {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-3">
-        <div className="h-7 bg-gray-100 rounded w-40 animate-pulse" />
-        <div className="h-56 bg-gray-100 rounded-xl animate-pulse" />
+        <div className="h-7 bg-surface rounded w-40 animate-pulse" />
+        <div className="h-56 bg-surface rounded-xl animate-pulse" />
         <div className="grid grid-cols-2 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-28 bg-surface rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -60,28 +60,28 @@ export default function ProgressPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Band Progress</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-fg">Band Progress</h1>
+        <p className="text-sm text-muted-fg">
           Cập nhật từ bài nghe, viết, và từ vựng của bạn.
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col sm:flex-row items-center gap-4">
+      <div className="bg-surface-raised rounded-2xl border border-border p-5 flex flex-col sm:flex-row items-center gap-4">
         <BandRing band={snapshot.overall_band} target={target} />
         <div className="flex-1 text-center sm:text-left space-y-1">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-fg">
             Cách mục tiêu {(target - snapshot.overall_band).toFixed(1)} band
           </p>
-          {eta && <p className="text-sm text-indigo-700 font-medium">{eta}</p>}
+          {eta && <p className="text-sm text-primary font-medium">{eta}</p>}
           {predictions.length > 0 && (
             <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
               {predictions.map((p) => (
                 <div
                   key={p.days_ahead}
-                  className="bg-gray-50 rounded-lg p-2 border border-gray-100"
+                  className="bg-surface rounded-lg p-2 border border-border"
                 >
-                  <p className="text-gray-500">+{p.days_ahead} ngày</p>
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-muted-fg">+{p.days_ahead} ngày</p>
+                  <p className="text-base font-semibold text-fg">
                     {p.projected_band.toFixed(1)}
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export default function ProgressPage() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Xu hướng 30 ngày</h2>
+        <h2 className="text-sm font-semibold text-fg mb-2">Xu hướng 30 ngày</h2>
         <BandTrendChart trend={trend} target={target} />
       </div>
 

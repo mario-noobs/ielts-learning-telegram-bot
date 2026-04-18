@@ -29,6 +29,9 @@ const preset = {
         fg: withAlpha('var(--color-fg)'),
         'muted-fg': withAlpha('var(--color-muted-fg)'),
         ring: withAlpha('var(--color-ring)'),
+        // Modal / dialog backdrop. Built-in alpha so bare `bg-scrim` works
+        // without an opacity modifier; see tokens.css for the channel values.
+        scrim: 'rgb(var(--color-scrim))',
         primary: {
           DEFAULT: withAlpha('var(--color-primary)'),
           fg: withAlpha('var(--color-primary-fg)'),

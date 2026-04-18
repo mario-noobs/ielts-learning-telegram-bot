@@ -76,8 +76,8 @@ export default function GapFillExercise({ exercise, onSubmitted }: Props) {
     const r = resultByIndex.get(i)
     if (r) {
       const base = r.is_correct
-        ? 'bg-green-50 border-green-400 text-green-800'
-        : 'bg-red-50 border-red-400 text-red-800'
+        ? 'bg-success/10 border-success/50 text-success'
+        : 'bg-danger/10 border-danger/50 text-danger'
       return (
         <span
           key={`b-${i}`}
@@ -87,7 +87,7 @@ export default function GapFillExercise({ exercise, onSubmitted }: Props) {
             {r.user_answer || '—'}
           </span>
           {!r.is_correct && (
-            <span className="text-green-700 font-semibold">
+            <span className="text-success font-semibold">
               {r.correct_answer}
             </span>
           )}
@@ -103,7 +103,7 @@ export default function GapFillExercise({ exercise, onSubmitted }: Props) {
         value={answers[i]}
         onChange={(e) => setAnswer(i, e.target.value)}
         onKeyDown={onKeyDown(i)}
-        className="inline-block w-28 mx-1 px-2 py-0.5 bg-white border-b-2 border-indigo-400 focus:border-indigo-600 focus:outline-none text-center"
+        className="inline-block w-28 mx-1 px-2 py-0.5 bg-surface-raised border-b-2 border-primary/60 focus:border-primary focus:outline-none text-center text-fg"
         aria-label={`Blank ${i + 1}`}
       />
     )
@@ -111,7 +111,7 @@ export default function GapFillExercise({ exercise, onSubmitted }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl p-4 leading-loose text-gray-800 whitespace-pre-line">
+      <div className="bg-surface-raised border border-border rounded-xl p-4 leading-loose text-fg whitespace-pre-line">
         {segments.map((seg, i) => (
           <span key={i}>
             {seg}
@@ -120,27 +120,27 @@ export default function GapFillExercise({ exercise, onSubmitted }: Props) {
         ))}
       </div>
 
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {result ? (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-          <p className="text-sm text-indigo-900">
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+          <p className="text-sm text-fg">
             Đúng {result.gap_fill_results.filter((r) => r.is_correct).length}/
             {result.gap_fill_results.length} chỗ trống —{' '}
-            <span className="font-semibold text-lg">
+            <span className="font-semibold text-lg text-primary">
               {Math.round((result.score ?? 0) * 100)}%
             </span>
           </p>
         </div>
       ) : (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-fg">
             Enter/Tab để sang ô tiếp theo.
           </p>
           <button
             onClick={submit}
             disabled={!canSubmit}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="px-6 py-2 bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
           >
             {submitting ? 'Đang chấm...' : 'Nộp bài'}
           </button>

@@ -86,7 +86,7 @@ export default function DashboardPage() {
       <ErrorBanner error={error} onRetry={() => { setError(null); loadProfile(); loadPlan() }} />
 
       {profile ? (
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-md">
+        <div className="bg-primary rounded-2xl p-5 text-primary-fg shadow-md">
           <p className="text-sm opacity-90">{greeting},</p>
           <p className="text-2xl font-bold">{profile.name}!</p>
           <div className="mt-3 flex items-center gap-4 text-sm">
@@ -108,15 +108,15 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+        <div className="h-28 bg-surface rounded-2xl animate-pulse" />
       )}
 
       {plan && plan.days_until_exam !== null && plan.days_until_exam >= 0 && (
         <div
           className={`rounded-xl p-3 text-sm font-medium border ${
             plan.exam_urgent
-              ? 'bg-red-50 border-red-200 text-red-800'
-              : 'bg-amber-50 border-amber-200 text-amber-800'
+              ? 'bg-danger/10 border-danger/30 text-danger'
+              : 'bg-warning/10 border-warning/30 text-warning'
           }`}
         >
           <span className="inline-flex items-center gap-2">
@@ -128,11 +128,11 @@ export default function DashboardPage() {
       )}
 
       {plan && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="bg-surface-raised rounded-2xl border border-border p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="font-semibold text-gray-900">Kế hoạch hôm nay</h2>
-              <p className="text-xs text-gray-500">
+              <h2 className="font-semibold text-fg">Kế hoạch hôm nay</h2>
+              <p className="text-xs text-muted-fg">
                 {plan.total_minutes} phút · tối đa {plan.cap_minutes} phút
               </p>
             </div>

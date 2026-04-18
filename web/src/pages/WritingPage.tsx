@@ -45,7 +45,7 @@ function TaskSelector({
     { key: 'task2', label: 'Task 2' },
   ]
   return (
-    <div className="inline-flex rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div className="inline-flex rounded-lg border border-border bg-surface-raised overflow-hidden">
       {options.map((o) => (
         <button
           key={o.key}
@@ -53,8 +53,8 @@ function TaskSelector({
           onClick={() => onChange(o.key)}
           className={`px-4 py-1.5 text-sm font-medium ${
             value === o.key
-              ? 'bg-indigo-600 text-white'
-              : 'text-gray-700 hover:bg-gray-50'
+              ? 'bg-primary text-primary-fg'
+              : 'text-fg hover:bg-surface'
           } disabled:opacity-50`}
         >
           {o.label}
@@ -80,20 +80,20 @@ function PromptCard({
   const display = loading || !prompt ? typewriter : prompt
   return (
     <div className="space-y-3">
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+      <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-indigo-900 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wide">
             Đề bài
           </h2>
           <button
             onClick={onGenerate}
             disabled={loading}
-            className="text-xs text-indigo-700 hover:text-indigo-900 underline disabled:opacity-50"
+            className="text-xs text-primary hover:text-primary-hover underline disabled:opacity-50"
           >
             {prompt ? 'Đề khác' : 'Tạo đề'}
           </button>
         </div>
-        <p className="text-indigo-900 whitespace-pre-line min-h-[3rem]">
+        <p className="text-fg whitespace-pre-line min-h-[3rem]">
           {display || 'Chưa có đề. Bấm "Tạo đề" để bắt đầu.'}
         </p>
       </div>
@@ -278,13 +278,13 @@ export default function WritingPage() {
           <div
             className={`rounded-xl p-4 ${
               delta >= 0
-                ? 'bg-green-50 border-l-4 border-green-500'
-                : 'bg-red-50 border-l-4 border-red-500'
+                ? 'bg-success/10 border-l-4 border-success'
+                : 'bg-danger/10 border-l-4 border-danger'
             }`}
           >
-            <p className="font-medium text-gray-900">
+            <p className="font-medium text-fg">
               Thay đổi so với bản gốc:{' '}
-              <span className={delta >= 0 ? 'text-green-700' : 'text-red-700'}>
+              <span className={delta >= 0 ? 'text-success' : 'text-danger'}>
                 {delta > 0 ? '+' : ''}
                 {delta.toFixed(1)} band
               </span>

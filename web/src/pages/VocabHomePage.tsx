@@ -59,11 +59,11 @@ const TOPIC_NAMES_VI: Record<string, string> = {
 }
 
 const STRENGTH_STYLES: Record<Strength, string> = {
-  New: 'bg-gray-100 text-gray-700',
-  Weak: 'bg-red-100 text-red-700',
-  Learning: 'bg-yellow-100 text-yellow-800',
-  Good: 'bg-green-100 text-green-700',
-  Mastered: 'bg-indigo-100 text-indigo-700',
+  New: 'bg-surface text-muted-fg',
+  Weak: 'bg-danger/10 text-danger',
+  Learning: 'bg-warning/10 text-warning',
+  Good: 'bg-success/10 text-success',
+  Mastered: 'bg-primary/10 text-primary',
 }
 
 const STRENGTH_LABELS_VI: Record<Strength, string> = {
@@ -76,9 +76,9 @@ const STRENGTH_LABELS_VI: Record<Strength, string> = {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
+    <div className="bg-surface-raised rounded-xl shadow-sm p-4">
+      <p className="text-sm text-muted-fg">{label}</p>
+      <p className="text-2xl font-semibold mt-1 text-fg">{value}</p>
     </div>
   )
 }
@@ -100,20 +100,20 @@ function TopicCard({
   return (
     <button
       onClick={onClick}
-      className={`text-left bg-white rounded-xl shadow-sm p-4 border transition ${
-        selected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-transparent hover:border-gray-200'
+      className={`text-left bg-surface-raised rounded-xl shadow-sm p-4 border transition ${
+        selected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-border'
       }`}
     >
-      <p className="font-medium">{nameVi}</p>
-      <p className="text-xs text-gray-500">{topic.name}</p>
-      <p className="text-sm text-gray-600 mt-2">{count} từ</p>
-      <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <p className="font-medium text-fg">{nameVi}</p>
+      <p className="text-xs text-muted-fg">{topic.name}</p>
+      <p className="text-sm text-muted-fg mt-2">{count} từ</p>
+      <div className="mt-3 h-1.5 bg-surface rounded-full overflow-hidden">
         <div
-          className="h-full bg-indigo-500"
+          className="h-full bg-primary"
           style={{ width: `${masteredPct}%` }}
         />
       </div>
-      <p className="text-xs text-gray-400 mt-1">{Math.round(masteredPct)}% thạo</p>
+      <p className="text-xs text-muted-fg mt-1">{Math.round(masteredPct)}% thạo</p>
     </button>
   )
 }
@@ -122,12 +122,12 @@ function WordCard({ word }: { word: VocabularyWord }) {
   return (
     <Link
       to={`/vocab/${encodeURIComponent(word.word)}`}
-      className="bg-white rounded-xl shadow-sm p-4 border border-transparent hover:border-indigo-200 transition block"
+      className="bg-surface-raised rounded-xl shadow-sm p-4 border border-transparent hover:border-primary/30 transition block"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold truncate">{word.word}</p>
-          {word.ipa && <p className="text-xs text-gray-500 truncate">/{word.ipa}/</p>}
+          <p className="font-semibold truncate text-fg">{word.word}</p>
+          {word.ipa && <p className="text-xs text-muted-fg truncate">/{word.ipa}/</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <PronunciationButton word={word.word} compact />
@@ -137,10 +137,10 @@ function WordCard({ word }: { word: VocabularyWord }) {
         </div>
       </div>
       {word.definition_vi && (
-        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{word.definition_vi}</p>
+        <p className="text-sm text-muted-fg mt-2 line-clamp-2">{word.definition_vi}</p>
       )}
       {word.topic && (
-        <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+        <span className="inline-block mt-2 text-xs bg-surface text-muted-fg px-2 py-0.5 rounded">
           {TOPIC_NAMES_VI[word.topic] ?? word.topic}
         </span>
       )}
@@ -239,8 +239,8 @@ export default function VocabHomePage() {
       <h1 className="text-2xl font-bold mb-6">Từ vựng</h1>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">
-          <p className="text-red-700">{error}</p>
+        <div className="bg-danger/10 border-l-4 border-danger p-4 rounded-lg mb-4">
+          <p className="text-danger">{error}</p>
         </div>
       )}
 
@@ -279,7 +279,7 @@ export default function VocabHomePage() {
             value={searchRaw}
             onChange={(e) => setSearchRaw(e.target.value)}
             placeholder="Tìm từ, nghĩa..."
-            className="w-full md:w-72 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            className="w-full md:w-72 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-surface-raised text-fg"
           />
         </div>
 
@@ -303,12 +303,12 @@ export default function VocabHomePage() {
           {selectedTopic && (
             <button
               onClick={() => setSelectedTopic(null)}
-              className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className="text-sm px-3 py-1 rounded-full bg-surface text-fg hover:bg-border"
             >
               Bỏ lọc: {TOPIC_NAMES_VI[selectedTopic] ?? selectedTopic} ×
             </button>
           )}
-          <span className="text-sm text-gray-500 ml-auto">
+          <span className="text-sm text-muted-fg ml-auto">
             {filteredWords.length} / {words.length} từ
           </span>
         </div>
@@ -316,9 +316,9 @@ export default function VocabHomePage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl shadow-sm p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-                <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div key={i} className="bg-surface-raised rounded-xl shadow-sm p-4 animate-pulse">
+                <div className="h-4 bg-border rounded w-1/3 mb-2" />
+                <div className="h-3 bg-border rounded w-1/2" />
               </div>
             ))}
           </div>
@@ -358,7 +358,7 @@ export default function VocabHomePage() {
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 bg-primary text-primary-fg rounded-lg hover:bg-primary-hover disabled:opacity-50"
             >
               {loadingMore ? 'Đang tải...' : 'Tải thêm'}
             </button>

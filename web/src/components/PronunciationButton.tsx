@@ -23,7 +23,7 @@ export default function PronunciationButton({
   }
 
   const base =
-    'inline-flex items-center gap-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60'
+    'inline-flex items-center gap-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-60'
   const size = compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'
 
   return (

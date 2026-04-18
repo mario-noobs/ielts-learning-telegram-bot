@@ -61,9 +61,9 @@ export default function ComprehensionExercise({ exercise, onSubmitted }: Props) 
         return (
           <div
             key={qi}
-            className="bg-white border border-gray-200 rounded-xl p-4 space-y-2"
+            className="bg-surface-raised border border-border rounded-xl p-4 space-y-2"
           >
-            <p className="font-medium text-gray-900">
+            <p className="font-medium text-fg">
               {qi + 1}. {q.question}
             </p>
             <div className="space-y-1.5">
@@ -73,13 +73,13 @@ export default function ComprehensionExercise({ exercise, onSubmitted }: Props) 
                 const isWrongPick = r && isChosen && oi !== r.correct_index
                 const base = r
                   ? isCorrect
-                    ? 'bg-green-50 border-green-400 text-green-900'
+                    ? 'bg-success/10 border-success/50 text-success'
                     : isWrongPick
-                      ? 'bg-red-50 border-red-400 text-red-900'
-                      : 'bg-white border-gray-200 text-gray-700'
+                      ? 'bg-danger/10 border-danger/50 text-danger'
+                      : 'bg-surface-raised border-border text-fg'
                   : isChosen
-                    ? 'bg-indigo-50 border-indigo-400 text-indigo-900'
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-primary/10 border-primary/50 text-primary'
+                    : 'bg-surface-raised border-border text-fg hover:bg-surface'
                 return (
                   <button
                     key={oi}
@@ -98,12 +98,12 @@ export default function ComprehensionExercise({ exercise, onSubmitted }: Props) 
             {r && (
               <p
                 className={`text-sm ${
-                  r.is_correct ? 'text-green-700' : 'text-red-700'
+                  r.is_correct ? 'text-success' : 'text-danger'
                 }`}
               >
                 {r.is_correct ? '✓ Chính xác' : '✗ Chưa đúng'}
                 {r.explanation_vi && (
-                  <span className="text-gray-600"> — {r.explanation_vi}</span>
+                  <span className="text-muted-fg"> — {r.explanation_vi}</span>
                 )}
               </p>
             )}
@@ -111,25 +111,25 @@ export default function ComprehensionExercise({ exercise, onSubmitted }: Props) 
         )
       })}
 
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {result ? (
         <div className="space-y-3">
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-            <p className="text-sm text-indigo-900">
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+            <p className="text-sm text-fg">
               Đúng{' '}
               {result.comprehension_results.filter((r) => r.is_correct).length}/
               {result.comprehension_results.length} câu —{' '}
-              <span className="font-semibold text-lg">
+              <span className="font-semibold text-lg text-primary">
                 {Math.round((result.score ?? 0) * 100)}%
               </span>
             </p>
           </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-            <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+          <div className="bg-surface border border-border rounded-xl p-4">
+            <h4 className="text-xs font-semibold text-muted-fg uppercase tracking-wide mb-1">
               Transcript
             </h4>
-            <p className="text-gray-800 whitespace-pre-line">{result.transcript}</p>
+            <p className="text-fg whitespace-pre-line">{result.transcript}</p>
           </div>
         </div>
       ) : (
@@ -137,7 +137,7 @@ export default function ComprehensionExercise({ exercise, onSubmitted }: Props) 
           <button
             onClick={submit}
             disabled={!canSubmit}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+            className="px-6 py-2 bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
           >
             {submitting ? 'Đang chấm...' : 'Nộp bài'}
           </button>

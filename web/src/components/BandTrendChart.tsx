@@ -1,11 +1,13 @@
 import EmptyState from './EmptyState'
 import { TrendPoint } from '../lib/progress'
 
+// Series colours resolve via CSS custom properties so dark mode follows the
+// token layer without duplicating a palette here. See design-system/tokens.css.
 const SERIES: { key: keyof TrendPoint; label: string; color: string }[] = [
-  { key: 'overall_band', label: 'Overall', color: '#4f46e5' },
-  { key: 'vocabulary_band', label: 'Vocabulary', color: '#f59e0b' },
-  { key: 'writing_band', label: 'Writing', color: '#10b981' },
-  { key: 'listening_band', label: 'Listening', color: '#ec4899' },
+  { key: 'overall_band', label: 'Overall', color: 'rgb(var(--color-primary))' },
+  { key: 'vocabulary_band', label: 'Vocabulary', color: 'rgb(var(--color-warning))' },
+  { key: 'writing_band', label: 'Writing', color: 'rgb(var(--color-success))' },
+  { key: 'listening_band', label: 'Listening', color: 'rgb(var(--color-accent))' },
 ]
 
 function formatDateShort(iso: string): string {
@@ -44,7 +46,7 @@ export default function BandTrendChart({
   if (trend.length === 1) {
     const only = trend[0]
     return (
-      <div className="h-52 flex items-center justify-center text-sm text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
+      <div className="h-52 flex items-center justify-center text-sm text-muted-fg bg-surface rounded-xl border border-border">
         Điểm đầu tiên hôm nay: Overall {only.overall_band.toFixed(1)}. Quay lại
         ngày mai để vẽ xu hướng.
       </div>
@@ -86,7 +88,7 @@ export default function BandTrendChart({
               x2={width - padR}
               y1={y(v)}
               y2={y(v)}
-              stroke="#f1f5f9"
+              className="stroke-border"
               strokeWidth={1}
             />
             <text
@@ -94,7 +96,7 @@ export default function BandTrendChart({
               y={y(v) + 3}
               fontSize="9"
               textAnchor="end"
-              fill="#94a3b8"
+              className="fill-muted-fg"
             >
               {v}
             </text>
@@ -107,7 +109,7 @@ export default function BandTrendChart({
           x2={width - padR}
           y1={targetY}
           y2={targetY}
-          stroke="#10b981"
+          className="stroke-success"
           strokeWidth={1.5}
           strokeDasharray="4 4"
         />
@@ -116,7 +118,7 @@ export default function BandTrendChart({
           y={targetY - 4}
           fontSize="9"
           textAnchor="end"
-          fill="#059669"
+          className="fill-success"
         >
           Target {target.toFixed(1)}
         </text>
@@ -129,7 +131,7 @@ export default function BandTrendChart({
             y={height - padB + 14}
             fontSize="9"
             textAnchor="middle"
-            fill="#475569"
+            className="fill-muted-fg"
           >
             {formatDateShort(trend[i].date)}
           </text>
@@ -164,12 +166,12 @@ export default function BandTrendChart({
               className="inline-block w-3 h-2 rounded-sm"
               style={{ background: s.color }}
             />
-            <span className="text-gray-700">{s.label}</span>
+            <span className="text-fg">{s.label}</span>
           </span>
         ))}
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-[2px] border-t border-dashed border-emerald-500" />
-          <span className="text-gray-700">Target</span>
+          <span className="inline-block w-3 h-[2px] border-t border-dashed border-success" />
+          <span className="text-fg">Target</span>
         </span>
       </div>
     </div>

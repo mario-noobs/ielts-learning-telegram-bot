@@ -1,6 +1,15 @@
 import { Task1Visualization } from '../lib/writing'
 
-const PALETTE = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+// Chart series palette — resolves via CSS custom properties so the chart
+// respects dark-mode token overrides. The 5-entry ordering matches UX-1 legend
+// expectations (primary → success → warning → danger → accent).
+const PALETTE = [
+  'rgb(var(--color-primary))',
+  'rgb(var(--color-success))',
+  'rgb(var(--color-warning))',
+  'rgb(var(--color-danger))',
+  'rgb(var(--color-accent))',
+]
 
 function computeRange(values: number[], viz: Task1Visualization) {
   const min = viz.y_min ?? Math.min(0, ...values)
@@ -35,10 +44,10 @@ function LineChart({ viz }: { viz: Task1Visualization }) {
               x2={width - padR}
               y1={yy}
               y2={yy}
-              stroke="#e5e7eb"
+              className="stroke-border"
               strokeWidth={1}
             />
-            <text x={padL - 6} y={yy + 4} fontSize="10" textAnchor="end" fill="#6b7280">
+            <text x={padL - 6} y={yy + 4} fontSize="10" textAnchor="end" className="fill-muted-fg">
               {val.toFixed(val >= 100 ? 0 : 1)}
             </text>
           </g>
@@ -51,7 +60,7 @@ function LineChart({ viz }: { viz: Task1Visualization }) {
           y={height - padB + 16}
           fontSize="10"
           textAnchor="middle"
-          fill="#374151"
+          className="fill-fg"
         >
           {lbl}
         </text>
@@ -81,7 +90,7 @@ function LineChart({ viz }: { viz: Task1Visualization }) {
           x={12}
           y={padT - 6}
           fontSize="10"
-          fill="#374151"
+          className="fill-fg"
         >
           {viz.y_axis_label}
         </text>
@@ -92,7 +101,7 @@ function LineChart({ viz }: { viz: Task1Visualization }) {
           y={height - 6}
           fontSize="10"
           textAnchor="middle"
-          fill="#374151"
+          className="fill-fg"
         >
           {viz.x_axis_label}
         </text>
@@ -131,10 +140,10 @@ function BarChart({ viz }: { viz: Task1Visualization }) {
               x2={width - padR}
               y1={yy}
               y2={yy}
-              stroke="#e5e7eb"
+              className="stroke-border"
               strokeWidth={1}
             />
-            <text x={padL - 6} y={yy + 4} fontSize="10" textAnchor="end" fill="#6b7280">
+            <text x={padL - 6} y={yy + 4} fontSize="10" textAnchor="end" className="fill-muted-fg">
               {val.toFixed(val >= 100 ? 0 : 1)}
             </text>
           </g>
@@ -147,7 +156,7 @@ function BarChart({ viz }: { viz: Task1Visualization }) {
           y={height - padB + 16}
           fontSize="10"
           textAnchor="middle"
-          fill="#374151"
+          className="fill-fg"
         >
           {lbl}
         </text>
@@ -196,7 +205,7 @@ function PieChart({ viz }: { viz: Task1Visualization }) {
     <div className="flex flex-col sm:flex-row items-center gap-6">
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
         {arcs.map((a, i) => (
-          <path key={i} d={a.path} fill={a.color} stroke="white" strokeWidth={1} />
+          <path key={i} d={a.path} fill={a.color} className="stroke-surface-raised" strokeWidth={1} />
         ))}
       </svg>
       <ul className="text-sm space-y-1">
@@ -206,8 +215,8 @@ function PieChart({ viz }: { viz: Task1Visualization }) {
               className="inline-block w-3 h-3 rounded-sm"
               style={{ background: a.color }}
             />
-            <span className="text-gray-800">{a.slice.label}</span>
-            <span className="text-gray-500 ml-auto">{a.slice.value}%</span>
+            <span className="text-fg">{a.slice.label}</span>
+            <span className="text-muted-fg ml-auto">{a.slice.value}%</span>
           </li>
         ))}
       </ul>
@@ -224,7 +233,7 @@ function DataTable({ viz }: { viz: Task1Visualization }) {
             {viz.table_headers.map((h, i) => (
               <th
                 key={i}
-                className="text-left border-b-2 border-gray-300 px-3 py-2 font-semibold"
+                className="text-left border-b-2 border-border px-3 py-2 font-semibold text-fg"
               >
                 {h}
               </th>
@@ -233,7 +242,7 @@ function DataTable({ viz }: { viz: Task1Visualization }) {
         </thead>
         <tbody>
           {viz.table_rows.map((row, ri) => (
-            <tr key={ri} className="border-b border-gray-100">
+            <tr key={ri} className="border-b border-border">
               {row.map((cell, ci) => (
                 <td key={ci} className="px-3 py-2">
                   {cell}
@@ -257,7 +266,7 @@ function Legend({ viz }: { viz: Task1Visualization }) {
             className="inline-block w-3 h-3 rounded-sm"
             style={{ background: PALETTE[i % PALETTE.length] }}
           />
-          <span className="text-gray-700">{s.name}</span>
+          <span className="text-fg">{s.name}</span>
         </span>
       ))}
     </div>
@@ -279,9 +288,9 @@ export default function TaskVisualization({ viz }: { viz: Task1Visualization }) 
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+    <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-2">
       {viz.title && (
-        <h3 className="text-sm font-semibold text-gray-900">{viz.title}</h3>
+        <h3 className="text-sm font-semibold text-fg">{viz.title}</h3>
       )}
       {renderBody()}
       {viz.chart_type !== 'pie' && viz.chart_type !== 'table' && <Legend viz={viz} />}

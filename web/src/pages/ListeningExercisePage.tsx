@@ -28,10 +28,10 @@ export default function ListeningExercisePage() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <Link to="/listening" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link to="/listening" className="text-sm text-muted-fg hover:text-fg">
           ← Listening
         </Link>
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-red-700">
+        <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-danger">
           {error}
         </div>
       </div>
@@ -42,9 +42,9 @@ export default function ListeningExercisePage() {
     return (
       <div className="max-w-2xl mx-auto p-4">
         <div className="animate-pulse space-y-3">
-          <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-100 rounded-xl"></div>
-          <div className="h-48 bg-gray-100 rounded-xl"></div>
+          <div className="h-6 bg-border rounded w-1/3"></div>
+          <div className="h-32 bg-surface rounded-xl"></div>
+          <div className="h-48 bg-surface rounded-xl"></div>
         </div>
       </div>
     )
@@ -71,12 +71,12 @@ export default function ListeningExercisePage() {
       </div>
 
       <div>
-        <p className="text-sm text-gray-500 inline-flex items-center gap-1.5">
+        <p className="text-sm text-muted-fg inline-flex items-center gap-1.5">
           <Icon name={label.icon} size="sm" variant="primary" />
           {label.title} · Band {exercise.band}
         </p>
-        <h1 className="text-2xl font-bold text-gray-900">{exercise.title}</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-fg">{exercise.title}</h1>
+        <p className="text-sm text-muted-fg mt-1">
           Dự kiến {formatDuration(exercise.duration_estimate_sec)}
           {exercise.topic ? ` · ${exercise.topic}` : ''}
         </p>

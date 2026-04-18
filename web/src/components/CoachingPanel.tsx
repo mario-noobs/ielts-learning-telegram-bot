@@ -18,11 +18,14 @@ interface RecommendationsResponse {
   generated_at: string | null
 }
 
+// Note: reskinned from per-skill distinct hues (amber/emerald/fuchsia/indigo) to a
+// single surface-based card style. Skill differentiation is carried by the icon
+// and label; per-skill colour encoding was low-signal and leaked outside tokens.
 const SKILL_META: Record<CoachingTip['skill'], { icon: IconName; color: string }> = {
-  vocabulary: { icon: 'BookOpen', color: 'bg-amber-50 border-amber-200' },
-  writing: { icon: 'PenLine', color: 'bg-emerald-50 border-emerald-200' },
-  listening: { icon: 'Headphones', color: 'bg-fuchsia-50 border-fuchsia-200' },
-  overall: { icon: 'Target', color: 'bg-indigo-50 border-indigo-200' },
+  vocabulary: { icon: 'BookOpen', color: 'bg-surface border-border' },
+  writing: { icon: 'PenLine', color: 'bg-surface border-border' },
+  listening: { icon: 'Headphones', color: 'bg-surface border-border' },
+  overall: { icon: 'Target', color: 'bg-primary/10 border-primary/20' },
 }
 
 export default function CoachingPanel() {
@@ -37,7 +40,7 @@ export default function CoachingPanel() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+      <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-sm text-danger">
         Không tải được gợi ý: {error}
       </div>
     )
@@ -46,9 +49,9 @@ export default function CoachingPanel() {
   if (!data) {
     return (
       <div className="space-y-2">
-        <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-surface rounded animate-pulse" />
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+          <div key={i} className="h-20 bg-surface rounded-xl animate-pulse" />
         ))}
       </div>
     )
@@ -57,14 +60,14 @@ export default function CoachingPanel() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700">
+        <h2 className="text-sm font-semibold text-fg">
           Gợi ý của coach tuần này
         </h2>
-        <span className="text-xs text-gray-400">{data.week_key}</span>
+        <span className="text-xs text-muted-fg">{data.week_key}</span>
       </div>
 
       {data.tips.length === 0 ? (
-        <p className="text-sm text-gray-500">Chưa có gợi ý cho tuần này.</p>
+        <p className="text-sm text-muted-fg">Chưa có gợi ý cho tuần này.</p>
       ) : (
         <div className="space-y-2">
           {data.tips.map((tip) => {
@@ -77,18 +80,18 @@ export default function CoachingPanel() {
                 <div className="flex items-start gap-3">
                   <Icon name={meta.icon} size="lg" variant="primary" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">
+                    <p className="font-medium text-fg text-sm">
                       {tip.tip_vi}
                     </p>
                     {tip.tip_en && (
-                      <p className="text-xs text-gray-600 mt-0.5">
+                      <p className="text-xs text-muted-fg mt-0.5">
                         {tip.tip_en}
                       </p>
                     )}
                   </div>
                   <Link
                     to={tip.action_route}
-                    className="text-xs font-medium text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-200 rounded-full px-3 py-1 shrink-0"
+                    className="text-xs font-medium text-primary hover:text-primary-hover bg-surface-raised border border-primary/30 rounded-full px-3 py-1 shrink-0"
                   >
                     {tip.action_label} →
                   </Link>

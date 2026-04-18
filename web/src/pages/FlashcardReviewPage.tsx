@@ -139,13 +139,13 @@ function FillBlank({ onSubmit }: { onSubmit: (text: string) => void }) {
           if (e.key === 'Enter') submit()
         }}
         aria-label="Điền từ thích hợp"
-        className="w-full px-4 py-3 min-h-[44px] border-2 border-border bg-surface-raised rounded-xl focus:border-primary focus:outline-none"
+        className="w-full px-4 py-3 min-h-[44px] border-2 border-border bg-surface-raised rounded-xl focus:border-primary focus:outline-none text-fg"
         placeholder="Ví dụ: abandon"
       />
       <button
         onClick={submit}
         disabled={!value.trim()}
-        className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
+        className="w-full px-4 py-3 bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover disabled:opacity-50"
       >
         Gửi
       </button>
@@ -180,7 +180,7 @@ function FeedbackOverlay({
       role="dialog"
       aria-modal="true"
       aria-labelledby="feedback-title"
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-scrim flex items-center justify-center z-50 p-4"
     >
       <div className="bg-surface-raised dark:bg-surface rounded-2xl p-6 max-w-md w-full shadow-xl">
         <div className="flex items-center gap-3 mb-3">
@@ -222,27 +222,27 @@ function SessionSummary({
   const correct = records.filter((r) => r.result.is_correct).length
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <div className="bg-white rounded-xl shadow-sm p-6 text-center">
-        <h2 className="text-sm uppercase tracking-wide text-gray-500 mb-2">Kết quả</h2>
-        <div className="text-5xl font-bold text-blue-600">
+      <div className="bg-surface-raised rounded-xl shadow-sm p-6 text-center">
+        <h2 className="text-sm uppercase tracking-wide text-muted-fg mb-2">Kết quả</h2>
+        <div className="text-5xl font-bold text-primary">
           {correct}
-          <span className="text-2xl text-gray-400">/{records.length}</span>
+          <span className="text-2xl text-muted-fg">/{records.length}</span>
         </div>
       </div>
       <div className="space-y-2">
         {records.map((r, i) => (
-          <div key={i} className="bg-white rounded-lg p-3 flex items-center justify-between text-sm">
+          <div key={i} className="bg-surface-raised rounded-lg p-3 flex items-center justify-between text-sm">
             <div className="flex items-center gap-3">
               <span
                 className={
-                  r.result.is_correct ? 'text-green-600 font-bold' : 'text-red-600 font-bold'
+                  r.result.is_correct ? 'text-success font-bold' : 'text-danger font-bold'
                 }
               >
                 {r.result.is_correct ? '✓' : '✗'}
               </span>
-              <span className="text-gray-700 truncate max-w-[180px]">{r.question.question}</span>
+              <span className="text-fg truncate max-w-[180px]">{r.question.question}</span>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-fg">
               {r.result.srs_update.old_strength} → {r.result.srs_update.new_strength} ·{' '}
               {formatNextReview(r.result.srs_update.next_review)}
             </div>
@@ -252,13 +252,13 @@ function SessionSummary({
       <div className="flex gap-3">
         <button
           onClick={onRestart}
-          className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700"
+          className="flex-1 py-3 bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover"
         >
           Ôn tiếp
         </button>
         <Link
           to="/vocab"
-          className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 text-center"
+          className="flex-1 py-3 bg-surface text-fg rounded-xl font-medium hover:bg-border text-center"
         >
           Về từ vựng
         </Link>
@@ -354,20 +354,20 @@ export default function FlashcardReviewPage() {
     }
     return (
       <div className="max-w-lg mx-auto p-4">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h1 className="text-2xl font-bold mb-2">Ôn tập Flashcard</h1>
-          <p className="text-gray-600 mb-6">
+        <div className="bg-surface-raised rounded-xl shadow-sm p-6">
+          <h1 className="text-2xl font-bold mb-2 text-fg">Ôn tập Flashcard</h1>
+          <p className="text-muted-fg mb-6">
             Ôn lại từ đến hạn bằng câu hỏi trắc nghiệm và điền vào chỗ trống.
           </p>
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-4 text-red-700 text-sm">
+            <div className="bg-danger/10 border-l-4 border-danger p-3 rounded mb-4 text-danger text-sm">
               {error}
             </div>
           )}
           <button
             onClick={start}
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full py-3 bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover disabled:opacity-50"
           >
             {loading ? 'Đang tải...' : 'Bắt đầu'}
           </button>
@@ -385,13 +385,13 @@ export default function FlashcardReviewPage() {
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <Link to="/vocab" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link to="/vocab" className="text-sm text-muted-fg hover:text-fg">
           Thoát
         </Link>
       </div>
       <ProgressBar current={index + 1} total={questions.length} />
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <p className="text-xl text-gray-900 mb-6 whitespace-pre-line">
+      <div className="bg-surface-raised rounded-xl shadow-sm p-6">
+        <p className="text-xl text-fg mb-6 whitespace-pre-line">
           {currentQuestion.question}
         </p>
         {currentQuestion.type === 'multiple_choice' ? (

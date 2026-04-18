@@ -33,7 +33,7 @@ export default function PlanTaskCard({ activity, onToggle, busy }: Props) {
         <span
           className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors duration-base ${
             completed
-              ? 'bg-success border-success text-white'
+              ? 'bg-success border-success text-primary-fg'
               : 'border-border bg-surface-raised group-hover:border-primary'
           }`}
           aria-hidden

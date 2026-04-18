@@ -7,20 +7,20 @@ import {
 } from '../lib/writing'
 
 function bandColorClass(band: number): string {
-  if (band >= 7.0) return 'bg-green-500'
-  if (band >= 6.0) return 'bg-indigo-500'
-  if (band >= 5.0) return 'bg-amber-500'
-  return 'bg-red-500'
+  if (band >= 7.0) return 'bg-success'
+  if (band >= 6.0) return 'bg-primary'
+  if (band >= 5.0) return 'bg-warning'
+  return 'bg-danger'
 }
 
 function issueColorClass(type: IssueType): { bg: string; text: string } {
   switch (type) {
     case 'grammar':
-      return { bg: 'bg-red-100', text: 'text-red-900' }
+      return { bg: 'bg-danger/20', text: 'text-danger' }
     case 'weak_vocab':
-      return { bg: 'bg-orange-100', text: 'text-orange-900' }
+      return { bg: 'bg-accent/20', text: 'text-accent' }
     case 'good':
-      return { bg: 'bg-green-100', text: 'text-green-900' }
+      return { bg: 'bg-success/20', text: 'text-success' }
   }
 }
 
@@ -29,12 +29,12 @@ function BandBadge({ band, target }: { band: number; target: number }) {
   const sign = delta > 0 ? '+' : ''
   return (
     <div className="flex items-center gap-3">
-      <div className={`${bandColorClass(band)} text-white text-3xl font-bold px-5 py-3 rounded-xl`}>
+      <div className={`${bandColorClass(band)} text-primary-fg text-3xl font-bold px-5 py-3 rounded-xl`}>
         {band.toFixed(1)}
       </div>
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-muted-fg">
         <div>Mục tiêu: {target.toFixed(1)}</div>
-        <div className={delta >= 0 ? 'text-green-700' : 'text-red-700'}>
+        <div className={delta >= 0 ? 'text-success' : 'text-danger'}>
           {delta === 0 ? 'Đúng mục tiêu' : `${sign}${delta.toFixed(1)}`}
         </div>
       </div>
@@ -50,9 +50,9 @@ export function ScorePanel({
   targetBand: number
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+    <div className="bg-surface-raised rounded-xl shadow-sm p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">Điểm tổng</h2>
+        <h2 className="font-semibold text-fg">Điểm tổng</h2>
         <BandBadge band={submission.overall_band} target={targetBand} />
       </div>
       <div className="space-y-3">
@@ -63,16 +63,16 @@ export function ScorePanel({
           return (
             <div key={c.key}>
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-800">{c.label}</span>
-                <span className="font-mono text-gray-900">{score.toFixed(1)}</span>
+                <span className="font-medium text-fg">{c.label}</span>
+                <span className="font-mono text-fg">{score.toFixed(1)}</span>
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
+              <div className="h-2 bg-surface rounded-full overflow-hidden mt-1">
                 <div
                   className={`h-full ${bandColorClass(score)}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              {feedback && <p className="text-xs text-gray-500 mt-1">{feedback}</p>}
+              {feedback && <p className="text-xs text-muted-fg mt-1">{feedback}</p>}
             </div>
           )
         })}
@@ -120,7 +120,7 @@ function HighlightedParagraph({
   }, [paragraph, annotations])
 
   return (
-    <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
+    <p className="text-fg leading-relaxed whitespace-pre-wrap">
       {segments.map((s, i) => {
         if (s.kind === 'plain') return <span key={i}>{s.text}</span>
         const colors = issueColorClass(s.ann!.issue_type)
@@ -154,9 +154,9 @@ function AnnotationDetail({
 }) {
   const colors = issueColorClass(annotation.issue_type)
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-scrim flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl p-5 max-w-md w-full shadow-xl"
+        className="bg-surface-raised rounded-2xl p-5 max-w-md w-full shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-3">
@@ -177,21 +177,21 @@ function AnnotationDetail({
             </svg>
           </button>
         </div>
-        <p className="text-sm font-mono bg-gray-50 border border-gray-200 rounded p-2 mb-3">
+        <p className="text-sm font-mono bg-surface border border-border rounded p-2 mb-3 text-fg">
           "{annotation.excerpt}"
         </p>
         {annotation.issue && (
-          <p className="text-sm text-gray-700 mb-2">
+          <p className="text-sm text-fg mb-2">
             <span className="font-semibold">Vấn đề:</span> {annotation.issue}
           </p>
         )}
         {annotation.suggestion && (
-          <p className="text-sm text-gray-700 mb-2">
+          <p className="text-sm text-fg mb-2">
             <span className="font-semibold">Gợi ý:</span> {annotation.suggestion}
           </p>
         )}
         {annotation.explanation_vi && (
-          <p className="text-sm text-gray-700 bg-indigo-50 border border-indigo-100 rounded p-2">
+          <p className="text-sm text-fg bg-primary/10 border border-primary/20 rounded p-2">
             {annotation.explanation_vi}
           </p>
         )}
@@ -205,10 +205,10 @@ export function AnnotatedEssay({ submission }: { submission: WritingSubmission }
   const paragraphs = submission.text.split(/\n\s*\n/)
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+    <div className="bg-surface-raised rounded-xl shadow-sm p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">Bài viết</h2>
-        <span className="text-xs text-gray-500">{submission.word_count} từ</span>
+        <h2 className="font-semibold text-fg">Bài viết</h2>
+        <span className="text-xs text-muted-fg">{submission.word_count} từ</span>
       </div>
       <div className="space-y-4">
         {paragraphs.map((p, i) => {
@@ -235,9 +235,9 @@ export function AnnotatedEssay({ submission }: { submission: WritingSubmission }
 export function VietnameseSummary({ summary }: { summary: string }) {
   if (!summary) return null
   return (
-    <div className="bg-amber-50 border-l-4 border-amber-400 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-amber-800 mb-1">Tóm tắt cần cải thiện</h3>
-      <p className="text-amber-900 text-sm whitespace-pre-line">{summary}</p>
+    <div className="bg-warning/10 border-l-4 border-warning rounded-xl p-4">
+      <h3 className="text-sm font-semibold text-warning mb-1">Tóm tắt cần cải thiện</h3>
+      <p className="text-fg text-sm whitespace-pre-line">{summary}</p>
     </div>
   )
 }

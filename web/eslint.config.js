@@ -29,20 +29,6 @@ const HEX_COLOR_RULES = {
   ],
 }
 
-/**
- * M6.1 grandfather list. These five SVG-chart components shipped in M1-M4 with
- * hand-picked hex palettes before the design-system package existed. Migrating
- * them to tokens is tracked as a follow-up to #120 (file in PR description).
- * Do NOT add new entries here — new code is held to the `error` rule above.
- */
-const HEX_COLOR_LEGACY_FILES = [
-  'src/components/BandRing.tsx',
-  'src/components/BandTrendChart.tsx',
-  'src/components/ProgressRing.tsx',
-  'src/components/TaskVisualization.tsx',
-  'src/pages/WritingHistoryPage.tsx',
-]
-
 export default tseslint.config(
   { ignores: ['dist', 'storybook-static', 'coverage'] },
   {
@@ -65,12 +51,14 @@ export default tseslint.config(
     },
   },
   {
-    // M6.1 design-system guard: flag raw hex colour literals in UI code so
-    // reskin (#124) cannot reintroduce them. Scoped to pages/components —
-    // tokens.ts legitimately lists hex values and is explicitly excluded by
-    // the `files` pattern below.
+    // M6.1 design-system guard, now strict after US-M6.5 (#124) finished the
+    // reskin. Every SVG chart component that was previously grandfathered
+    // (BandRing, BandTrendChart, ProgressRing, TaskVisualization,
+    // WritingHistoryPage trend SVG) has been migrated to token-consuming
+    // utilities via `currentColor` / Tailwind `stroke-*` / `fill-*` classes.
+    // `tokens.ts` legitimately lists hex values and is outside this `files`
+    // scope, so no per-file allowlist is required.
     files: ['src/pages/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
-    ignores: HEX_COLOR_LEGACY_FILES,
     rules: HEX_COLOR_RULES,
   },
 )
