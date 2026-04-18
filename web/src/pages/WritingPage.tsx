@@ -246,7 +246,16 @@ export default function WritingPage() {
       </div>
 
       <div className="flex items-center gap-3">
-        <TaskSelector value={taskType} onChange={setTaskType} disabled={!!startedAt} />
+        <TaskSelector
+          value={taskType}
+          onChange={(t) => {
+            if (t === taskType) return
+            setTaskType(t)
+            setPrompt('')
+            setTypewriter('')
+          }}
+          disabled={!!startedAt}
+        />
       </div>
 
       <PromptCard

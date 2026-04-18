@@ -84,8 +84,12 @@ async def score_essay(text: str, task_type: str, prompt: str) -> dict:
 
 
 async def generate_task_prompt(task_type: str, band: float) -> str:
-    from prompts.writing_score_prompt import TASK_PROMPT_GENERATOR
+    from prompts.writing_score_prompt import (
+        TASK1_PROMPT_GENERATOR,
+        TASK2_PROMPT_GENERATOR,
+    )
 
-    filled = TASK_PROMPT_GENERATOR.format(task_type=task_type, band=band)
+    template = TASK1_PROMPT_GENERATOR if task_type == "task1" else TASK2_PROMPT_GENERATOR
+    filled = template.format(band=band)
     text = await ai_service.generate(filled, priority="foreground")
     return text.strip()

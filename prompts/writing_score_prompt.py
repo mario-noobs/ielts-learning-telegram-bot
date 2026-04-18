@@ -49,10 +49,32 @@ Rules:
 """
 
 
-TASK_PROMPT_GENERATOR = """Generate one IELTS Writing {task_type} question appropriate for Band {band}.
+TASK1_PROMPT_GENERATOR = """You are an IELTS item writer. Generate ONE IELTS Academic Writing TASK 1 question at Band {band}.
 
-For Task 1 academic reports: give a brief description of a chart/map/process with bullet data points.
-For Task 2 essays: state a position prompt (opinion, discuss both views, problem/solution, or advantages/disadvantages).
+The output MUST describe visual data the learner cannot actually see — pick exactly one of: bar chart, line graph, pie chart, table, process diagram, or map. Invent concrete figures (years, percentages, countries, or stages) so the task is self-contained.
 
-Return ONLY the question text in English, no preamble, no markdown, no word-count reminder, 2-4 sentences.
+Format:
+- Line 1: "The {{chart_type}} below shows ..." (one sentence describing what the visual depicts, including units and time range where relevant).
+- Line 2: "Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+- Then 3-5 bullet points starting with "- " listing the key data points.
+
+Return ONLY the task text in English. No preamble, no markdown headings, no word-count reminder, no answer.
+"""
+
+
+TASK2_PROMPT_GENERATOR = """You are an IELTS item writer. Generate ONE IELTS Writing TASK 2 essay question at Band {band}.
+
+Pick exactly one of these question types at random and phrase the prompt accordingly:
+- Opinion ("To what extent do you agree or disagree?")
+- Discuss both views ("Discuss both views and give your own opinion.")
+- Problem + solution ("What are the causes of this problem and what measures could solve it?")
+- Advantages + disadvantages ("Do the advantages outweigh the disadvantages?")
+
+Topic must be a broad IELTS theme (education, technology, environment, health, work, urbanisation, globalisation, media, crime, family). Avoid Task 1 framing — do NOT mention charts, tables, graphs, processes, or maps.
+
+Format:
+- Sentence 1-2: the situation or claim.
+- Final sentence: the exact question line from the type you chose.
+
+Return ONLY the task text in English. No preamble, no markdown, no word-count reminder, no answer.
 """
