@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 
 interface QuizQuestion {
@@ -151,20 +152,60 @@ function FillBlank({ onSubmit }: { onSubmit: (text: string) => void }) {
   )
 }
 
-function FeedbackOverlay({ result }: { result: QuizAnswerResponse }) {
-  const bg = result.is_correct ? 'bg-green-500' : 'bg-red-500'
+function FeedbackOverlay({
+  result,
+  onContinue,
+  isLast,
+}: {
+  result: QuizAnswerResponse
+  onContinue: () => void
+  isLast: boolean
+}) {
+  const continueRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    continueRef.current?.focus()
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault()
+        onContinue()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onContinue])
+
   return (
-    <div className={`fixed inset-0 ${bg} bg-opacity-95 flex items-center justify-center z-50 p-4`}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-        <div className={`text-2xl font-bold mb-3 ${result.is_correct ? 'text-green-700' : 'text-red-700'}`}>
-          {result.is_correct ? 'Đúng rồi!' : 'Chưa đúng'}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="feedback-title"
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+    >
+      <div className="bg-surface-raised dark:bg-surface rounded-2xl p-6 max-w-md w-full shadow-xl">
+        <div className="flex items-center gap-3 mb-3">
+          <Icon
+            name={result.is_correct ? 'CheckCircle2' : 'AlertCircle'}
+            size="xl"
+            variant={result.is_correct ? 'success' : 'danger'}
+            label={result.is_correct ? 'Đúng' : 'Sai'}
+          />
+          <h2 id="feedback-title" className={`text-2xl font-bold ${result.is_correct ? 'text-success' : 'text-danger'}`}>
+            {result.is_correct ? 'Đúng rồi!' : 'Chưa đúng'}
+          </h2>
         </div>
-        <p className="text-gray-800 whitespace-pre-line">{result.feedback}</p>
+        <p className="text-fg whitespace-pre-line">{result.feedback}</p>
         {result.srs_update.strength_change && (
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="mt-3 text-xs text-muted-fg tabular-nums">
             {result.srs_update.old_strength} → {result.srs_update.new_strength}
           </p>
         )}
+        <button
+          ref={continueRef}
+          onClick={onContinue}
+          className="mt-5 w-full py-3 min-h-[44px] bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover"
+        >
+          {isLast ? 'Xem kết quả' : 'Tiếp tục'} (Space)
+        </button>
       </div>
     </div>
   )
@@ -285,19 +326,15 @@ export default function FlashcardReviewPage() {
     [questions, index, sessionId]
   )
 
-  useEffect(() => {
-    if (phase !== 'feedback') return
-    const timer = setTimeout(() => {
-      if (index + 1 >= questions.length) {
-        setPhase('summary')
-      } else {
-        setIndex((i) => i + 1)
-        setPhase('question')
-      }
-      setFeedback(null)
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [phase, index, questions.length])
+  const advance = useCallback(() => {
+    if (index + 1 >= questions.length) {
+      setPhase('summary')
+    } else {
+      setIndex((i) => i + 1)
+      setPhase('question')
+    }
+    setFeedback(null)
+  }, [index, questions.length])
 
   const currentQuestion = useMemo(() => questions[index], [questions, index])
 
@@ -357,7 +394,13 @@ export default function FlashcardReviewPage() {
           <FillBlank onSubmit={submit} />
         )}
       </div>
-      {phase === 'feedback' && feedback && <FeedbackOverlay result={feedback} />}
+      {phase === 'feedback' && feedback && (
+        <FeedbackOverlay
+          result={feedback}
+          onContinue={advance}
+          isLast={index + 1 >= questions.length}
+        />
+      )}
     </div>
   )
 }
