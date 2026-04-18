@@ -52,7 +52,28 @@ class TestEnrichedWord:
         assert "7" in body["examples_by_band"]
         assert body["examples_by_band"]["7"]["en"].startswith("Smartphones")
         assert len(body["collocations"]) == 2
+        # Legacy string collocations normalize to {phrase, label=""}
+        assert body["collocations"][0]["phrase"] == "ubiquitous presence"
+        assert body["collocations"][0]["label"] == ""
         mock_fn.assert_called_once_with("ubiquitous", 7.0)
+
+    def test_dict_shaped_collocations_are_accepted(self, client):
+        """AI prompts emit {phrase,label} dicts; route must accept them."""
+        data = _enriched_fixture()
+        data["collocations"] = [
+            {"phrase": "pristine condition", "label": "neutral"},
+            {"phrase": "pristine environment", "label": "academic"},
+        ]
+        with patch("api.routes.words.word_service.get_enriched_word",
+                   new=AsyncMock(return_value=data)):
+            response = client.get("/api/v1/words/pristine")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["collocations"][0] == {
+            "phrase": "pristine condition", "label": "neutral",
+        }
+        assert body["collocations"][1]["label"] == "academic"
 
     def test_word_is_normalized_before_lookup(self, client):
         """Leading/trailing whitespace and caps are stripped."""

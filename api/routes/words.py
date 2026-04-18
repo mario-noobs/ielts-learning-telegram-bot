@@ -2,8 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 import config
 from api.auth import get_current_user
-from api.models.vocabulary import EnrichedExample, EnrichedWord
+from api.models.vocabulary import Collocation, EnrichedExample, EnrichedWord
 from services import word_service
+
+
+def _to_collocation(item) -> Collocation:
+    if isinstance(item, dict):
+        return Collocation(phrase=item.get("phrase", ""), label=item.get("label", ""))
+    return Collocation(phrase=str(item), label="")
 
 router = APIRouter(prefix="/api/v1/words", tags=["words"])
 
@@ -30,6 +36,9 @@ async def get_enriched_word(
         for tier, ex in raw_examples.items()
     }
 
+    raw_collocations = data.get("collocations", []) or []
+    collocations = [_to_collocation(c) for c in raw_collocations if c]
+
     return EnrichedWord(
         word=data.get("word", normalized),
         ipa=data.get("ipa", ""),
@@ -38,7 +47,7 @@ async def get_enriched_word(
         definition_en=data.get("definition_en", ""),
         definition_vi=data.get("definition_vi", ""),
         word_family=data.get("word_family", []) or [],
-        collocations=data.get("collocations", []) or [],
+        collocations=collocations,
         examples_by_band=examples,
         ielts_tip=data.get("ielts_tip", ""),
     )
