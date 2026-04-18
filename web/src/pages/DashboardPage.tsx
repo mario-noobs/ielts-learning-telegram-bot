@@ -1,7 +1,8 @@
 import { useAuth } from '../contexts/AuthContext'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import LinkTelegramCard from '../components/LinkTelegramCard'
 
 interface UserProfile {
   id: string
@@ -11,6 +12,10 @@ interface UserProfile {
   topics: string[]
   streak: number
   total_words: number
+}
+
+function isWebPlaceholder(profile: UserProfile): boolean {
+  return profile.id.startsWith('web_')
 }
 
 async function getOrCreateProfile(): Promise<UserProfile> {
@@ -34,11 +39,15 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     getOrCreateProfile()
       .then(setProfile)
       .catch((e) => setError(e.message))
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -56,17 +65,21 @@ export default function DashboardPage() {
       )}
 
       {profile ? (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <p className="text-lg font-medium">Chào, {profile.name}!</p>
-          <p className="text-gray-500 mt-1">Band mục tiêu: {profile.target_band}</p>
-          <p className="text-gray-500">Từ vựng: {profile.total_words} từ</p>
-          <p className="text-gray-500">Streak: {profile.streak} ngày</p>
-          <Link
-            to="/vocab"
-            className="inline-block mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-          >
-            Xem từ vựng →
-          </Link>
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-lg font-medium">Chào, {profile.name}!</p>
+            <p className="text-gray-500 mt-1">Band mục tiêu: {profile.target_band}</p>
+            <p className="text-gray-500">Từ vựng: {profile.total_words} từ</p>
+            <p className="text-gray-500">Streak: {profile.streak} ngày</p>
+            <Link
+              to="/vocab"
+              className="inline-block mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+            >
+              Xem từ vựng →
+            </Link>
+          </div>
+
+          {isWebPlaceholder(profile) && <LinkTelegramCard onLinked={load} />}
         </div>
       ) : !error ? (
         <div className="animate-pulse space-y-3">

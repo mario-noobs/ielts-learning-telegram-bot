@@ -618,3 +618,29 @@ def link_telegram_to_auth(telegram_id: int, auth_uid: str):
         {"user_id": str(telegram_id)}
     )
     update_user(telegram_id, {"auth_uid": auth_uid})
+
+
+# ─── Link Code Operations (US-1.7) ────────────────────────────
+
+LINK_CODE_TTL_SECONDS = 5 * 60
+
+
+def create_link_code(code: str, telegram_id: int) -> None:
+    """Store a single-use link code that expires in LINK_CODE_TTL_SECONDS."""
+    now = datetime.now(timezone.utc)
+    _get_db().collection("auth_link_codes").document(code).set({
+        "telegram_id": telegram_id,
+        "created_at": now,
+        "expires_at": now + timedelta(seconds=LINK_CODE_TTL_SECONDS),
+    })
+
+
+def get_link_code(code: str) -> Optional[dict]:
+    doc = _get_db().collection("auth_link_codes").document(code).get()
+    if not doc.exists:
+        return None
+    return doc.to_dict()
+
+
+def delete_link_code(code: str) -> None:
+    _get_db().collection("auth_link_codes").document(code).delete()

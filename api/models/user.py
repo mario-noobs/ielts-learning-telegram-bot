@@ -7,6 +7,10 @@ class UserCreate(BaseModel):
     topics: list[str] = ["education", "environment", "technology"]
 
 
+class LinkCodeRequest(BaseModel):
+    code: str
+
+
 class UserProfile(BaseModel):
     id: str
     name: str
