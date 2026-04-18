@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { DailyPlan, greetingFor } from '../lib/plan'
+import Icon from '../components/Icon'
 import LinkTelegramCard from '../components/LinkTelegramCard'
 import PlanTaskCard from '../components/PlanTaskCard'
 import ProgressRing from '../components/ProgressRing'
@@ -110,7 +111,10 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="opacity-80 text-xs uppercase tracking-wide">Streak</p>
-              <p className="text-xl font-semibold">🔥 {profile.streak}</p>
+              <p className="text-xl font-semibold inline-flex items-center gap-1">
+                <Icon name="Flame" size="md" variant="accent" label="Streak" />
+                {profile.streak}
+              </p>
             </div>
             <div>
               <p className="opacity-80 text-xs uppercase tracking-wide">Từ đã học</p>
@@ -130,8 +134,11 @@ export default function DashboardPage() {
               : 'bg-amber-50 border-amber-200 text-amber-800'
           }`}
         >
-          ⏳ Còn {plan.days_until_exam} ngày nữa đến IELTS
-          {plan.exam_urgent && ' — tăng cường luyện tập!'}
+          <span className="inline-flex items-center gap-2">
+            <Icon name="Hourglass" size="md" variant={plan.exam_urgent ? 'danger' : 'warning'} />
+            Còn {plan.days_until_exam} ngày nữa đến IELTS
+            {plan.exam_urgent && ' — tăng cường luyện tập!'}
+          </span>
         </div>
       )}
 
@@ -152,7 +159,7 @@ export default function DashboardPage() {
 
           {allDone ? (
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-              <p className="text-2xl">🎉</p>
+              <Icon name="PartyPopper" size="xl" variant="success" className="mx-auto" label="Hoàn thành" />
               <p className="font-semibold text-green-800 mt-1">
                 Hoàn thành toàn bộ kế hoạch hôm nay!
               </p>
@@ -182,26 +189,20 @@ export default function DashboardPage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-2">Khác</h3>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <Link to="/vocab" className="text-indigo-600 hover:text-indigo-700">
-            📚 Từ vựng
+          <Link to="/vocab" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
+            <Icon name="BookOpen" size="sm" variant="primary" /> Từ vựng
           </Link>
-          <Link
-            to="/write/history"
-            className="text-indigo-600 hover:text-indigo-700"
-          >
-            📝 Bài viết
+          <Link to="/write/history" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
+            <Icon name="FileText" size="sm" variant="primary" /> Bài viết
           </Link>
-          <Link
-            to="/listening/history"
-            className="text-indigo-600 hover:text-indigo-700"
-          >
-            🎧 Lịch sử nghe
+          <Link to="/listening/history" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
+            <Icon name="Headphones" size="sm" variant="primary" /> Lịch sử nghe
           </Link>
-          <Link to="/progress" className="text-indigo-600 hover:text-indigo-700">
-            📈 Band Progress
+          <Link to="/progress" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
+            <Icon name="TrendingUp" size="sm" variant="primary" /> Band Progress
           </Link>
-          <Link to="/settings" className="text-indigo-600 hover:text-indigo-700">
-            ⚙️ Cài đặt
+          <Link to="/settings" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
+            <Icon name="Settings" size="sm" variant="primary" /> Cài đặt
           </Link>
         </div>
       </div>
