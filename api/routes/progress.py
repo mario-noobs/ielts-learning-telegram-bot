@@ -4,13 +4,15 @@ from fastapi import APIRouter, Depends, Query
 
 from api.auth import get_current_user
 from api.models.progress import (
+    CoachingTip,
     ProgressHistoryResponse,
     ProgressPrediction,
+    ProgressRecommendationsResponse,
     ProgressResponse,
     ProgressSnapshot,
     TrendPoint,
 )
-from services import progress_service
+from services import coaching_service, progress_service
 
 router = APIRouter(prefix="/api/v1/progress", tags=["progress"])
 
@@ -88,8 +90,23 @@ async def get_progress_history(
     )
 
 
-# Recommendations route (US-5.3) is added via a separate import in main.
-# Keeping the progress router narrowly scoped to the snapshot/history payloads.
+@router.get("/recommendations", response_model=ProgressRecommendationsResponse)
+async def get_recommendations(
+    user: dict = Depends(get_current_user),
+) -> ProgressRecommendationsResponse:
+    """Return this week's AI coaching tips (cached per ISO week)."""
+    snapshot = await asyncio.to_thread(progress_service.build_snapshot, user)
+    history = await asyncio.to_thread(
+        progress_service.history_window, user["id"], 14,
+    )
+    week_key, tips, generated_at = await coaching_service.get_cached_or_generate(
+        user, snapshot, history,
+    )
+    return ProgressRecommendationsResponse(
+        week_key=week_key,
+        tips=[CoachingTip(**t) for t in tips],
+        generated_at=generated_at,
+    )
 
 
 def _snapshot_for_tests(doc: dict) -> ProgressSnapshot:  # pragma: no cover

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import BandRing from '../components/BandRing'
 import BandTrendChart from '../components/BandTrendChart'
+import CoachingPanel from '../components/CoachingPanel'
 import SkillBandCard from '../components/SkillBandCard'
 import {
   deltaFrom,
@@ -143,6 +144,8 @@ export default function ProgressPage() {
         <h2 className="text-sm font-semibold text-gray-700 mb-2">Xu hướng 30 ngày</h2>
         <BandTrendChart trend={trend} target={target} />
       </div>
+
+      <CoachingPanel />
     </div>
   )
 }
