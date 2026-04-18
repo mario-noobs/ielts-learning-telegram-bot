@@ -99,12 +99,28 @@ export default function WritingPage() {
   const reviseOf = searchParams.get('reviseOf')
 
   const [taskType, setTaskType] = useState<TaskType>('task2')
-  const [prompt, setPrompt] = useState('')
-  const [typewriter, setTypewriter] = useState('')
-  const [visualization, setVisualization] = useState<Task1Visualization | null>(null)
-  const [promptLoading, setPromptLoading] = useState(false)
 
-  const [text, setText] = useState('')
+  type TaskState = {
+    prompt: string
+    typewriter: string
+    visualization: Task1Visualization | null
+    text: string
+  }
+  const emptyTaskState: TaskState = {
+    prompt: '', typewriter: '', visualization: null, text: '',
+  }
+  const [tasks, setTasks] = useState<Record<TaskType, TaskState>>({
+    task1: { ...emptyTaskState },
+    task2: { ...emptyTaskState },
+  })
+
+  const patchTask = (t: TaskType, patch: Partial<TaskState>) => {
+    setTasks((prev) => ({ ...prev, [t]: { ...prev[t], ...patch } }))
+  }
+
+  const { prompt, typewriter, visualization, text } = tasks[taskType]
+
+  const [promptLoading, setPromptLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -128,9 +144,11 @@ export default function WritingPage() {
       .then((res) => {
         setOriginalForDiff(res)
         setTaskType(res.task_type)
-        setPrompt(res.prompt)
-        setTypewriter(res.prompt)
-        setText(res.text)
+        patchTask(res.task_type, {
+          prompt: res.prompt,
+          typewriter: res.prompt,
+          text: res.text,
+        })
       })
       .catch((e) => setError((e as Error).message))
   }, [reviseOf])
@@ -148,26 +166,24 @@ export default function WritingPage() {
     : 0
 
   const generatePrompt = async () => {
+    const t = taskType
     setPromptLoading(true)
     setError(null)
-    setPrompt('')
-    setTypewriter('')
-    setVisualization(null)
+    patchTask(t, { prompt: '', typewriter: '', visualization: null })
     try {
       const res = await apiFetch<TaskPromptResponse>('/api/v1/writing/prompt', {
         method: 'POST',
-        body: JSON.stringify({ task_type: taskType }),
+        body: JSON.stringify({ task_type: t }),
       })
       if (typeIntervalRef.current) window.clearInterval(typeIntervalRef.current)
       let i = 0
       typeIntervalRef.current = window.setInterval(() => {
         i += 2
-        setTypewriter(res.prompt.slice(0, i))
+        patchTask(t, { typewriter: res.prompt.slice(0, i) })
         if (i >= res.prompt.length) {
           window.clearInterval(typeIntervalRef.current!)
           typeIntervalRef.current = null
-          setPrompt(res.prompt)
-          setVisualization(res.visualization)
+          patchTask(t, { prompt: res.prompt, visualization: res.visualization })
         }
       }, 15)
     } catch (e) {
@@ -259,13 +275,7 @@ export default function WritingPage() {
       <div className="flex items-center gap-3">
         <TaskSelector
           value={taskType}
-          onChange={(t) => {
-            if (t === taskType) return
-            setTaskType(t)
-            setPrompt('')
-            setTypewriter('')
-            setVisualization(null)
-          }}
+          onChange={setTaskType}
           disabled={!!startedAt}
         />
       </div>
@@ -287,7 +297,7 @@ export default function WritingPage() {
       <textarea
         value={text}
         onChange={(e) => {
-          setText(e.target.value)
+          patchTask(taskType, { text: e.target.value })
           if (!startedAt && e.target.value.length > 0) setStartedAt(Date.now())
         }}
         placeholder="Bắt đầu viết tại đây..."
