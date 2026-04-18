@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
 import WordDetailPage from './pages/WordDetailPage'
+import FlashcardReviewPage from './pages/FlashcardReviewPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/vocab" element={<ProtectedRoute><VocabHomePage /></ProtectedRoute>} />
           <Route path="/vocab/:id" element={<ProtectedRoute><WordDetailPage /></ProtectedRoute>} />
+          <Route path="/review" element={<ProtectedRoute><FlashcardReviewPage /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
