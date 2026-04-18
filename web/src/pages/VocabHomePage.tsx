@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import PronunciationButton from '../components/PronunciationButton'
 
@@ -149,7 +148,6 @@ function WordCard({ word }: { word: VocabularyWord }) {
 }
 
 export default function VocabHomePage() {
-  const { logout } = useAuth()
   const [words, setWords] = useState<VocabularyWord[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [topics, setTopics] = useState<TopicSummary[]>([])
@@ -237,17 +235,7 @@ export default function VocabHomePage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Từ vựng</h1>
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-gray-500 hover:text-gray-700 text-sm">
-            Trang chủ
-          </Link>
-          <button onClick={logout} className="text-gray-500 hover:text-gray-700 text-sm">
-            Đăng xuất
-          </button>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold mb-6">Từ vựng</h1>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">

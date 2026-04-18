@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { DailyPlan, greetingFor } from '../lib/plan'
 import Icon from '../components/Icon'
@@ -38,7 +36,6 @@ async function getOrCreateProfile(): Promise<UserProfile> {
 }
 
 export default function DashboardPage() {
-  const { logout } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -84,16 +81,6 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">IELTS Coach</h1>
-        <button
-          onClick={logout}
-          className="text-gray-500 hover:text-gray-700 text-sm"
-        >
-          Đăng xuất
-        </button>
-      </div>
-
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
           {error}
@@ -186,26 +173,6 @@ export default function DashboardPage() {
         <LinkTelegramCard onLinked={loadProfile} />
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Khác</h3>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <Link to="/vocab" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
-            <Icon name="BookOpen" size="sm" variant="primary" /> Từ vựng
-          </Link>
-          <Link to="/write/history" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
-            <Icon name="FileText" size="sm" variant="primary" /> Bài viết
-          </Link>
-          <Link to="/listening/history" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
-            <Icon name="Headphones" size="sm" variant="primary" /> Lịch sử nghe
-          </Link>
-          <Link to="/progress" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
-            <Icon name="TrendingUp" size="sm" variant="primary" /> Band Progress
-          </Link>
-          <Link to="/settings" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700">
-            <Icon name="Settings" size="sm" variant="primary" /> Cài đặt
-          </Link>
-        </div>
-      </div>
     </div>
   )
 }

@@ -66,12 +66,12 @@ export default function WritingDetailPage() {
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <Link to="/write/history" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Lịch sử
+        <Link to="/write/history" className="text-sm text-muted-fg hover:text-fg">
+          Lịch sử bài viết
         </Link>
         <button
           onClick={() => navigate(`/write?reviseOf=${data.id}`)}
-          className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg font-medium hover:bg-indigo-700"
+          className="px-4 py-1.5 bg-primary text-primary-fg text-sm rounded-lg font-medium hover:bg-primary-hover"
         >
           Viết lại
         </button>

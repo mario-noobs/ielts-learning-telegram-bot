@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import AppShell from './components/AppShell'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
@@ -14,11 +15,17 @@ import ListeningHistoryPage from './pages/ListeningHistoryPage'
 import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedShell() {
   const { user, loading } = useAuth()
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-dvh text-muted-fg">
+        Đang tải...
+      </div>
+    )
+  }
   if (!user) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return <AppShell />
 }
 
 export default function App() {
@@ -27,18 +34,20 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/vocab" element={<ProtectedRoute><VocabHomePage /></ProtectedRoute>} />
-          <Route path="/vocab/:id" element={<ProtectedRoute><WordDetailPage /></ProtectedRoute>} />
-          <Route path="/review" element={<ProtectedRoute><FlashcardReviewPage /></ProtectedRoute>} />
-          <Route path="/write" element={<ProtectedRoute><WritingPage /></ProtectedRoute>} />
-          <Route path="/write/history" element={<ProtectedRoute><WritingHistoryPage /></ProtectedRoute>} />
-          <Route path="/write/:id" element={<ProtectedRoute><WritingDetailPage /></ProtectedRoute>} />
-          <Route path="/listening" element={<ProtectedRoute><ListeningHomePage /></ProtectedRoute>} />
-          <Route path="/listening/history" element={<ProtectedRoute><ListeningHistoryPage /></ProtectedRoute>} />
-          <Route path="/listening/:id" element={<ProtectedRoute><ListeningExercisePage /></ProtectedRoute>} />
-          <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route element={<ProtectedShell />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/vocab" element={<VocabHomePage />} />
+            <Route path="/vocab/:id" element={<WordDetailPage />} />
+            <Route path="/review" element={<FlashcardReviewPage />} />
+            <Route path="/write" element={<WritingPage />} />
+            <Route path="/write/history" element={<WritingHistoryPage />} />
+            <Route path="/write/:id" element={<WritingDetailPage />} />
+            <Route path="/listening" element={<ListeningHomePage />} />
+            <Route path="/listening/history" element={<ListeningHistoryPage />} />
+            <Route path="/listening/:id" element={<ListeningExercisePage />} />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
         </Routes>
       </AuthProvider>
     </BrowserRouter>
