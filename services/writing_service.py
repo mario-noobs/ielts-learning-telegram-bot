@@ -1,0 +1,159 @@
+import logging
+
+from services import ai_service
+
+logger = logging.getLogger(__name__)
+
+_ALLOWED_ISSUE_TYPES = {"grammar", "weak_vocab", "good"}
+
+
+def count_words(text: str) -> int:
+    return len([w for w in text.split() if w.strip()])
+
+
+def _round_half(value: float) -> float:
+    return round(value * 2) / 2
+
+
+def _clamp_score(value) -> float:
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    score = max(4.0, min(9.0, score))
+    return _round_half(score)
+
+
+def _normalize_annotation(raw: dict) -> dict:
+    issue_type = str(raw.get("issue_type", "grammar")).lower()
+    if issue_type not in _ALLOWED_ISSUE_TYPES:
+        issue_type = "grammar"
+    try:
+        paragraph_index = int(raw.get("paragraph_index", 0))
+    except (TypeError, ValueError):
+        paragraph_index = 0
+    return {
+        "paragraph_index": max(0, paragraph_index),
+        "excerpt": str(raw.get("excerpt", "")).strip(),
+        "issue_type": issue_type,
+        "issue": str(raw.get("issue", "")).strip(),
+        "suggestion": str(raw.get("suggestion", "")).strip(),
+        "explanation_vi": str(raw.get("explanation_vi", "")).strip(),
+    }
+
+
+def normalize_feedback(raw: dict) -> dict:
+    scores_raw = raw.get("scores") or {}
+    scores = {
+        "task_achievement": _clamp_score(scores_raw.get("task_achievement")),
+        "coherence_cohesion": _clamp_score(scores_raw.get("coherence_cohesion")),
+        "lexical_resource": _clamp_score(scores_raw.get("lexical_resource")),
+        "grammatical_range_accuracy": _clamp_score(scores_raw.get("grammatical_range_accuracy")),
+    }
+    avg = sum(scores.values()) / 4.0
+    overall = _round_half(raw.get("overall_band", avg))
+    if overall <= 0:
+        overall = _round_half(avg)
+
+    criterion = raw.get("criterion_feedback") or {}
+    criterion_feedback = {
+        k: str(criterion.get(k, "")).strip()
+        for k in scores
+    }
+
+    annotations = raw.get("paragraph_annotations") or []
+    annotations = [_normalize_annotation(a) for a in annotations if isinstance(a, dict)]
+
+    return {
+        "overall_band": overall,
+        "scores": scores,
+        "criterion_feedback": criterion_feedback,
+        "paragraph_annotations": annotations,
+        "summary_vi": str(raw.get("summary_vi", "")).strip(),
+    }
+
+
+async def score_essay(text: str, task_type: str, prompt: str) -> dict:
+    from prompts.writing_score_prompt import IELTS_SCORING_PROMPT
+
+    filled = IELTS_SCORING_PROMPT.format(
+        task_type=task_type, prompt=prompt or "(no prompt provided)", text=text,
+    )
+    raw = await ai_service.generate_json(filled, priority="foreground")
+    return normalize_feedback(raw)
+
+
+_ALLOWED_CHART_TYPES = {"line", "bar", "pie", "table"}
+
+
+def _normalize_visualization(raw: dict) -> dict:
+    chart_type = str(raw.get("chart_type", "line")).lower()
+    if chart_type not in _ALLOWED_CHART_TYPES:
+        chart_type = "line"
+
+    def _coerce_floats(values):
+        out = []
+        for v in values or []:
+            try:
+                out.append(float(v))
+            except (TypeError, ValueError):
+                out.append(0.0)
+        return out
+
+    series = []
+    for s in raw.get("series") or []:
+        if not isinstance(s, dict):
+            continue
+        series.append({
+            "name": str(s.get("name", "")).strip(),
+            "values": _coerce_floats(s.get("values")),
+        })
+
+    slices = []
+    for s in raw.get("slices") or []:
+        if not isinstance(s, dict):
+            continue
+        try:
+            value = float(s.get("value", 0))
+        except (TypeError, ValueError):
+            value = 0.0
+        slices.append({"label": str(s.get("label", "")).strip(), "value": value})
+
+    table_rows = []
+    for row in raw.get("table_rows") or []:
+        if not isinstance(row, list):
+            continue
+        table_rows.append([str(cell) for cell in row])
+
+    return {
+        "chart_type": chart_type,
+        "title": str(raw.get("title", "")).strip(),
+        "x_axis_label": str(raw.get("x_axis_label", "")).strip(),
+        "y_axis_label": str(raw.get("y_axis_label", "")).strip(),
+        "x_labels": [str(x) for x in (raw.get("x_labels") or [])],
+        "series": series,
+        "slices": slices,
+        "table_headers": [str(h) for h in (raw.get("table_headers") or [])],
+        "table_rows": table_rows,
+        "y_min": raw.get("y_min"),
+        "y_max": raw.get("y_max"),
+    }
+
+
+async def generate_task_prompt(task_type: str, band: float) -> dict:
+    from prompts.writing_score_prompt import (
+        TASK1_PROMPT_GENERATOR,
+        TASK2_PROMPT_GENERATOR,
+    )
+
+    if task_type == "task1":
+        filled = TASK1_PROMPT_GENERATOR.format(band=band)
+        raw = await ai_service.generate_json(filled, priority="foreground")
+        prompt = str(raw.get("prompt", "")).strip()
+        viz = raw.get("visualization")
+        visualization = _normalize_visualization(viz) if isinstance(viz, dict) else None
+        return {"prompt": prompt, "visualization": visualization}
+
+    filled = TASK2_PROMPT_GENERATOR.format(band=band)
+    text = await ai_service.generate(filled, priority="foreground")
+    return {"prompt": text.strip(), "visualization": None}

@@ -12,6 +12,7 @@ from api.routes.quiz import router as quiz_router
 from api.routes.topics import router as topics_router
 from api.routes.vocabulary import router as vocabulary_router
 from api.routes.words import router as words_router
+from api.routes.writing import router as writing_router
 from services.ai_service import RateLimitError
 
 logger = logging.getLogger(__name__)
@@ -60,5 +61,6 @@ def create_app() -> FastAPI:
     app.include_router(topics_router)
     app.include_router(quiz_router)
     app.include_router(audio_router)
+    app.include_router(writing_router)
 
     return app

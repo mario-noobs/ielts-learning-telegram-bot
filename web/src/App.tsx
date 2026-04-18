@@ -5,6 +5,9 @@ import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
 import WordDetailPage from './pages/WordDetailPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
+import WritingPage from './pages/WritingPage'
+import WritingHistoryPage from './pages/WritingHistoryPage'
+import WritingDetailPage from './pages/WritingDetailPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -23,6 +26,9 @@ export default function App() {
           <Route path="/vocab" element={<ProtectedRoute><VocabHomePage /></ProtectedRoute>} />
           <Route path="/vocab/:id" element={<ProtectedRoute><WordDetailPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute><FlashcardReviewPage /></ProtectedRoute>} />
+          <Route path="/write" element={<ProtectedRoute><WritingPage /></ProtectedRoute>} />
+          <Route path="/write/history" element={<ProtectedRoute><WritingHistoryPage /></ProtectedRoute>} />
+          <Route path="/write/:id" element={<ProtectedRoute><WritingDetailPage /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
