@@ -70,14 +70,14 @@ export default function ListeningHomePage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Listening Gym</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-fg">Listening Gym</h1>
+        <p className="text-sm text-muted-fg mt-1">
           Luyện nghe ở Band {band}. Hôm nay đã hoàn thành {submittedToday} bài.
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-sm text-danger">
           {error}
         </div>
       )}
@@ -90,22 +90,22 @@ export default function ListeningHomePage() {
               key={t}
               onClick={() => start(t)}
               disabled={!!starting}
-              className="w-full text-left bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-sm p-4 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left bg-surface-raised rounded-xl border border-border hover:border-primary/40 hover:shadow-sm p-4 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Icon name={label.icon} size="xl" variant="primary" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-900">{label.title}</p>
-                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">
+                  <p className="font-semibold text-fg">{label.title}</p>
+                  <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
                     Band {band}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500">{label.description}</p>
-                <p className="text-xs text-gray-400 mt-0.5 inline-flex items-center gap-1">
+                <p className="text-sm text-muted-fg">{label.description}</p>
+                <p className="text-xs text-muted-fg mt-0.5 inline-flex items-center gap-1">
                   <Icon name="Clock" size="sm" variant="muted" /> {TIME_ESTIMATES[t]}
                 </p>
               </div>
-              <span className="text-sm text-indigo-600">
+              <span className="text-sm text-primary">
                 {starting === t ? 'Đang tạo...' : 'Bắt đầu →'}
               </span>
             </button>
@@ -115,7 +115,7 @@ export default function ListeningHomePage() {
 
       {recent.length > 0 && (
         <div className="pt-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">Gần đây</h2>
+          <h2 className="text-sm font-semibold text-fg mb-2">Gần đây</h2>
           <div className="space-y-2">
             {recent.map((it) => {
               const label = EXERCISE_LABELS[it.exercise_type]
@@ -123,13 +123,13 @@ export default function ListeningHomePage() {
                 <Link
                   key={it.id}
                   to={`/listening/${it.id}`}
-                  className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 hover:border-indigo-300 p-2.5 text-sm"
+                  className="flex items-center gap-3 bg-surface-raised rounded-lg border border-border hover:border-primary/40 p-2.5 text-sm"
                 >
                   <Icon name={label.icon} size="md" variant="primary" />
-                  <span className="flex-1 text-gray-800 truncate">{it.title}</span>
+                  <span className="flex-1 text-fg truncate">{it.title}</span>
                   <span
                     className={`text-xs font-semibold ${
-                      it.submitted ? 'text-indigo-600' : 'text-gray-400'
+                      it.submitted ? 'text-primary' : 'text-muted-fg'
                     }`}
                   >
                     {it.submitted ? `${Math.round((it.score ?? 0) * 100)}%` : '—'}

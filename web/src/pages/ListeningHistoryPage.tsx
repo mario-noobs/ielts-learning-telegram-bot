@@ -40,11 +40,11 @@ export default function ListeningHistoryPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Lịch sử luyện nghe</h1>
+        <h1 className="text-2xl font-bold text-fg">Lịch sử luyện nghe</h1>
       </div>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-sm text-danger">
           {error}
         </div>
       )}
@@ -52,7 +52,7 @@ export default function ListeningHistoryPage() {
       {items === null && !error ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface rounded-xl animate-pulse" />
           ))}
         </div>
       ) : items && items.length === 0 ? (
@@ -70,19 +70,19 @@ export default function ListeningHistoryPage() {
               <Link
                 key={it.id}
                 to={`/listening/${it.id}`}
-                className="block bg-white rounded-xl border border-gray-200 hover:border-indigo-300 p-3 transition-colors"
+                className="block bg-surface-raised rounded-xl border border-border hover:border-primary/40 p-3 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Icon name={label.icon} size="lg" variant="primary" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{it.title}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-medium text-fg truncate">{it.title}</p>
+                    <p className="text-xs text-muted-fg">
                       {label.title} · Band {it.band} · {formatDate(it.created_at)}
                     </p>
                   </div>
                   <span
                     className={`text-sm font-semibold ${
-                      it.submitted ? 'text-indigo-600' : 'text-gray-400'
+                      it.submitted ? 'text-primary' : 'text-muted-fg'
                     }`}
                   >
                     {it.submitted

@@ -47,7 +47,7 @@ export default function WritingDetailPage() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto p-4">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg text-red-700">
+        <div className="bg-danger/10 border-l-4 border-danger p-4 rounded-lg text-danger">
           {error}
         </div>
       </div>
@@ -57,8 +57,8 @@ export default function WritingDetailPage() {
   if (!data) {
     return (
       <div className="max-w-3xl mx-auto p-4 animate-pulse space-y-3">
-        <div className="h-8 bg-gray-200 rounded w-1/3" />
-        <div className="h-32 bg-gray-200 rounded" />
+        <div className="h-8 bg-border rounded w-1/3" />
+        <div className="h-32 bg-border rounded" />
       </div>
     )
   }
@@ -81,13 +81,13 @@ export default function WritingDetailPage() {
         <div
           className={`rounded-xl p-4 ${
             data.delta_band >= 0
-              ? 'bg-green-50 border-l-4 border-green-500'
-              : 'bg-red-50 border-l-4 border-red-500'
+              ? 'bg-success/10 border-l-4 border-success'
+              : 'bg-danger/10 border-l-4 border-danger'
           }`}
         >
-          <p className="font-medium text-gray-900">
+          <p className="font-medium text-fg">
             Thay đổi so với bản gốc:{' '}
-            <span className={data.delta_band >= 0 ? 'text-green-700' : 'text-red-700'}>
+            <span className={data.delta_band >= 0 ? 'text-success' : 'text-danger'}>
               {data.delta_band > 0 ? '+' : ''}
               {data.delta_band.toFixed(1)} band
             </span>

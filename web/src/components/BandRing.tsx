@@ -25,7 +25,7 @@ export default function BandRing({ band, target, size = 200 }: Props) {
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="#e5e7eb"
+          className="stroke-border"
           strokeWidth={stroke}
           fill="none"
         />
@@ -33,19 +33,12 @@ export default function BandRing({ band, target, size = 200 }: Props) {
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="url(#bandGradient)"
+          className="stroke-primary transition-[stroke-dasharray] duration-700"
           strokeWidth={stroke}
           strokeDasharray={`${dash} ${c}`}
           strokeLinecap="round"
           fill="none"
-          className="transition-[stroke-dasharray] duration-700"
         />
-        <defs>
-          <linearGradient id="bandGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#ec4899" />
-          </linearGradient>
-        </defs>
         {/* Target marker */}
         <g
           style={{
@@ -58,19 +51,19 @@ export default function BandRing({ band, target, size = 200 }: Props) {
             y1={stroke / 2 - 2}
             x2={size / 2}
             y2={stroke + 4}
-            stroke="#10b981"
+            className="stroke-success"
             strokeWidth={3}
           />
         </g>
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-[10px] uppercase tracking-wide text-gray-500">
+        <span className="text-[10px] uppercase tracking-wide text-muted-fg">
           Overall Band
         </span>
-        <span className="text-5xl font-bold text-gray-900">
+        <span className="text-5xl font-bold text-fg">
           {band.toFixed(1)}
         </span>
-        <span className="text-xs text-emerald-600 font-medium mt-1 inline-flex items-center gap-1">
+        <span className="text-xs text-success font-medium mt-1 inline-flex items-center gap-1">
           <Icon name="Target" size="sm" variant="success" label="Band mục tiêu" />
           {target.toFixed(1)}
         </span>

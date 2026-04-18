@@ -64,14 +64,14 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
 
   if (error) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+      <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-sm text-danger">
         Không tải được audio: {error}
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+    <div className="bg-surface-raised rounded-xl border border-border p-4 space-y-3">
       {objectUrl && (
         <audio
           ref={audioRef}
@@ -88,26 +88,26 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
         <button
           onClick={togglePlay}
           disabled={!objectUrl}
-          className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 disabled:opacity-50"
+          className="w-12 h-12 rounded-full bg-primary text-primary-fg flex items-center justify-center hover:bg-primary-hover disabled:opacity-50"
           aria-label={playing ? 'Pause' : 'Play'}
         >
           {playing ? (
-            <Icon name="Pause" size="lg" variant="fg" className="text-white" />
+            <Icon name="Pause" size="lg" variant="fg" className="text-primary-fg" />
           ) : (
-            <Icon name="Play" size="lg" variant="fg" className="text-white" />
+            <Icon name="Play" size="lg" variant="fg" className="text-primary-fg" />
           )}
         </button>
 
         <button
           onClick={restart}
           disabled={!objectUrl}
-          className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 inline-flex items-center gap-1"
+          className="text-sm text-muted-fg hover:text-fg disabled:opacity-50 inline-flex items-center gap-1"
           aria-label="Replay from start"
         >
           <Icon name="RotateCcw" size="sm" variant="muted" /> Nghe lại
         </button>
 
-        <span className="text-xs text-gray-500 ml-auto font-mono">
+        <span className="text-xs text-muted-fg ml-auto font-mono">
           {formatDuration(current)} / {formatDuration(duration)}
         </span>
       </div>
@@ -120,26 +120,26 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
         step={0.1}
         onChange={onSeek}
         disabled={!objectUrl}
-        className="w-full accent-indigo-600"
+        className="w-full accent-primary"
       />
 
       <div className="flex items-center justify-between">
-        <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs">
+        <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs">
           {SPEEDS.map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}
               className={`px-2.5 py-1 ${
                 speed === s
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'bg-primary text-primary-fg'
+                  : 'bg-surface-raised text-fg hover:bg-surface'
               }`}
             >
               {s}×
             </button>
           ))}
         </div>
-        <span className="text-xs text-gray-500">Đã nghe {plays} lần</span>
+        <span className="text-xs text-muted-fg">Đã nghe {plays} lần</span>
       </div>
     </div>
   )

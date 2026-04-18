@@ -31,19 +31,19 @@ function BandTrend({ items }: { items: WritingHistoryItem[] }) {
   const path = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c.x + ' ' + c.y).join(' ')
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5">
-      <h2 className="font-semibold text-gray-900 mb-3">Xu hướng band</h2>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
-        <path d={path} fill="none" stroke="#4f46e5" strokeWidth="2" />
+    <div className="bg-surface-raised rounded-xl shadow-sm p-5">
+      <h2 className="font-semibold text-fg mb-3">Xu hướng band</h2>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto text-primary">
+        <path d={path} fill="none" stroke="currentColor" strokeWidth="2" />
         {coords.map((c, i) => (
           <g key={i}>
-            <circle cx={c.x} cy={c.y} r="4" fill="#4f46e5" />
+            <circle cx={c.x} cy={c.y} r="4" fill="currentColor" />
             <text
               x={c.x}
               y={c.y - 8}
               fontSize="10"
               textAnchor="middle"
-              fill="#374151"
+              className="fill-fg"
             >
               {c.band.toFixed(1)}
             </text>
@@ -62,7 +62,7 @@ function formatDate(iso: string | null): string {
 
 function TaskBadge({ type }: { type: string }) {
   return (
-    <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
       {type === 'task1' ? 'Task 1' : 'Task 2'}
     </span>
   )
@@ -92,7 +92,7 @@ export default function WritingHistoryPage() {
       <h1 className="text-2xl font-bold">Lịch sử luyện viết</h1>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-red-700 text-sm">
+        <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-danger text-sm">
           {error}
         </div>
       )}
@@ -100,7 +100,7 @@ export default function WritingHistoryPage() {
       {items === null ? (
         <div className="animate-pulse space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded-lg" />
+            <div key={i} className="h-16 bg-border rounded-lg" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -118,22 +118,22 @@ export default function WritingHistoryPage() {
               <Link
                 key={it.id}
                 to={`/write/${it.id}`}
-                className="bg-white rounded-lg p-4 flex items-center justify-between hover:shadow-sm transition"
+                className="bg-surface-raised rounded-lg p-4 flex items-center justify-between hover:shadow-sm transition"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <TaskBadge type={it.task_type} />
                     {it.original_id && (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
+                      <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded">
                         Bản sửa
                       </span>
                     )}
-                    <span className="text-xs text-gray-500">{formatDate(it.created_at)}</span>
+                    <span className="text-xs text-muted-fg">{formatDate(it.created_at)}</span>
                   </div>
-                  <p className="text-sm text-gray-800 truncate">{it.prompt_preview}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{it.word_count} từ</p>
+                  <p className="text-sm text-fg truncate">{it.prompt_preview}</p>
+                  <p className="text-xs text-muted-fg mt-0.5">{it.word_count} từ</p>
                 </div>
-                <div className="text-2xl font-bold text-indigo-600 ml-4">
+                <div className="text-2xl font-bold text-primary ml-4">
                   {it.overall_band.toFixed(1)}
                 </div>
               </Link>

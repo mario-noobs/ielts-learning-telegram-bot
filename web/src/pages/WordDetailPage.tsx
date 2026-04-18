@@ -52,7 +52,7 @@ function PlayButton({ word }: { word: string }) {
       onClick={onClick}
       disabled={playing}
       aria-label="Phát âm"
-      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-60"
     >
       <Icon name="Play" size="md" variant="primary" />
       <span className="text-sm">Phát âm</span>
@@ -63,18 +63,18 @@ function PlayButton({ word }: { word: string }) {
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/2" />
-      <div className="h-4 bg-gray-200 rounded w-1/3" />
-      <div className="h-20 bg-gray-200 rounded" />
-      <div className="h-32 bg-gray-200 rounded" />
+      <div className="h-8 bg-border rounded w-1/2" />
+      <div className="h-4 bg-border rounded w-1/3" />
+      <div className="h-20 bg-border rounded" />
+      <div className="h-32 bg-border rounded" />
     </div>
   )
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-xl shadow-sm p-5">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{title}</h2>
+    <section className="bg-surface-raised rounded-xl shadow-sm p-5">
+      <h2 className="text-sm font-semibold text-muted-fg uppercase tracking-wide mb-3">{title}</h2>
       {children}
     </section>
   )
@@ -84,7 +84,7 @@ function Chips({ items }: { items: string[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((it) => (
-        <span key={it} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
+        <span key={it} className="px-3 py-1 rounded-full bg-surface text-fg text-sm">
           {it}
         </span>
       ))}
@@ -98,11 +98,11 @@ function CollocationList({ items }: { items: Collocation[] }) {
       {items.map((c, i) => (
         <span
           key={`${c.phrase}-${i}`}
-          className="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-gray-100 text-gray-700 text-sm"
+          className="inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-surface text-fg text-sm"
         >
           {c.phrase}
           {c.label && (
-            <span className="px-2 py-0.5 rounded-full bg-white text-xs text-gray-500">
+            <span className="px-2 py-0.5 rounded-full bg-surface-raised text-xs text-muted-fg">
               {c.label}
             </span>
           )}
@@ -130,13 +130,13 @@ function ExamplesByBand({
             key={tier}
             className={
               isActive
-                ? 'border-2 border-blue-400 bg-blue-50 p-4 rounded-lg'
-                : 'border border-gray-200 p-4 rounded-lg'
+                ? 'border-2 border-primary/60 bg-primary/10 p-4 rounded-lg'
+                : 'border border-border p-4 rounded-lg'
             }
           >
-            <div className="text-xs font-semibold text-gray-500 mb-1">{tier.toUpperCase()}</div>
-            {ex.en && <p className="text-gray-900">{ex.en}</p>}
-            {ex.vi && <p className="text-gray-500 text-sm mt-1">{ex.vi}</p>}
+            <div className="text-xs font-semibold text-muted-fg mb-1">{tier.toUpperCase()}</div>
+            {ex.en && <p className="text-fg">{ex.en}</p>}
+            {ex.vi && <p className="text-muted-fg text-sm mt-1">{ex.vi}</p>}
           </div>
         )
       })}
@@ -171,11 +171,11 @@ export default function WordDetailPage() {
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-5">
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex items-center justify-between">
-          <p className="text-red-700">{error}</p>
+        <div className="bg-danger/10 border-l-4 border-danger p-4 rounded-lg flex items-center justify-between">
+          <p className="text-danger">{error}</p>
           <button
             onClick={() => setTick((t) => t + 1)}
-            className="text-red-700 underline text-sm"
+            className="text-danger underline text-sm"
           >
             Thử lại
           </button>
@@ -186,19 +186,19 @@ export default function WordDetailPage() {
 
       {data && (
         <>
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-surface-raised rounded-xl shadow-sm p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold">{data.word}</h1>
-                {data.ipa && <p className="text-gray-500 mt-1">/{data.ipa}/</p>}
+                <h1 className="text-3xl font-bold text-fg">{data.word}</h1>
+                {data.ipa && <p className="text-muted-fg mt-1">/{data.ipa}/</p>}
                 {data.syllable_stress && (
-                  <p className="text-gray-400 text-sm">{data.syllable_stress}</p>
+                  <p className="text-muted-fg text-sm">{data.syllable_stress}</p>
                 )}
               </div>
               <PlayButton word={data.word} />
             </div>
             {data.part_of_speech && (
-              <span className="inline-block mt-3 px-2 py-0.5 rounded bg-purple-100 text-purple-700 text-xs font-medium">
+              <span className="inline-block mt-3 px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">
                 {data.part_of_speech}
               </span>
             )}
@@ -206,9 +206,9 @@ export default function WordDetailPage() {
 
           {(data.definition_en || data.definition_vi) && (
             <Section title="Nghĩa">
-              {data.definition_en && <p className="text-gray-900">{data.definition_en}</p>}
+              {data.definition_en && <p className="text-fg">{data.definition_en}</p>}
               {data.definition_vi && (
-                <p className="text-gray-600 mt-2">{data.definition_vi}</p>
+                <p className="text-muted-fg mt-2">{data.definition_vi}</p>
               )}
             </Section>
           )}
@@ -232,9 +232,9 @@ export default function WordDetailPage() {
           )}
 
           {data.ielts_tip && (
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg">
-              <p className="text-sm font-semibold text-amber-800 mb-1">IELTS tip</p>
-              <p className="text-amber-900">{data.ielts_tip}</p>
+            <div className="bg-warning/10 border-l-4 border-warning p-4 rounded-lg">
+              <p className="text-sm font-semibold text-warning mb-1">IELTS tip</p>
+              <p className="text-fg">{data.ielts_tip}</p>
             </div>
           )}
         </>

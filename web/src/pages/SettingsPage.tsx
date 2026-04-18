@@ -109,10 +109,10 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-xl mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900">Cài đặt</h1>
+      <h1 className="text-2xl font-bold text-fg">Cài đặt</h1>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
+        <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-sm text-danger">
           {error}
         </div>
       )}
@@ -138,24 +138,24 @@ export default function SettingsPage() {
             type="date"
             value={examDate}
             onChange={(e) => setExamDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:border-primary focus:outline-none bg-surface-raised text-fg"
           />
           {daysLeft !== null && daysLeft >= 0 && (
             <p
               className={`text-xs mt-1 font-medium ${
-                daysLeft <= 30 ? 'text-red-600' : 'text-amber-600'
+                daysLeft <= 30 ? 'text-danger' : 'text-warning'
               }`}
             >
               Còn {daysLeft} ngày nữa. {daysLeft <= 30 && 'Kế hoạch sẽ tăng cường.'}
             </p>
           )}
           {daysLeft !== null && daysLeft < 0 && (
-            <p className="text-xs mt-1 text-gray-500">Ngày đã qua.</p>
+            <p className="text-xs mt-1 text-muted-fg">Ngày đã qua.</p>
           )}
           {examDate && (
             <button
               onClick={() => setExamDate('')}
-              className="text-xs text-gray-500 hover:text-gray-700 mt-1 underline"
+              className="text-xs text-muted-fg hover:text-fg mt-1 underline"
             >
               Xóa ngày thi
             </button>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-gray-800 block mb-1">
+          <label className="text-sm font-semibold text-fg block mb-1">
             Mục tiêu mỗi tuần (phút)
           </label>
           <input
@@ -173,9 +173,9 @@ export default function SettingsPage() {
             step={10}
             value={weeklyGoal}
             onChange={(e) => setWeeklyGoal(Number(e.target.value))}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:border-primary focus:outline-none bg-surface-raised text-fg"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-fg mt-1">
             Trung bình {Math.round(weeklyGoal / 7)} phút mỗi ngày.
           </p>
         </div>
@@ -183,21 +183,21 @@ export default function SettingsPage() {
         <button
           onClick={save}
           disabled={saving}
-          className="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+          className="w-full py-2 bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
         >
           {saving ? 'Đang lưu...' : 'Lưu'}
         </button>
       </div>
 
       {profile && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-sm text-gray-600 space-y-1">
-          <p><span className="text-gray-500">Tên:</span> {profile.name}</p>
-          {profile.email && <p><span className="text-gray-500">Email:</span> {profile.email}</p>}
+        <div className="bg-surface-raised rounded-xl border border-border p-4 text-sm text-muted-fg space-y-1">
+          <p><span className="text-muted-fg">Tên:</span> {profile.name}</p>
+          {profile.email && <p><span className="text-muted-fg">Email:</span> {profile.email}</p>}
           <p>
-            <span className="text-gray-500">Band mục tiêu:</span> {profile.target_band}
+            <span className="text-muted-fg">Band mục tiêu:</span> {profile.target_band}
           </p>
           <p className="inline-flex items-center gap-1">
-            <span className="text-gray-500">Streak:</span>
+            <span className="text-muted-fg">Streak:</span>
             <Icon name="Flame" size="sm" variant="accent" />
             {profile.streak}
           </p>

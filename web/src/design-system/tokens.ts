@@ -176,6 +176,17 @@ const color = {
     darkHex: '#14B8A6',
     description: 'Keyboard focus indicator.',
   },
+  scrim: {
+    name: 'scrim',
+    var: '--color-scrim',
+    // Stored with built-in alpha (45% light / 60% dark) so `bg-scrim` works
+    // without a modifier. The R G B / A notation matches tokens.css.
+    light: '15 23 42 / 0.45',
+    dark: '0 0 0 / 0.6',
+    lightHex: '#0F172A73',
+    darkHex: '#00000099',
+    description: 'Modal / dialog backdrop.',
+  },
 } as const satisfies Record<string, ColorToken>
 
 const motion = {

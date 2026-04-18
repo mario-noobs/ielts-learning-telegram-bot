@@ -33,6 +33,9 @@
   /* Focus */
   --color-ring: 13 148 136;           /* teal-600 */
 
+  /* Scrim — modal / dialog backdrop overlay. Non-interactive. */
+  --color-scrim: 15 23 42 / 0.45;     /* slate-900 @ 45% */
+
   /* Motion */
   --dur-fast: 120ms;
   --dur-base: 200ms;
@@ -61,6 +64,8 @@
   --color-muted-fg: 148 163 184;      /* slate-400 */
 
   --color-ring: 20 184 166;           /* teal-500 */
+
+  --color-scrim: 0 0 0 / 0.6;         /* black @ 60% on dark */
 }
 
 /* Reduced motion: clamp all durations to 0 so anything using --dur-* snaps */

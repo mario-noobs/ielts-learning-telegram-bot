@@ -27,23 +27,23 @@ export default function SkillBandCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border p-4 ${
-        placeholder ? 'border-dashed border-gray-300' : 'border-gray-200'
+      className={`bg-surface-raised rounded-xl border p-4 ${
+        placeholder ? 'border-dashed border-border' : 'border-border'
       }`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon name={iconName} size="lg" variant="primary" />
-          <p className="font-semibold text-gray-900">{label}</p>
+          <p className="font-semibold text-fg">{label}</p>
         </div>
         {placeholder && (
-          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+          <span className="text-[10px] font-medium text-muted-fg bg-surface rounded-full px-2 py-0.5">
             Sắp ra mắt
           </span>
         )}
       </div>
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-3xl font-bold text-gray-900">
+        <span className="text-3xl font-bold text-fg">
           {placeholder ? '—' : band.toFixed(1)}
         </span>
         {!placeholder && (
@@ -54,18 +54,18 @@ export default function SkillBandCard({
             </span>
           </span>
         )}
-        <span className="text-xs text-gray-500 ml-auto">
+        <span className="text-xs text-muted-fg ml-auto">
           mục tiêu {target.toFixed(1)}
         </span>
       </div>
-      <div className="mt-2 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="mt-2 w-full h-1.5 bg-surface rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 transition-all duration-500"
+          className="h-full bg-primary transition-all duration-500"
           style={{ width: placeholder ? '0%' : `${pct * 100}%` }}
         />
       </div>
       {subline && (
-        <p className="text-xs text-gray-500 mt-2">{subline}</p>
+        <p className="text-xs text-muted-fg mt-2">{subline}</p>
       )}
     </div>
   )

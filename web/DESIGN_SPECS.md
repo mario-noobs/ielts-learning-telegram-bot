@@ -62,6 +62,7 @@ Source of truth: [`src/design-system/tokens.css`](./src/design-system/tokens.css
 | `--surface-raised` | `#FFFFFF` | `#1F2937` slate-800 | Elevated cards, modals |
 | `--border` | `#E2E8F0` slate-200 | `#1F2937` slate-800 | Dividers, card borders |
 | `--ring` | `#0D9488` (3px, offset 2px) | `#14B8A6` | Focus indicator (keyboard) |
+| `--scrim` | `#0F172A` @ 45% | `#000000` @ 60% | Modal / dialog backdrop (added in US-M6.5) |
 
 **Contrast verified (WCAG AA):** fg on bg = 16.5:1 · muted-fg on bg = 7.3:1 · primary on bg = 4.8:1 · primary-fg on primary = 6.1:1 · success/danger on bg ≥ 4.5:1.
 
