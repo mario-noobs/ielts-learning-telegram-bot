@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { EXERCISE_LABELS, ListeningHistoryItem } from '../lib/listening'
 
@@ -69,7 +70,7 @@ export default function ListeningHistoryPage() {
                 className="block bg-white rounded-xl border border-gray-200 hover:border-indigo-300 p-3 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{label.emoji}</span>
+                  <Icon name={label.icon} size="lg" variant="primary" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{it.title}</p>
                     <p className="text-xs text-gray-500">

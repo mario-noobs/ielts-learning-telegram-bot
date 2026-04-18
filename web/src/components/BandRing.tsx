@@ -1,3 +1,5 @@
+import Icon from './Icon'
+
 interface Props {
   band: number
   target: number
@@ -68,8 +70,9 @@ export default function BandRing({ band, target, size = 200 }: Props) {
         <span className="text-5xl font-bold text-gray-900">
           {band.toFixed(1)}
         </span>
-        <span className="text-xs text-emerald-600 font-medium mt-1">
-          🎯 {target.toFixed(1)}
+        <span className="text-xs text-emerald-600 font-medium mt-1 inline-flex items-center gap-1">
+          <Icon name="Target" size="sm" variant="success" label="Band mục tiêu" />
+          {target.toFixed(1)}
         </span>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Icon, { IconName } from './Icon'
 import { apiFetch } from '../lib/api'
 
 interface CoachingTip {
@@ -17,11 +18,11 @@ interface RecommendationsResponse {
   generated_at: string | null
 }
 
-const SKILL_META: Record<CoachingTip['skill'], { emoji: string; color: string }> = {
-  vocabulary: { emoji: '📚', color: 'bg-amber-50 border-amber-200' },
-  writing: { emoji: '✍️', color: 'bg-emerald-50 border-emerald-200' },
-  listening: { emoji: '🎧', color: 'bg-fuchsia-50 border-fuchsia-200' },
-  overall: { emoji: '🎯', color: 'bg-indigo-50 border-indigo-200' },
+const SKILL_META: Record<CoachingTip['skill'], { icon: IconName; color: string }> = {
+  vocabulary: { icon: 'BookOpen', color: 'bg-amber-50 border-amber-200' },
+  writing: { icon: 'PenLine', color: 'bg-emerald-50 border-emerald-200' },
+  listening: { icon: 'Headphones', color: 'bg-fuchsia-50 border-fuchsia-200' },
+  overall: { icon: 'Target', color: 'bg-indigo-50 border-indigo-200' },
 }
 
 export default function CoachingPanel() {
@@ -74,7 +75,7 @@ export default function CoachingPanel() {
                 className={`rounded-xl border p-3 ${meta.color}`}
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">{meta.emoji}</span>
+                  <Icon name={meta.icon} size="lg" variant="primary" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm">
                       {tip.tip_vi}
