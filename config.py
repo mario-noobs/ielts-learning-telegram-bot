@@ -61,6 +61,10 @@ API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 
+# Feature flags — see services/feature_flag_service.py and scripts/flags.py.
+# Tests may override this to 0 to force cache misses.
+FEATURE_FLAG_CACHE_TTL_SECONDS = int(os.getenv("FEATURE_FLAG_CACHE_TTL_SECONDS", "60"))
+
 
 def local_date_str() -> str:
     """Return today's date in the configured timezone as YYYY-MM-DD."""
