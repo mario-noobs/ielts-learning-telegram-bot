@@ -124,10 +124,17 @@ function HighlightedParagraph({
       {segments.map((s, i) => {
         if (s.kind === 'plain') return <span key={i}>{s.text}</span>
         const colors = issueColorClass(s.ann!.issue_type)
+        const issueLabel =
+          s.ann!.issue_type === 'good'
+            ? 'Điểm tốt'
+            : s.ann!.issue_type === 'grammar'
+              ? 'Ngữ pháp'
+              : 'Từ vựng'
         return (
           <button
             key={i}
             onClick={() => onSelect(s.ann!)}
+            aria-label={`${issueLabel}: ${s.text}`}
             className={`${colors.bg} ${colors.text} px-1 rounded cursor-pointer hover:brightness-95`}
           >
             {s.text}
@@ -162,10 +169,12 @@ function AnnotationDetail({
           </span>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-full text-muted-fg hover:bg-surface hover:text-fg"
             aria-label="Đóng"
           >
-            ×
+            <svg viewBox="0 0 20 20" className="w-5 h-5" fill="currentColor" aria-hidden>
+              <path d="M4.3 4.3l11.4 11.4m0-11.4L4.3 15.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
         <p className="text-sm font-mono bg-gray-50 border border-gray-200 rounded p-2 mb-3">

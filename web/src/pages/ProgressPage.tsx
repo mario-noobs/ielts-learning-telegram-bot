@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api'
 import BandRing from '../components/BandRing'
 import BandTrendChart from '../components/BandTrendChart'
 import CoachingPanel from '../components/CoachingPanel'
+import ErrorBanner from '../components/ErrorBanner'
 import SkillBandCard from '../components/SkillBandCard'
 import {
   deltaFrom,
@@ -24,9 +25,7 @@ export default function ProgressPage() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700">
-          {error}
-        </div>
+        <ErrorBanner error={error} onRetry={() => window.location.reload()} />
       </div>
     )
   }
