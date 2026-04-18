@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import {
   AnnotatedEssay,
   ScorePanel,
   VietnameseSummary,
 } from '../components/WritingFeedback'
+import WritingDiff from '../components/WritingDiff'
 import {
   countWords,
   formatDuration,
@@ -86,6 +87,9 @@ function PromptCard({
 }
 
 export default function WritingPage() {
+  const [searchParams] = useSearchParams()
+  const reviseOf = searchParams.get('reviseOf')
+
   const [taskType, setTaskType] = useState<TaskType>('task2')
   const [prompt, setPrompt] = useState('')
   const [typewriter, setTypewriter] = useState('')
@@ -98,6 +102,7 @@ export default function WritingPage() {
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [now, setNow] = useState<number>(Date.now())
   const [submission, setSubmission] = useState<WritingSubmission | null>(null)
+  const [originalForDiff, setOriginalForDiff] = useState<WritingSubmission | null>(null)
   const [targetBand, setTargetBand] = useState<number>(7.0)
 
   const typeIntervalRef = useRef<number | null>(null)
@@ -107,6 +112,19 @@ export default function WritingPage() {
       .then((p) => setTargetBand(p.target_band))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!reviseOf) return
+    apiFetch<WritingSubmission>(`/api/v1/writing/${reviseOf}`)
+      .then((res) => {
+        setOriginalForDiff(res)
+        setTaskType(res.task_type)
+        setPrompt(res.prompt)
+        setTypewriter(res.prompt)
+        setText(res.text)
+      })
+      .catch((e) => setError((e as Error).message))
+  }, [reviseOf])
 
   useEffect(() => {
     if (!startedAt || submission) return
@@ -153,10 +171,13 @@ export default function WritingPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const res = await apiFetch<WritingSubmission>('/api/v1/writing/submit', {
-        method: 'POST',
-        body: JSON.stringify({ text, task_type: taskType, prompt }),
-      })
+      const path = reviseOf
+        ? `/api/v1/writing/${reviseOf}/revise`
+        : '/api/v1/writing/submit'
+      const body = reviseOf
+        ? JSON.stringify({ text })
+        : JSON.stringify({ text, task_type: taskType, prompt })
+      const res = await apiFetch<WritingSubmission>(path, { method: 'POST', body })
       setSubmission(res)
     } catch (e) {
       setError((e as Error).message)
@@ -166,27 +187,42 @@ export default function WritingPage() {
   }
 
   if (submission) {
+    const delta = submission.delta_band
     return (
       <div className="max-w-3xl mx-auto p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-            ← Trang chủ
+          <Link to="/write/history" className="text-sm text-gray-500 hover:text-gray-700">
+            ← Lịch sử
           </Link>
-          <button
-            onClick={() => {
-              setSubmission(null)
-              setText('')
-              setPrompt('')
-              setTypewriter('')
-              setStartedAt(null)
-            }}
+          <Link
+            to="/write"
             className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
           >
             Viết bài mới
-          </button>
+          </Link>
         </div>
+        {delta !== null && delta !== undefined && (
+          <div
+            className={`rounded-xl p-4 ${
+              delta >= 0
+                ? 'bg-green-50 border-l-4 border-green-500'
+                : 'bg-red-50 border-l-4 border-red-500'
+            }`}
+          >
+            <p className="font-medium text-gray-900">
+              Thay đổi so với bản gốc:{' '}
+              <span className={delta >= 0 ? 'text-green-700' : 'text-red-700'}>
+                {delta > 0 ? '+' : ''}
+                {delta.toFixed(1)} band
+              </span>
+            </p>
+          </div>
+        )}
         <ScorePanel submission={submission} targetBand={targetBand} />
         <VietnameseSummary summary={submission.summary_vi} />
+        {originalForDiff && (
+          <WritingDiff original={originalForDiff.text} revised={submission.text} />
+        )}
         <AnnotatedEssay submission={submission} />
       </div>
     )

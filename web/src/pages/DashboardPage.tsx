@@ -84,6 +84,12 @@ export default function DashboardPage() {
               >
                 Luyện viết →
               </Link>
+              <Link
+                to="/write/history"
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Lịch sử bài viết →
+              </Link>
             </div>
           </div>
 
