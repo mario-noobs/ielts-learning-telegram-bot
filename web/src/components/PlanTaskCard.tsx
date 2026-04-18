@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import Icon from './Icon'
 import { PlanActivity, TYPE_META } from '../lib/plan'
 
 interface Props {
@@ -45,7 +46,7 @@ export default function PlanTaskCard({ activity, onToggle, busy }: Props) {
         className="flex-1 text-left min-w-0"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xl">{meta.emoji}</span>
+          <Icon name={meta.icon} size="md" variant={completed ? 'muted' : 'primary'} />
           <p
             className={`font-semibold truncate ${
               completed ? 'text-gray-500 line-through' : 'text-gray-900'
@@ -57,12 +58,12 @@ export default function PlanTaskCard({ activity, onToggle, busy }: Props) {
         <p className="text-xs text-gray-500 mt-0.5 truncate">
           {activity.description}
         </p>
-        <p className="text-[11px] text-gray-400 mt-0.5">
-          ⏱ {activity.estimated_minutes} phút
+        <p className="text-[11px] text-gray-400 mt-0.5 inline-flex items-center gap-1">
+          <Icon name="Clock" size="sm" variant="muted" /> {activity.estimated_minutes} phút
         </p>
       </button>
 
-      <span className="text-indigo-600 text-xl shrink-0">→</span>
+      <Icon name="ChevronRight" size="md" variant="primary" className="shrink-0" />
     </div>
   )
 }

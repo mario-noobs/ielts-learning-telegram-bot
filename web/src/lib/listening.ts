@@ -106,23 +106,25 @@ export function formatDuration(seconds: number): string {
   return `${m}:${s}`
 }
 
+import type { IconName } from '../components/Icon'
+
 export const EXERCISE_LABELS: Record<
   ListeningType,
-  { title: string; emoji: string; description: string }
+  { title: string; icon: IconName; description: string }
 > = {
   dictation: {
     title: 'Dictation',
-    emoji: '✍️',
+    icon: 'PenLine',
     description: 'Nghe và gõ lại chính xác từng từ',
   },
   gap_fill: {
     title: 'Gap Fill',
-    emoji: '🧩',
+    icon: 'SquarePen',
     description: 'Điền từ còn thiếu vào chỗ trống',
   },
   comprehension: {
     title: 'Comprehension',
-    emoji: '🎧',
+    icon: 'Headphones',
     description: 'Nghe và trả lời trắc nghiệm',
   },
 }

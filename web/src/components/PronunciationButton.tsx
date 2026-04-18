@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from './Icon'
 import { playPronunciation } from '../lib/audio'
 
 export default function PronunciationButton({
@@ -27,7 +28,7 @@ export default function PronunciationButton({
 
   return (
     <button onClick={onClick} disabled={playing} aria-label="Phát âm" className={`${base} ${size}`}>
-      <span aria-hidden>►</span>
+      <Icon name="Play" size={compact ? 'sm' : 'md'} variant="primary" />
       {!compact && <span>Phát âm</span>}
     </button>
   )

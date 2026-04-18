@@ -1,5 +1,7 @@
+import Icon, { IconName } from './Icon'
+
 interface Props {
-  emoji: string
+  iconName: IconName
   label: string
   band: number
   target: number
@@ -9,7 +11,7 @@ interface Props {
 }
 
 export default function SkillBandCard({
-  emoji,
+  iconName,
   label,
   band,
   target,
@@ -18,14 +20,10 @@ export default function SkillBandCard({
   placeholder,
 }: Props) {
   const pct = Math.max(0, Math.min(1, (band - 4.0) / 5.0))
-  const trendIcon =
-    delta > 0 ? '▲' : delta < 0 ? '▼' : '•'
-  const trendColor =
-    delta > 0
-      ? 'text-emerald-600'
-      : delta < 0
-        ? 'text-red-600'
-        : 'text-gray-400'
+  const trendIconName: IconName =
+    delta > 0 ? 'TrendingUp' : delta < 0 ? 'TrendingDown' : 'Minus'
+  const trendVariant: 'success' | 'danger' | 'muted' =
+    delta > 0 ? 'success' : delta < 0 ? 'danger' : 'muted'
 
   return (
     <div
@@ -35,7 +33,7 @@ export default function SkillBandCard({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{emoji}</span>
+          <Icon name={iconName} size="lg" variant="primary" />
           <p className="font-semibold text-gray-900">{label}</p>
         </div>
         {placeholder && (
@@ -49,8 +47,11 @@ export default function SkillBandCard({
           {placeholder ? '—' : band.toFixed(1)}
         </span>
         {!placeholder && (
-          <span className={`text-xs font-medium ${trendColor}`}>
-            {trendIcon} {Math.abs(delta).toFixed(1)}
+          <span className="text-xs font-medium inline-flex items-center gap-1">
+            <Icon name={trendIconName} size="sm" variant={trendVariant} />
+            <span className={trendVariant === 'success' ? 'text-success' : trendVariant === 'danger' ? 'text-danger' : 'text-muted-fg'}>
+              {Math.abs(delta).toFixed(1)}
+            </span>
           </span>
         )}
         <span className="text-xs text-gray-500 ml-auto">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import AudioPlayer from '../components/AudioPlayer'
+import Icon from '../components/Icon'
 import DictationExercise from '../components/DictationExercise'
 import GapFillExercise from '../components/GapFillExercise'
 import ComprehensionExercise from '../components/ComprehensionExercise'
@@ -70,8 +71,9 @@ export default function ListeningExercisePage() {
       </div>
 
       <div>
-        <p className="text-sm text-gray-500">
-          {label.emoji} {label.title} · Band {exercise.band}
+        <p className="text-sm text-gray-500 inline-flex items-center gap-1.5">
+          <Icon name={label.icon} size="sm" variant="primary" />
+          {label.title} · Band {exercise.band}
         </p>
         <h1 className="text-2xl font-bold text-gray-900">{exercise.title}</h1>
         <p className="text-sm text-gray-500 mt-1">
