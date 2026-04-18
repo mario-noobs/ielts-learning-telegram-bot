@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Icon from './Icon'
 import { fetchListeningAudioUrl, formatDuration } from '../lib/listening'
 
 const SPEEDS = [0.75, 1.0, 1.25, 1.5] as const
@@ -91,24 +92,19 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
           aria-label={playing ? 'Pause' : 'Play'}
         >
           {playing ? (
-            <svg viewBox="0 0 20 20" className="w-6 h-6" fill="currentColor">
-              <rect x="5" y="4" width="3" height="12" rx="1" />
-              <rect x="12" y="4" width="3" height="12" rx="1" />
-            </svg>
+            <Icon name="Pause" size="lg" variant="fg" className="text-white" />
           ) : (
-            <svg viewBox="0 0 20 20" className="w-6 h-6" fill="currentColor">
-              <path d="M5 4l12 6-12 6V4z" />
-            </svg>
+            <Icon name="Play" size="lg" variant="fg" className="text-white" />
           )}
         </button>
 
         <button
           onClick={restart}
           disabled={!objectUrl}
-          className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+          className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 inline-flex items-center gap-1"
           aria-label="Replay from start"
         >
-          ⟲ Nghe lại
+          <Icon name="RotateCcw" size="sm" variant="muted" /> Nghe lại
         </button>
 
         <span className="text-xs text-gray-500 ml-auto font-mono">

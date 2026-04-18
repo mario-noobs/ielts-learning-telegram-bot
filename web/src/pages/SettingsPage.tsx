@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 
 interface UserProfile {
@@ -148,8 +149,10 @@ export default function SettingsPage() {
           <p>
             <span className="text-gray-500">Band mục tiêu:</span> {profile.target_band}
           </p>
-          <p>
-            <span className="text-gray-500">Streak:</span> 🔥 {profile.streak}
+          <p className="inline-flex items-center gap-1">
+            <span className="text-gray-500">Streak:</span>
+            <Icon name="Flame" size="sm" variant="accent" />
+            {profile.streak}
           </p>
         </div>
       )}

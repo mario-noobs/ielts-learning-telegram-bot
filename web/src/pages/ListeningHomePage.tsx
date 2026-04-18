@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import {
   EXERCISE_LABELS,
@@ -94,7 +95,7 @@ export default function ListeningHomePage() {
               disabled={!!starting}
               className="w-full text-left bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-sm p-4 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="text-3xl">{label.emoji}</span>
+              <Icon name={label.icon} size="xl" variant="primary" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-gray-900">{label.title}</p>
@@ -103,7 +104,9 @@ export default function ListeningHomePage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500">{label.description}</p>
-                <p className="text-xs text-gray-400 mt-0.5">⏱ {TIME_ESTIMATES[t]}</p>
+                <p className="text-xs text-gray-400 mt-0.5 inline-flex items-center gap-1">
+                  <Icon name="Clock" size="sm" variant="muted" /> {TIME_ESTIMATES[t]}
+                </p>
               </div>
               <span className="text-sm text-indigo-600">
                 {starting === t ? 'Đang tạo...' : 'Bắt đầu →'}
@@ -125,7 +128,7 @@ export default function ListeningHomePage() {
                   to={`/listening/${it.id}`}
                   className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 hover:border-indigo-300 p-2.5 text-sm"
                 >
-                  <span className="text-xl">{label.emoji}</span>
+                  <Icon name={label.icon} size="md" variant="primary" />
                   <span className="flex-1 text-gray-800 truncate">{it.title}</span>
                   <span
                     className={`text-xs font-semibold ${

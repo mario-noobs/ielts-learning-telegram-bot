@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { playPronunciation } from '../lib/audio'
 
@@ -53,7 +54,7 @@ function PlayButton({ word }: { word: string }) {
       aria-label="Phát âm"
       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60"
     >
-      <span aria-hidden>►</span>
+      <Icon name="Play" size="md" variant="primary" />
       <span className="text-sm">Phát âm</span>
     </button>
   )

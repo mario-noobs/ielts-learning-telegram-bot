@@ -100,7 +100,7 @@ export default function ProgressPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <SkillBandCard
-          emoji="📚"
+          iconName="BookOpen"
           label="Vocabulary"
           band={snapshot.skills.vocabulary.band}
           target={target}
@@ -108,7 +108,7 @@ export default function ProgressPage() {
           subline={`${snapshot.skills.vocabulary.total_words} từ · ${snapshot.skills.vocabulary.mastered_count} đã thuộc`}
         />
         <SkillBandCard
-          emoji="✍️"
+          iconName="PenLine"
           label="Writing"
           band={snapshot.skills.writing.band}
           target={target}
@@ -120,7 +120,7 @@ export default function ProgressPage() {
           }
         />
         <SkillBandCard
-          emoji="🎧"
+          iconName="Headphones"
           label="Listening"
           band={snapshot.skills.listening.band}
           target={target}
@@ -132,7 +132,7 @@ export default function ProgressPage() {
           }
         />
         <SkillBandCard
-          emoji="🗣️"
+          iconName="Mic"
           label="Speaking"
           band={0}
           target={target}

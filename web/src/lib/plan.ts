@@ -27,15 +27,17 @@ export interface DailyPlan {
   generated_at: string | null
 }
 
+import type { IconName } from '../components/Icon'
+
 export const TYPE_META: Record<
   ActivityType,
-  { emoji: string; color: string }
+  { icon: IconName; color: string }
 > = {
-  srs_review: { emoji: '🔁', color: 'from-amber-400 to-orange-500' },
-  daily_words: { emoji: '📖', color: 'from-sky-400 to-indigo-500' },
-  listening: { emoji: '🎧', color: 'from-fuchsia-400 to-purple-500' },
-  writing: { emoji: '✍️', color: 'from-emerald-400 to-teal-500' },
-  quiz: { emoji: '⚡', color: 'from-rose-400 to-pink-500' },
+  srs_review: { icon: 'RotateCcw', color: 'from-amber-400 to-orange-500' },
+  daily_words: { icon: 'BookOpen', color: 'from-sky-400 to-indigo-500' },
+  listening: { icon: 'Headphones', color: 'from-fuchsia-400 to-purple-500' },
+  writing: { icon: 'PenLine', color: 'from-emerald-400 to-teal-500' },
+  quiz: { icon: 'Zap', color: 'from-rose-400 to-pink-500' },
 }
 
 export function greetingFor(date: Date): string {
