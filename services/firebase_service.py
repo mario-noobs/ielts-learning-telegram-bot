@@ -372,6 +372,55 @@ def list_listening_exercises(telegram_id, limit: int = 50) -> list[dict]:
     return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
+# ─── Progress Snapshots (US-5.1) ──────────────────────────────────
+
+def save_progress_snapshot(telegram_id, date_str: str, snapshot: dict) -> None:
+    """Upsert a progress snapshot for the given local date."""
+    now = datetime.now(timezone.utc)
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("progress_snapshots").document(date_str)
+     .set({**snapshot, "date": date_str, "generated_at": now}))
+
+
+def get_progress_snapshot(telegram_id, date_str: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("progress_snapshots").document(date_str).get())
+    if not doc.exists:
+        return None
+    return doc.to_dict()
+
+
+def list_progress_snapshots(telegram_id, date_strs: list[str]) -> list[dict]:
+    """Return snapshots whose document id is in `date_strs` (skips missing)."""
+    out: list[dict] = []
+    col = (_get_db().collection("users").document(str(telegram_id))
+           .collection("progress_snapshots"))
+    for d in date_strs:
+        doc = col.document(d).get()
+        if doc.exists:
+            out.append(doc.to_dict())
+    return out
+
+
+# ─── Progress Recommendations (US-5.3) ───────────────────────────
+
+def get_progress_recommendations(telegram_id, week_key: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("progress_recommendations").document(week_key).get())
+    if not doc.exists:
+        return None
+    return doc.to_dict()
+
+
+def save_progress_recommendations(
+    telegram_id, week_key: str, data: dict,
+) -> None:
+    now = datetime.now(timezone.utc)
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("progress_recommendations").document(week_key)
+     .set({**data, "week_key": week_key, "generated_at": now}))
+
+
 # ─── Group Operations ─────────────────────────────────────────────
 
 def get_group_settings(group_id: int) -> Optional[dict]:
