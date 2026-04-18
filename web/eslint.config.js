@@ -4,6 +4,45 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
+/**
+ * Matches 3, 4, 6, or 8-digit hex colour literals (e.g. "#0D9488", "#fff",
+ * "#0000ffcc"). Anchored to string start/end so "abc#def" isn't flagged while
+ * "#0D9488" (a colour) is. Used by the no-restricted-syntax rule below to block
+ * raw hex colours in UI source — consumers must go through design-system tokens
+ * (see src/design-system/README.md). Gate is per M6.1; reskin relies on this.
+ */
+const HEX_COLOR_LITERAL = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/
+
+const HEX_COLOR_RULES = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector: `Literal[value=/${HEX_COLOR_LITERAL.source}/]`,
+      message:
+        'Raw hex colour literals are not allowed. Use a design-system token via Tailwind (e.g. `text-primary`, `bg-surface`) or `tokens` from `@/design-system`. See src/design-system/README.md.',
+    },
+    {
+      selector: `TemplateElement[value.raw=/${HEX_COLOR_LITERAL.source}/]`,
+      message:
+        'Raw hex colour literals are not allowed in template strings. Use a design-system token. See src/design-system/README.md.',
+    },
+  ],
+}
+
+/**
+ * M6.1 grandfather list. These five SVG-chart components shipped in M1-M4 with
+ * hand-picked hex palettes before the design-system package existed. Migrating
+ * them to tokens is tracked as a follow-up to #120 (file in PR description).
+ * Do NOT add new entries here — new code is held to the `error` rule above.
+ */
+const HEX_COLOR_LEGACY_FILES = [
+  'src/components/BandRing.tsx',
+  'src/components/BandTrendChart.tsx',
+  'src/components/ProgressRing.tsx',
+  'src/components/TaskVisualization.tsx',
+  'src/pages/WritingHistoryPage.tsx',
+]
+
 export default tseslint.config(
   { ignores: ['dist'] },
   {
@@ -24,5 +63,14 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
     },
+  },
+  {
+    // M6.1 design-system guard: flag raw hex colour literals in UI code so
+    // reskin (#124) cannot reintroduce them. Scoped to pages/components —
+    // tokens.ts legitimately lists hex values and is explicitly excluded by
+    // the `files` pattern below.
+    files: ['src/pages/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
+    ignores: HEX_COLOR_LEGACY_FILES,
+    rules: HEX_COLOR_RULES,
   },
 )

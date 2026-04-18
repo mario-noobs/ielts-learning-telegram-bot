@@ -2,6 +2,8 @@
 
 > Consolidated visual + interaction spec for all 13 pages. Aligns with milestone [UX-1: UI/UX Overhaul](https://github.com/mario-noobs/ielts-learning-telegram-bot/milestone/7). Review this doc, leave comments in the corresponding GitHub issue. Master design system: [`design-system/ielts-coach/MASTER.md`](./design-system/ielts-coach/MASTER.md).
 
+> **M6 update:** the runtime token surface lives in the in-repo package [`src/design-system/`](./src/design-system/README.md) (US-M6.1, issue #120). This document remains the canonical visual / interaction spec; the package is the canonical code implementation. When the two disagree, update both in the same PR.
+
 ---
 
 ## Table of Contents
@@ -41,6 +43,8 @@
 **Platform:** Mobile-first PWA; desktop is enhanced, not primary.
 
 ### Design tokens (locked)
+
+Source of truth: [`src/design-system/tokens.css`](./src/design-system/tokens.css). The table below is a human-readable mirror — if it drifts, the CSS file wins.
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
