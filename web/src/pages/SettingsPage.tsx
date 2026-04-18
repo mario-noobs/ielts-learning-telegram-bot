@@ -1,6 +1,45 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
+import { ThemePref, useTheme } from '../lib/theme'
+
+const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
+  { value: 'system', label: 'Hệ thống' },
+  { value: 'light', label: 'Sáng' },
+  { value: 'dark', label: 'Tối' },
+]
+
+function ThemeToggle() {
+  const { pref, setPref } = useTheme()
+  return (
+    <div>
+      <label id="theme-label" className="text-sm font-semibold text-fg block mb-1">
+        Giao diện
+      </label>
+      <div
+        role="radiogroup"
+        aria-labelledby="theme-label"
+        className="inline-flex rounded-lg border border-border bg-surface-raised overflow-hidden"
+      >
+        {THEME_OPTIONS.map((o) => (
+          <button
+            key={o.value}
+            role="radio"
+            aria-checked={pref === o.value}
+            onClick={() => setPref(o.value)}
+            className={`px-4 py-2 min-h-[44px] text-sm font-medium transition-colors duration-base ${
+              pref === o.value
+                ? 'bg-primary text-primary-fg'
+                : 'text-fg hover:bg-surface'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface UserProfile {
   id: string
@@ -88,9 +127,11 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+      <div className="bg-surface-raised rounded-xl border border-border p-4 space-y-4">
+        <ThemeToggle />
+
         <div>
-          <label className="text-sm font-semibold text-gray-800 block mb-1">
+          <label className="text-sm font-semibold text-fg block mb-1">
             Ngày thi IELTS
           </label>
           <input
