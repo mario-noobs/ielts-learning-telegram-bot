@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { clearDraft, formatTimeVi, loadDraft, useAutosave } from '../lib/autosave'
 import { useReducedMotion } from '../lib/motion'
 import {
   AnnotatedEssay,
   ScorePanel,
   VietnameseSummary,
 } from '../components/WritingFeedback'
+import SubmissionSkeleton from '../components/SubmissionSkeleton'
 import WritingDiff from '../components/WritingDiff'
 import TaskVisualization from '../components/TaskVisualization'
 import {
@@ -23,6 +25,11 @@ interface UserProfile {
 }
 
 const MIN_WORDS = 20
+const IELTS_WORD_TARGET: Record<TaskType, number> = { task1: 150, task2: 250 }
+
+function draftKey(taskType: TaskType, reviseOf: string | null): string {
+  return `writing_draft_${taskType}_${reviseOf ?? 'new'}`
+}
 
 function TaskSelector({
   value,
@@ -130,9 +137,39 @@ export default function WritingPage() {
   const [submission, setSubmission] = useState<WritingSubmission | null>(null)
   const [originalForDiff, setOriginalForDiff] = useState<WritingSubmission | null>(null)
   const [targetBand, setTargetBand] = useState<number>(7.0)
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null)
   const reducedMotion = useReducedMotion()
 
   const typeIntervalRef = useRef<number | null>(null)
+
+  const currentDraftKey = draftKey(taskType, reviseOf)
+
+  // Restore draft on mount / when switching task type (only for fresh writes)
+  useEffect(() => {
+    if (reviseOf) return // revise flow loads from server
+    const draft = loadDraft<{ prompt: string; text: string; visualization: Task1Visualization | null }>(
+      draftKey(taskType, null),
+    )
+    if (!draft) return
+    const ageHours = (Date.now() - draft.savedAt) / 3_600_000
+    if (ageHours > 24) return // too old, skip
+    patchTask(taskType, {
+      prompt: draft.value.prompt || '',
+      typewriter: draft.value.prompt || '',
+      text: draft.value.text || '',
+      visualization: draft.value.visualization || null,
+    })
+    setDraftSavedAt(draft.savedAt)
+  }, [taskType, reviseOf])
+
+  // Autosave every 5s while composing
+  const onSaved = useCallback((ts: number) => setDraftSavedAt(ts), [])
+  useAutosave(
+    currentDraftKey,
+    { prompt, text, visualization },
+    5000,
+    onSaved,
+  )
 
   useEffect(() => {
     apiFetch<UserProfile>('/api/v1/me')
@@ -213,6 +250,8 @@ export default function WritingPage() {
         : JSON.stringify({ text, task_type: taskType, prompt })
       const res = await apiFetch<WritingSubmission>(path, { method: 'POST', body })
       setSubmission(res)
+      clearDraft(currentDraftKey)
+      setDraftSavedAt(null)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -291,32 +330,67 @@ export default function WritingPage() {
       />
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-red-700 text-sm">
+        <div role="alert" className="bg-danger/10 border-l-4 border-danger p-3 rounded text-danger text-sm">
           {error}
         </div>
       )}
 
-      <textarea
-        value={text}
-        onChange={(e) => {
-          patchTask(taskType, { text: e.target.value })
-          if (!startedAt && e.target.value.length > 0) setStartedAt(Date.now())
-        }}
-        placeholder="Bắt đầu viết tại đây..."
-        className="w-full min-h-[360px] p-4 bg-white rounded-xl border border-gray-200 focus:border-indigo-400 focus:outline-none text-gray-900 leading-relaxed"
-      />
+      {submitting && <SubmissionSkeleton />}
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">
-          Tối thiểu {MIN_WORDS} từ để nộp bài.
-        </p>
-        <button
-          onClick={submit}
-          disabled={!canSubmit}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {submitting ? 'Đang chấm...' : 'Nộp bài'}
-        </button>
+      {!submitting && (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => {
+              patchTask(taskType, { text: e.target.value })
+              if (!startedAt && e.target.value.length > 0) setStartedAt(Date.now())
+            }}
+            disabled={submitting}
+            placeholder="Bắt đầu viết tại đây..."
+            aria-label="Nội dung bài viết"
+            className="w-full min-h-[360px] p-4 bg-surface-raised rounded-xl border border-border focus:border-primary focus:outline-none text-fg leading-relaxed disabled:opacity-60"
+          />
+
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-fg">
+              {draftSavedAt ? `Đã lưu nháp lúc ${formatTimeVi(draftSavedAt)}` : `Tự động lưu nháp sau ${MIN_WORDS} từ.`}
+            </span>
+            <WordTargetIndicator words={wordCount} target={IELTS_WORD_TARGET[taskType]} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-fg">
+              Tối thiểu {MIN_WORDS} từ để nộp bài.
+            </p>
+            <button
+              onClick={submit}
+              disabled={!canSubmit}
+              className="px-6 py-2 min-h-[44px] bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
+            >
+              Nộp bài
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function WordTargetIndicator({ words, target }: { words: number; target: number }) {
+  const pct = Math.min(100, (words / target) * 100)
+  const status =
+    pct >= 100 ? 'success' : pct >= 50 ? 'warning' : 'danger'
+  const message =
+    pct >= 100
+      ? `Đạt mục tiêu ${target} từ`
+      : `${target - words} từ nữa đạt mục tiêu ${target}`
+  const barClass = status === 'success' ? 'bg-success' : status === 'warning' ? 'bg-warning' : 'bg-danger'
+  const textClass = status === 'success' ? 'text-success' : status === 'warning' ? 'text-warning' : 'text-danger'
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`tabular-nums ${textClass}`}>{message}</span>
+      <div className="w-20 h-1.5 bg-border rounded-full overflow-hidden" aria-hidden>
+        <div className={`h-full ${barClass} transition-[width] duration-slow`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
