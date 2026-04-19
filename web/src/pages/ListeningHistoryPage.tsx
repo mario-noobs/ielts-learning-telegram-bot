@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
-import { EXERCISE_LABELS, ListeningHistoryItem } from '../lib/listening'
+import { EXERCISE_ICONS, ListeningHistoryItem } from '../lib/listening'
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, lang: string): string {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleDateString('vi-VN', {
+    const locale = lang.startsWith('vi') ? 'vi-VN' : 'en-GB'
+    return new Date(iso).toLocaleDateString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -19,6 +21,7 @@ function formatDate(iso: string | null): string {
 }
 
 export default function ListeningHistoryPage() {
+  const { t, i18n } = useTranslation('listening')
   const [items, setItems] = useState<ListeningHistoryItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,12 +38,12 @@ export default function ListeningHistoryPage() {
           to="/listening"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
-          Bài mới
+          {t('history.newLink')}
         </Link>
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-fg">Lịch sử luyện nghe</h1>
+        <h1 className="text-2xl font-bold text-fg">{t('history.heading')}</h1>
       </div>
 
       {error && (
@@ -58,14 +61,13 @@ export default function ListeningHistoryPage() {
       ) : items && items.length === 0 ? (
         <EmptyState
           illustration="empty-listening"
-          title="Chưa có bài luyện nghe nào"
-          description="Chọn một dạng bài ở Listening Gym để bắt đầu buổi luyện đầu tiên."
-          primaryAction={{ label: 'Bắt đầu luyện', to: '/listening' }}
+          title={t('history.empty.title')}
+          description={t('history.empty.description')}
+          primaryAction={{ label: t('history.empty.cta'), to: '/listening' }}
         />
       ) : (
         <div className="space-y-2">
           {items?.map((it) => {
-            const label = EXERCISE_LABELS[it.exercise_type]
             return (
               <Link
                 key={it.id}
@@ -73,11 +75,15 @@ export default function ListeningHistoryPage() {
                 className="block bg-surface-raised rounded-xl border border-border hover:border-primary/40 p-3 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Icon name={label.icon} size="lg" variant="primary" />
+                  <Icon name={EXERCISE_ICONS[it.exercise_type]} size="lg" variant="primary" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-fg truncate">{it.title}</p>
                     <p className="text-xs text-muted-fg">
-                      {label.title} · Band {it.band} · {formatDate(it.created_at)}
+                      {t('history.itemMeta', {
+                        type: t(`types.${it.exercise_type}.title`),
+                        band: it.band,
+                        date: formatDate(it.created_at, i18n.language),
+                      })}
                     </p>
                   </div>
                   <span
@@ -87,7 +93,7 @@ export default function ListeningHistoryPage() {
                   >
                     {it.submitted
                       ? `${Math.round((it.score ?? 0) * 100)}%`
-                      : 'Chưa nộp'}
+                      : t('history.notSubmitted')}
                   </span>
                 </div>
               </Link>

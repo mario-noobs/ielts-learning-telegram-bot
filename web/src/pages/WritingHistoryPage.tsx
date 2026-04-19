@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import EmptyState from '../components/EmptyState'
 import { WritingHistoryItem } from '../lib/writing'
 
-function BandTrend({ items }: { items: WritingHistoryItem[] }) {
+function BandTrend({
+  items,
+  heading,
+}: {
+  items: WritingHistoryItem[]
+  heading: string
+}) {
   const points = useMemo(() => {
     const sorted = [...items]
       .filter((i) => i.created_at)
@@ -32,7 +39,7 @@ function BandTrend({ items }: { items: WritingHistoryItem[] }) {
 
   return (
     <div className="bg-surface-raised rounded-xl shadow-sm p-5">
-      <h2 className="font-semibold text-fg mb-3">Xu hướng band</h2>
+      <h2 className="font-semibold text-fg mb-3">{heading}</h2>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto text-primary">
         <path d={path} fill="none" stroke="currentColor" strokeWidth="2" />
         {coords.map((c, i) => (
@@ -54,10 +61,11 @@ function BandTrend({ items }: { items: WritingHistoryItem[] }) {
   )
 }
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, lang: string): string {
   if (!iso) return ''
   const d = new Date(iso)
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const locale = lang.startsWith('vi') ? 'vi-VN' : 'en-GB'
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function TaskBadge({ type }: { type: string }) {
@@ -69,6 +77,7 @@ function TaskBadge({ type }: { type: string }) {
 }
 
 export default function WritingHistoryPage() {
+  const { t, i18n } = useTranslation(['writing', 'common'])
   const [items, setItems] = useState<WritingHistoryItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -85,11 +94,11 @@ export default function WritingHistoryPage() {
           to="/write"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
-          Viết bài mới →
+          {t('writing:history.newEssayLink')}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold">Lịch sử luyện viết</h1>
+      <h1 className="text-2xl font-bold">{t('writing:history.heading')}</h1>
 
       {error && (
         <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-danger text-sm">
@@ -106,13 +115,13 @@ export default function WritingHistoryPage() {
       ) : items.length === 0 ? (
         <EmptyState
           illustration="empty-writing"
-          title="Chưa có bài viết nào"
-          description="Luyện Task 1 hoặc Task 2 để nhận chấm band và phản hồi chi tiết."
-          primaryAction={{ label: 'Viết bài mới', to: '/write' }}
+          title={t('writing:history.empty.title')}
+          description={t('writing:history.empty.description')}
+          primaryAction={{ label: t('writing:history.empty.cta'), to: '/write' }}
         />
       ) : (
         <>
-          <BandTrend items={items} />
+          <BandTrend items={items} heading={t('writing:history.bandTrendHeading')} />
           <div className="space-y-2">
             {items.map((it) => (
               <Link
@@ -125,13 +134,15 @@ export default function WritingHistoryPage() {
                     <TaskBadge type={it.task_type} />
                     {it.original_id && (
                       <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded">
-                        Bản sửa
+                        {t('writing:history.revisedBadge')}
                       </span>
                     )}
-                    <span className="text-xs text-muted-fg">{formatDate(it.created_at)}</span>
+                    <span className="text-xs text-muted-fg">{formatDate(it.created_at, i18n.language)}</span>
                   </div>
                   <p className="text-sm text-fg truncate">{it.prompt_preview}</p>
-                  <p className="text-xs text-muted-fg mt-0.5">{it.word_count} từ</p>
+                  <p className="text-xs text-muted-fg mt-0.5">
+                    {t('writing:wordCount', { count: it.word_count })}
+                  </p>
                 </div>
                 <div className="text-2xl font-bold text-primary ml-4">
                   {it.overall_band.toFixed(1)}

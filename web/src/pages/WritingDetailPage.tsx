@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import {
@@ -14,6 +15,7 @@ interface UserProfile {
 }
 
 export default function WritingDetailPage() {
+  const { t } = useTranslation('writing')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [data, setData] = useState<WritingSubmission | null>(null)
@@ -67,13 +69,13 @@ export default function WritingDetailPage() {
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <Link to="/write/history" className="text-sm text-muted-fg hover:text-fg">
-          Lịch sử bài viết
+          {t('detail.backToHistory')}
         </Link>
         <button
           onClick={() => navigate(`/write?reviseOf=${data.id}`)}
           className="px-4 py-1.5 bg-primary text-primary-fg text-sm rounded-lg font-medium hover:bg-primary-hover"
         >
-          Viết lại
+          {t('detail.reviseBtn')}
         </button>
       </div>
 
@@ -86,11 +88,9 @@ export default function WritingDetailPage() {
           }`}
         >
           <p className="font-medium text-fg">
-            Thay đổi so với bản gốc:{' '}
-            <span className={data.delta_band >= 0 ? 'text-success' : 'text-danger'}>
-              {data.delta_band > 0 ? '+' : ''}
-              {data.delta_band.toFixed(1)} band
-            </span>
+            {t('detail.deltaLabel', {
+              delta: `${data.delta_band > 0 ? '+' : ''}${data.delta_band.toFixed(1)} band`,
+            })}
           </p>
         </div>
       )}

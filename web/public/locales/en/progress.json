@@ -1,0 +1,30 @@
+{
+  "heading": "Band Progress",
+  "subline": "Updated from your listening, writing, and vocabulary activity.",
+  "changeTargetLink": "Change target",
+  "distanceToTarget": "{gap} band to target",
+  "daysAhead": "+{days} days",
+  "vocabSubline": "{words} words · {mastered} mastered",
+  "writingAvgOf": "Average of last {count} submissions",
+  "listeningChecked": "{count, plural, one {# submission checked} other {# submissions checked}}",
+  "readingAvgOf": "Average of last {count} sessions",
+  "overallBand": "Overall band",
+  "targetBand": "Target: {band}",
+  "bandDelta30d": "30-day change",
+  "trendHeading": "30-day trend",
+  "predictionsHeading": "Predictions",
+  "predictionItem": "{days}d from now: {band}",
+  "skillsHeading": "By skill",
+  "recommendationsHeading": "This week's tips",
+  "empty": {
+    "writing": "No essays yet.",
+    "listening": "No listening sessions yet.",
+    "reading": "No reading sessions yet.",
+    "vocabulary": "No vocabulary yet."
+  },
+  "timeToTarget": {
+    "achieved": "Target reached",
+    "needMore": "Step up your pace",
+    "estimate": "~{days} days to go"
+  }
+}

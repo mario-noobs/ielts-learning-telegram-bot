@@ -1,0 +1,55 @@
+{
+  "heading": "Reading Lab",
+  "subline": "Chọn một bài đọc theo band mục tiêu. Mỗi phiên kéo dài 20 phút với 13 câu hỏi.",
+  "filters": {
+    "band": "Band:",
+    "topic": "Chủ đề:",
+    "all": "Tất cả"
+  },
+  "passageMeta": "{topic} · Band {band} · {count} từ",
+  "errorLoad": "Không tải được bài đọc.",
+  "backLink": "← Reading Lab",
+  "tabs": {
+    "passage": "Bài đọc",
+    "questions": "Câu hỏi ({answered}/{total})"
+  },
+  "timerAria": "Thời gian còn lại",
+  "submitBtn": "Nộp bài ({answered}/{total})",
+  "clearHighlights": "Xóa tô sáng ({count})",
+  "questionTypeLabel": {
+    "gap-fill": "Điền từ",
+    "tfng": "Đúng / Sai / Không rõ",
+    "matching-headings": "Ghép đoạn",
+    "mcq": "Trắc nghiệm"
+  },
+  "answerPlaceholder": "Nhập đáp án",
+  "tfng": {
+    "TRUE": "Đúng",
+    "FALSE": "Sai",
+    "NOT_GIVEN": "Không rõ"
+  },
+  "confirmSubmit": {
+    "title": "Nộp bài ngay?",
+    "description": "Bạn đã trả lời {answered} / {total} câu. Sau khi nộp, bạn không thể quay lại.",
+    "keepGoing": "Tiếp tục làm",
+    "submit": "Nộp bài"
+  },
+  "review": {
+    "resultFor": "Kết quả · {title}",
+    "estimatedBand": "Band ước lượng",
+    "correctCount": "{correct} / {total}",
+    "correctPct": "Đúng ({pct}%)",
+    "perQuestionHeading": "Chi tiết từng câu",
+    "correct": "Đúng",
+    "incorrect": "Sai",
+    "yourAnswer": "Đáp án của bạn:",
+    "correctAnswer": "Đáp án đúng:",
+    "blank": "(bỏ trống)",
+    "otherPassageBtn": "Bài đọc khác",
+    "viewProgressBtn": "Xem tiến độ"
+  },
+  "empty": {
+    "title": "Không có bài đọc phù hợp",
+    "description": "Thử đổi band hoặc chủ đề khác."
+  }
+}

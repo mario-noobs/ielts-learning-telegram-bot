@@ -1,0 +1,51 @@
+{
+  "heading": "Writing",
+  "newPromptBtn": "Đề khác",
+  "generatePromptBtn": "Tạo đề",
+  "generatingBtn": "Đang tạo…",
+  "differentPromptBtn": "Đề khác",
+  "submitBtn": "Nộp bài",
+  "submittingBtn": "Đang nộp…",
+  "wordCount": "{count} từ",
+  "taskLabel": {
+    "task1": "Task 1",
+    "task2": "Task 2"
+  },
+  "promptEmpty": "Chưa có đề. Bấm \"Tạo đề\" để bắt đầu.",
+  "editorPlaceholder": "Bắt đầu viết tại đây…",
+  "editorAria": "Nội dung bài viết",
+  "promptHeading": "Đề bài",
+  "minWords": "Tối thiểu {count} từ để nộp bài.",
+  "draftSavedAt": "Đã lưu nháp lúc {time}",
+  "draftAutosaveHint": "Tự động lưu nháp sau {count} từ.",
+  "wordTargetReached": "Đạt mục tiêu {target} từ",
+  "wordTargetRemaining": "{remaining} từ nữa đạt mục tiêu {target}",
+  "history": {
+    "heading": "Lịch sử luyện viết",
+    "newEssayBtn": "Viết bài mới",
+    "newEssayLink": "Viết bài mới →",
+    "bandTrendHeading": "Xu hướng band",
+    "revisedBadge": "Bản sửa",
+    "submittedAt": "Đã nộp {date}",
+    "empty": {
+      "title": "Chưa có bài viết nào",
+      "description": "Luyện Task 1 hoặc Task 2 để nhận chấm band và phản hồi chi tiết.",
+      "cta": "Viết bài mới"
+    }
+  },
+  "detail": {
+    "backToHistory": "← Lịch sử",
+    "reviseBtn": "Sửa lại",
+    "deltaLabel": "Thay đổi so với bản gốc: {delta}",
+    "scoresHeading": "Điểm số",
+    "feedbackHeading": "Phản hồi",
+    "annotationsHeading": "Ghi chú từng đoạn",
+    "summaryHeading": "Tóm tắt"
+  },
+  "criteria": {
+    "task_achievement": "Task Achievement",
+    "coherence_cohesion": "Coherence & Cohesion",
+    "lexical_resource": "Lexical Resource",
+    "grammatical_range_accuracy": "Grammatical Range & Accuracy"
+  }
+}

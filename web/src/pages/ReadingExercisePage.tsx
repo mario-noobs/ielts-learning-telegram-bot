@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
 import {
   PassageDetail,
-  QUESTION_TYPE_LABEL,
   ReadingQuestion,
   ReadingSession,
   SessionSubmitResponse,
@@ -16,10 +16,13 @@ import {
   submitSession,
 } from '../lib/reading'
 
+type TFunc = (key: string, opts?: Record<string, unknown>) => string
+
 type ViewTab = 'passage' | 'questions'
 type PageStatus = 'loading' | 'ready' | 'submitting' | 'submitted' | 'error'
 
 export default function ReadingExercisePage() {
+  const { t } = useTranslation('reading')
   const { id = '' } = useParams<{ id: string }>()
   const [passage, setPassage] = useState<PassageDetail | null>(null)
   const [session, setSession] = useState<ReadingSession | null>(null)
@@ -139,17 +142,17 @@ export default function ReadingExercisePage() {
     return (
       <div className="mx-auto max-w-2xl p-4">
         <Link to="/reading" className="text-sm text-muted-fg hover:text-fg">
-          ← Reading Lab
+          {t('backLink')}
         </Link>
         <div className="mt-3 rounded border-l-4 border-danger bg-danger/10 p-3 text-sm text-danger">
-          {error ?? 'Không tải được bài đọc.'}
+          {error ?? t('errorLoad')}
         </div>
       </div>
     )
   }
 
   if (status === 'submitted' && result) {
-    return <ReviewView result={result} passage={passage} />
+    return <ReviewView result={result} passage={passage} t={t} />
   }
 
   const timerUrgent = remaining <= 5 * 60
@@ -159,7 +162,7 @@ export default function ReadingExercisePage() {
       {/* Header with timer + submit */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <Link to="/reading" className="text-sm text-muted-fg hover:text-fg">
-          ← Reading Lab
+          {t('backLink')}
         </Link>
         <div className="flex items-center gap-3">
           <span
@@ -178,22 +181,24 @@ export default function ReadingExercisePage() {
             disabled={status !== 'ready'}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-fg hover:bg-primary-hover disabled:opacity-50"
           >
-            Nộp bài ({answeredCount}/{totalCount})
+            {t('submitBtn', { answered: answeredCount, total: totalCount })}
           </button>
         </div>
       </div>
 
       {/* Mobile tabs */}
       <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border border-border bg-surface-raised p-1 lg:hidden">
-        {(['passage', 'questions'] as ViewTab[]).map((t) => (
+        {(['passage', 'questions'] as ViewTab[]).map((which) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={which}
+            onClick={() => setTab(which)}
             className={`rounded-md px-3 py-2 text-sm font-medium ${
-              tab === t ? 'bg-primary text-primary-fg' : 'text-fg'
+              tab === which ? 'bg-primary text-primary-fg' : 'text-fg'
             }`}
           >
-            {t === 'passage' ? 'Bài đọc' : `Câu hỏi (${answeredCount}/${totalCount})`}
+            {which === 'passage'
+              ? t('tabs.passage')
+              : t('tabs.questions', { answered: answeredCount, total: totalCount })}
           </button>
         ))}
       </div>
@@ -210,7 +215,11 @@ export default function ReadingExercisePage() {
                 {passage.title}
               </h1>
               <p className="text-xs text-muted-fg">
-                <span className="capitalize">{passage.topic}</span> · Band {passage.band.toFixed(1)} · {passage.word_count} từ
+                {t('passageMeta', {
+                  topic: passage.topic,
+                  band: passage.band.toFixed(1),
+                  count: passage.word_count,
+                })}
               </p>
             </div>
             {highlights.length > 0 && (
@@ -218,7 +227,7 @@ export default function ReadingExercisePage() {
                 onClick={clearAllHighlights}
                 className="shrink-0 text-xs text-muted-fg underline hover:text-fg"
               >
-                Xóa tô sáng ({highlights.length})
+                {t('clearHighlights', { count: highlights.length })}
               </button>
             )}
           </header>
@@ -239,7 +248,7 @@ export default function ReadingExercisePage() {
           className={`${tab === 'questions' ? '' : 'hidden'} rounded-xl border border-border bg-surface-raised p-4 lg:block lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto`}
         >
           <h2 id="questions-heading" className="mb-3 text-sm font-semibold text-muted-fg">
-            Câu hỏi · {answeredCount}/{totalCount} đã trả lời
+            {t('tabs.questions', { answered: answeredCount, total: totalCount })}
           </h2>
           <ol className="space-y-4">
             {session.questions.map((q, idx) => (
@@ -249,6 +258,7 @@ export default function ReadingExercisePage() {
                 index={idx + 1}
                 value={answers[q.id] ?? ''}
                 onChange={(v) => setAnswer(q.id, v)}
+                t={t}
               />
             ))}
           </ol>
@@ -265,23 +275,26 @@ export default function ReadingExercisePage() {
         >
           <div className="w-full max-w-sm rounded-xl bg-surface-raised p-4 shadow-lg">
             <h3 id="submit-dialog-title" className="text-base font-semibold text-fg">
-              Nộp bài ngay?
+              {t('confirmSubmit.title')}
             </h3>
             <p className="mt-1 text-sm text-muted-fg">
-              Bạn đã trả lời {answeredCount} / {totalCount} câu. Sau khi nộp, bạn không thể quay lại.
+              {t('confirmSubmit.description', {
+                answered: answeredCount,
+                total: totalCount,
+              })}
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setShowConfirm(false)}
                 className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-fg hover:bg-surface-raised"
               >
-                Tiếp tục làm
+                {t('confirmSubmit.keepGoing')}
               </button>
               <button
                 onClick={() => void doSubmit()}
                 className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-fg hover:bg-primary-hover"
               >
-                Nộp bài
+                {t('confirmSubmit.submit')}
               </button>
             </div>
           </div>
@@ -342,9 +355,10 @@ interface QuestionItemProps {
   index: number
   value: string
   onChange: (v: string) => void
+  t: TFunc
 }
 
-function QuestionItem({ q, index, value, onChange }: QuestionItemProps) {
+function QuestionItem({ q, index, value, onChange, t }: QuestionItemProps) {
   return (
     <li className="rounded-lg border border-border p-3">
       <div className="mb-2 flex items-center gap-2">
@@ -352,7 +366,7 @@ function QuestionItem({ q, index, value, onChange }: QuestionItemProps) {
           {index}
         </span>
         <span className="text-[11px] font-medium uppercase tracking-wide text-muted-fg">
-          {QUESTION_TYPE_LABEL[q.type]}
+          {t(`questionTypeLabel.${q.type}`)}
         </span>
       </div>
       <p className="text-sm text-fg">{q.stem}</p>
@@ -362,7 +376,7 @@ function QuestionItem({ q, index, value, onChange }: QuestionItemProps) {
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Nhập đáp án"
+            placeholder={t('answerPlaceholder')}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
         )}
@@ -379,7 +393,7 @@ function QuestionItem({ q, index, value, onChange }: QuestionItemProps) {
                     : 'border-border bg-surface text-fg hover:bg-surface-raised'
                 }`}
               >
-                {v === 'TRUE' ? 'Đúng' : v === 'FALSE' ? 'Sai' : 'Không rõ'}
+                {t(`tfng.${v}`)}
               </button>
             ))}
           </div>
@@ -418,9 +432,11 @@ function QuestionItem({ q, index, value, onChange }: QuestionItemProps) {
 function ReviewView({
   result,
   passage,
+  t,
 }: {
   result: SessionSubmitResponse
   passage: PassageDetail
+  t: TFunc
 }) {
   const { grade } = result
   const pct = grade.total > 0 ? Math.round((grade.correct / grade.total) * 100) : 0
@@ -428,30 +444,30 @@ function ReviewView({
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6 space-y-4">
       <Link to="/reading" className="text-sm text-muted-fg hover:text-fg">
-        ← Reading Lab
+        {t('backLink')}
       </Link>
 
       <section className="rounded-2xl border border-border bg-surface-raised p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-fg">
-          Kết quả · {passage.title}
+          {t('review.resultFor', { title: passage.title })}
         </p>
         <div className="mt-2 flex items-end gap-4">
           <div>
             <p className="text-5xl font-bold text-fg">{grade.band.toFixed(1)}</p>
-            <p className="text-xs text-muted-fg">Band ước lượng</p>
+            <p className="text-xs text-muted-fg">{t('review.estimatedBand')}</p>
           </div>
           <div className="flex-1 text-right">
             <p className="text-2xl font-semibold text-fg">
-              {grade.correct} / {grade.total}
+              {t('review.correctCount', { correct: grade.correct, total: grade.total })}
             </p>
-            <p className="text-xs text-muted-fg">Đúng ({pct}%)</p>
+            <p className="text-xs text-muted-fg">{t('review.correctPct', { pct })}</p>
           </div>
         </div>
       </section>
 
       <section aria-labelledby="per-question-heading" className="space-y-2">
         <h2 id="per-question-heading" className="text-sm font-semibold text-fg">
-          Chi tiết từng câu
+          {t('review.perQuestionHeading')}
         </h2>
         <ol className="space-y-2">
           {grade.per_question.map((pq, i) => (
@@ -470,15 +486,19 @@ function ReviewView({
                 <span className={`text-xs font-semibold ${
                   pq.is_correct ? 'text-success' : 'text-danger'
                 }`}>
-                  {pq.is_correct ? 'Đúng' : 'Sai'}
+                  {pq.is_correct ? t('review.correct') : t('review.incorrect')}
                 </span>
               </div>
               <div className="mt-1 grid gap-1 sm:grid-cols-2">
                 <p className="text-xs text-muted-fg">
-                  Đáp án của bạn: <span className="font-medium text-fg">{pq.user_answer ?? '(bỏ trống)'}</span>
+                  {t('review.yourAnswer')}{' '}
+                  <span className="font-medium text-fg">
+                    {pq.user_answer ?? t('review.blank')}
+                  </span>
                 </p>
                 <p className="text-xs text-muted-fg">
-                  Đáp án đúng: <span className="font-medium text-fg">{pq.correct_answer}</span>
+                  {t('review.correctAnswer')}{' '}
+                  <span className="font-medium text-fg">{pq.correct_answer}</span>
                 </p>
               </div>
               {pq.explanation && (
@@ -494,13 +514,13 @@ function ReviewView({
           to="/reading"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-fg hover:bg-primary-hover"
         >
-          Bài đọc khác
+          {t('review.otherPassageBtn')}
         </Link>
         <Link
           to="/progress"
           className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-fg hover:bg-surface-raised"
         >
-          Xem tiến độ
+          {t('review.viewProgressBtn')}
         </Link>
       </div>
     </div>

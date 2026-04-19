@@ -108,23 +108,13 @@ export function formatDuration(seconds: number): string {
 
 import type { IconName } from '../components/Icon'
 
-export const EXERCISE_LABELS: Record<
-  ListeningType,
-  { title: string; icon: IconName; description: string }
-> = {
-  dictation: {
-    title: 'Dictation',
-    icon: 'PenLine',
-    description: 'Nghe và gõ lại chính xác từng từ',
-  },
-  gap_fill: {
-    title: 'Gap Fill',
-    icon: 'SquarePen',
-    description: 'Điền từ còn thiếu vào chỗ trống',
-  },
-  comprehension: {
-    title: 'Comprehension',
-    icon: 'Headphones',
-    description: 'Nghe và trả lời trắc nghiệm',
-  },
+/**
+ * Icon + translation-key map for each listening exercise type.
+ * Labels come from the `listening` i18n bundle via `types.<type>.title` /
+ * `types.<type>.hint`, so rendering depends on the active locale.
+ */
+export const EXERCISE_ICONS: Record<ListeningType, IconName> = {
+  dictation: 'PenLine',
+  gap_fill: 'SquarePen',
+  comprehension: 'Headphones',
 }

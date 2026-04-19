@@ -1,0 +1,42 @@
+{
+  "heading": "Listening Gym",
+  "subline": "Luyện nghe ở Band {band}. Hôm nay đã hoàn thành {done} bài.",
+  "historyLink": "Lịch sử",
+  "types": {
+    "dictation": {
+      "title": "Dictation",
+      "hint": "Gõ lại từng câu bạn nghe được.",
+      "duration": "2–3 phút"
+    },
+    "gap_fill": {
+      "title": "Gap Fill",
+      "hint": "Điền từ bị thiếu khi audio chạy.",
+      "duration": "3–4 phút"
+    },
+    "comprehension": {
+      "title": "Comprehension",
+      "hint": "Nghe rồi trả lời câu hỏi trắc nghiệm.",
+      "duration": "4–5 phút"
+    }
+  },
+  "startBtn": "Bắt đầu →",
+  "generatingBtn": "Đang tạo…",
+  "exercise": {
+    "band": "Band {band}",
+    "estimated": "Dự kiến {time}",
+    "submitBtn": "Nộp bài",
+    "submittedAt": "Đã nộp {date}"
+  },
+  "recentHeading": "Gần đây",
+  "history": {
+    "heading": "Lịch sử luyện nghe",
+    "newLink": "Bài mới",
+    "empty": {
+      "title": "Chưa có bài luyện nghe nào",
+      "description": "Chọn một dạng bài ở Listening Gym để bắt đầu buổi luyện đầu tiên.",
+      "cta": "Bắt đầu luyện"
+    },
+    "itemMeta": "{type} · Band {band} · {date}",
+    "notSubmitted": "Chưa nộp"
+  }
+}

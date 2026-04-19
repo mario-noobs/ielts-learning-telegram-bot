@@ -1,0 +1,82 @@
+{
+  "heading": "Từ vựng",
+  "listHeading": "Danh sách từ",
+  "topicsHeading": "Chủ đề",
+  "wordCount": "{count} từ",
+  "masteryPct": "{pct}% thạo",
+  "stats": {
+    "total": "Tổng số từ",
+    "due": "Đến hạn ôn",
+    "streak": "Streak",
+    "mastered": "Đã thạo"
+  },
+  "search": {
+    "placeholder": "Tìm từ, nghĩa…"
+  },
+  "strength": {
+    "New": "Mới",
+    "Weak": "Yếu",
+    "Learning": "Đang học",
+    "Good": "Tốt",
+    "Mastered": "Thạo"
+  },
+  "filters": {
+    "clearTopic": "Bỏ lọc: {name}",
+    "countOfTotal": "{filtered} / {total} từ"
+  },
+  "loadMore": "Tải thêm",
+  "loadingMore": "Đang tải…",
+  "empty": {
+    "noWords": {
+      "title": "Chưa có từ vựng nào",
+      "description": "Học từ qua Telegram bot hoặc bắt đầu một bài quiz để thêm từ đầu tiên.",
+      "cta": "Bắt đầu ôn tập"
+    },
+    "noMatch": {
+      "title": "Không có từ phù hợp",
+      "description": "Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.",
+      "cta": "Xoá bộ lọc"
+    }
+  },
+  "review": {
+    "heading": "Ôn tập Flashcard",
+    "intro": "Ôn lại từ đến hạn bằng câu hỏi trắc nghiệm và điền vào chỗ trống.",
+    "cardAria": "Điền từ thích hợp",
+    "placeholder": "Ví dụ: abandon",
+    "startBtn": "Bắt đầu",
+    "startingBtn": "Đang tải…",
+    "correct": "Đúng",
+    "incorrect": "Sai",
+    "correctTitle": "Đúng rồi!",
+    "incorrectTitle": "Chưa đúng",
+    "continueBtn": "Tiếp tục",
+    "seeResultsBtn": "Xem kết quả",
+    "continueHint": "(Space)",
+    "resultsHeading": "Kết quả",
+    "reviewAgainBtn": "Ôn tiếp",
+    "backToVocabBtn": "Về từ vựng",
+    "progressAria": "Câu {current} trên {total}",
+    "mcqOptionAria": "Đáp án {letter}: {text}",
+    "noQuestions": "Không có câu hỏi nào khả dụng.",
+    "keyboardHint": "Mẹo: bấm phím {keys}",
+    "nextReviewIn": {
+      "now": "ngay bây giờ",
+      "inMinutes": "trong {count} phút",
+      "inHours": "trong {count} giờ",
+      "inDays": "trong {count} ngày"
+    },
+    "noDueWords": {
+      "title": "Chưa có từ đến hạn ôn",
+      "description": "Thêm từ vựng mới hoặc chờ SRS nhắc lại trong vài giờ tới.",
+      "cta": "Thêm từ vựng"
+    }
+  },
+  "detail": {
+    "pronunciation": "Phát âm",
+    "meaning": "Nghĩa",
+    "examplesByBand": "Ví dụ theo band",
+    "similarWords": "Từ liên quan",
+    "addedOn": "Đã thêm {date}",
+    "nextReview": "Lần ôn tiếp: {when}"
+  }
+}

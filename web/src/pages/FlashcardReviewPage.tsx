@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
@@ -38,19 +39,30 @@ interface AnswerRecord {
 
 type Phase = 'pre' | 'question' | 'feedback' | 'summary'
 
-function formatNextReview(iso: string | null): string {
+function formatNextReview(
+  iso: string | null,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string {
   if (!iso) return '—'
   const diffMs = new Date(iso).getTime() - Date.now()
   const diffMin = Math.round(diffMs / 60000)
-  if (diffMin <= 0) return 'ngay bây giờ'
-  if (diffMin < 60) return `trong ${diffMin} phút`
+  if (diffMin <= 0) return t('review.nextReviewIn.now')
+  if (diffMin < 60) return t('review.nextReviewIn.inMinutes', { count: diffMin })
   const diffHr = Math.round(diffMin / 60)
-  if (diffHr < 24) return `trong ${diffHr} giờ`
+  if (diffHr < 24) return t('review.nextReviewIn.inHours', { count: diffHr })
   const diffDay = Math.round(diffHr / 24)
-  return `trong ${diffDay} ngày`
+  return t('review.nextReviewIn.inDays', { count: diffDay })
 }
 
-function ProgressBar({ current, total }: { current: number; total: number }) {
+function ProgressBar({
+  current,
+  total,
+  t,
+}: {
+  current: number
+  total: number
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
   const pct = total > 0 ? (current / total) * 100 : 0
   return (
     <div className="w-full">
@@ -65,7 +77,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
         aria-valuenow={current}
         aria-valuemin={0}
         aria-valuemax={total}
-        aria-label={`Câu ${current} trên ${total}`}
+        aria-label={t('review.progressAria', { current, total })}
       >
         <div
           className="h-full bg-primary transition-[width] duration-slow ease-out-soft"
@@ -79,9 +91,13 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 function MultipleChoice({
   question,
   onSubmit,
+  mcqOptionAria,
+  keyboardHint,
 }: {
   question: QuizQuestion
   onSubmit: (letter: string) => void
+  mcqOptionAria: (o: { letter: string; text: string }) => string
+  keyboardHint: (keys: string) => string
 }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -103,7 +119,7 @@ function MultipleChoice({
             <button
               key={letter}
               onClick={() => onSubmit(letter)}
-              aria-label={`Đáp án ${letter}: ${opt}`}
+              aria-label={mcqOptionAria({ letter, text: opt })}
               className="text-left p-4 min-h-[44px] rounded-xl border-2 border-border bg-surface-raised hover:border-primary hover:bg-primary/5 transition-colors duration-base"
             >
               <span className="font-semibold text-primary mr-2">{letter}.</span>
@@ -113,13 +129,19 @@ function MultipleChoice({
         })}
       </div>
       <p className="text-xs text-muted-fg mt-3 text-center">
-        Mẹo: bấm phím {question.options.map((_, i) => i + 1).join(' / ')} trên bàn phím
+        {keyboardHint(question.options.map((_, i) => i + 1).join(' / '))}
       </p>
     </>
   )
 }
 
-function FillBlank({ onSubmit }: { onSubmit: (text: string) => void }) {
+function FillBlank({
+  onSubmit,
+  t,
+}: {
+  onSubmit: (text: string) => void
+  t: (k: string) => string
+}) {
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -138,16 +160,16 @@ function FillBlank({ onSubmit }: { onSubmit: (text: string) => void }) {
         onKeyDown={(e) => {
           if (e.key === 'Enter') submit()
         }}
-        aria-label="Điền từ thích hợp"
+        aria-label={t('review.cardAria')}
         className="w-full px-4 py-3 min-h-[44px] border-2 border-border bg-surface-raised rounded-xl focus:border-primary focus:outline-none text-fg"
-        placeholder="Ví dụ: abandon"
+        placeholder={t('review.placeholder')}
       />
       <button
         onClick={submit}
         disabled={!value.trim()}
         className="w-full px-4 py-3 bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover disabled:opacity-50"
       >
-        Gửi
+        {t('review.continueBtn')}
       </button>
     </div>
   )
@@ -157,10 +179,12 @@ function FeedbackOverlay({
   result,
   onContinue,
   isLast,
+  t,
 }: {
   result: QuizAnswerResponse
   onContinue: () => void
   isLast: boolean
+  t: (k: string) => string
 }) {
   const continueRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -188,10 +212,10 @@ function FeedbackOverlay({
             name={result.is_correct ? 'CheckCircle2' : 'AlertCircle'}
             size="xl"
             variant={result.is_correct ? 'success' : 'danger'}
-            label={result.is_correct ? 'Đúng' : 'Sai'}
+            label={result.is_correct ? t('review.correct') : t('review.incorrect')}
           />
           <h2 id="feedback-title" className={`text-2xl font-bold ${result.is_correct ? 'text-success' : 'text-danger'}`}>
-            {result.is_correct ? 'Đúng rồi!' : 'Chưa đúng'}
+            {result.is_correct ? t('review.correctTitle') : t('review.incorrectTitle')}
           </h2>
         </div>
         <p className="text-fg whitespace-pre-line">{result.feedback}</p>
@@ -205,7 +229,7 @@ function FeedbackOverlay({
           onClick={onContinue}
           className="mt-5 w-full py-3 min-h-[44px] bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover"
         >
-          {isLast ? 'Xem kết quả' : 'Tiếp tục'} (Space)
+          {isLast ? t('review.seeResultsBtn') : t('review.continueBtn')} {t('review.continueHint')}
         </button>
       </div>
     </div>
@@ -215,15 +239,17 @@ function FeedbackOverlay({
 function SessionSummary({
   records,
   onRestart,
+  t,
 }: {
   records: AnswerRecord[]
   onRestart: () => void
+  t: (k: string, o?: Record<string, unknown>) => string
 }) {
   const correct = records.filter((r) => r.result.is_correct).length
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="bg-surface-raised rounded-xl shadow-sm p-6 text-center">
-        <h2 className="text-sm uppercase tracking-wide text-muted-fg mb-2">Kết quả</h2>
+        <h2 className="text-sm uppercase tracking-wide text-muted-fg mb-2">{t('review.resultsHeading')}</h2>
         <div className="text-5xl font-bold text-primary">
           {correct}
           <span className="text-2xl text-muted-fg">/{records.length}</span>
@@ -244,7 +270,7 @@ function SessionSummary({
             </div>
             <div className="text-xs text-muted-fg">
               {r.result.srs_update.old_strength} → {r.result.srs_update.new_strength} ·{' '}
-              {formatNextReview(r.result.srs_update.next_review)}
+              {formatNextReview(r.result.srs_update.next_review, t)}
             </div>
           </div>
         ))}
@@ -254,13 +280,13 @@ function SessionSummary({
           onClick={onRestart}
           className="flex-1 py-3 bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover"
         >
-          Ôn tiếp
+          {t('review.reviewAgainBtn')}
         </button>
         <Link
           to="/vocab"
           className="flex-1 py-3 bg-surface text-fg rounded-xl font-medium hover:bg-border text-center"
         >
-          Về từ vựng
+          {t('review.backToVocabBtn')}
         </Link>
       </div>
     </div>
@@ -268,6 +294,7 @@ function SessionSummary({
 }
 
 export default function FlashcardReviewPage() {
+  const { t } = useTranslation('vocab')
   const [phase, setPhase] = useState<Phase>('pre')
   const [sessionId, setSessionId] = useState<string>('')
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
@@ -289,7 +316,7 @@ export default function FlashcardReviewPage() {
         (q) => q.type === 'multiple_choice' || q.type === 'fill_blank'
       )
       if (supported.length === 0) {
-        setError('Không có câu hỏi nào khả dụng.')
+        setError(t('review.noQuestions'))
         setLoading(false)
         return
       }
@@ -345,9 +372,9 @@ export default function FlashcardReviewPage() {
         <div className="max-w-lg mx-auto p-4">
           <EmptyState
             illustration="empty-vocab"
-            title="Chưa có từ đến hạn ôn"
-            description="Thêm từ vựng mới hoặc chờ SRS nhắc lại trong vài giờ tới."
-            primaryAction={{ label: 'Thêm từ vựng', to: '/vocab' }}
+            title={t('review.noDueWords.title')}
+            description={t('review.noDueWords.description')}
+            primaryAction={{ label: t('review.noDueWords.cta'), to: '/vocab' }}
           />
         </div>
       )
@@ -355,10 +382,8 @@ export default function FlashcardReviewPage() {
     return (
       <div className="max-w-lg mx-auto p-4">
         <div className="bg-surface-raised rounded-xl shadow-sm p-6">
-          <h1 className="text-2xl font-bold mb-2 text-fg">Ôn tập Flashcard</h1>
-          <p className="text-muted-fg mb-6">
-            Ôn lại từ đến hạn bằng câu hỏi trắc nghiệm và điền vào chỗ trống.
-          </p>
+          <h1 className="text-2xl font-bold mb-2 text-fg">{t('review.heading')}</h1>
+          <p className="text-muted-fg mb-6">{t('review.intro')}</p>
           {error && (
             <div className="bg-danger/10 border-l-4 border-danger p-3 rounded mb-4 text-danger text-sm">
               {error}
@@ -369,7 +394,7 @@ export default function FlashcardReviewPage() {
             disabled={loading}
             className="w-full py-3 bg-primary text-primary-fg rounded-xl font-medium hover:bg-primary-hover disabled:opacity-50"
           >
-            {loading ? 'Đang tải...' : 'Bắt đầu'}
+            {loading ? t('review.startingBtn') : t('review.startBtn')}
           </button>
         </div>
       </div>
@@ -377,7 +402,7 @@ export default function FlashcardReviewPage() {
   }
 
   if (phase === 'summary') {
-    return <SessionSummary records={records} onRestart={start} />
+    return <SessionSummary records={records} onRestart={start} t={t} />
   }
 
   if (!currentQuestion) return null
@@ -389,15 +414,20 @@ export default function FlashcardReviewPage() {
           Thoát
         </Link>
       </div>
-      <ProgressBar current={index + 1} total={questions.length} />
+      <ProgressBar current={index + 1} total={questions.length} t={t} />
       <div className="bg-surface-raised rounded-xl shadow-sm p-6">
         <p className="text-xl text-fg mb-6 whitespace-pre-line">
           {currentQuestion.question}
         </p>
         {currentQuestion.type === 'multiple_choice' ? (
-          <MultipleChoice question={currentQuestion} onSubmit={submit} />
+          <MultipleChoice
+            question={currentQuestion}
+            onSubmit={submit}
+            mcqOptionAria={(o) => t('review.mcqOptionAria', o)}
+            keyboardHint={(keys) => t('review.keyboardHint', { keys })}
+          />
         ) : (
-          <FillBlank onSubmit={submit} />
+          <FillBlank onSubmit={submit} t={t} />
         )}
       </div>
       {phase === 'feedback' && feedback && (
@@ -405,6 +435,7 @@ export default function FlashcardReviewPage() {
           result={feedback}
           onContinue={advance}
           isLast={index + 1 >= questions.length}
+          t={t}
         />
       )}
     </div>

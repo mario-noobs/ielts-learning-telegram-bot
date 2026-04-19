@@ -1,26 +1,23 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import {
-  EXERCISE_LABELS,
+  EXERCISE_ICONS,
   ListeningExerciseView,
   ListeningHistoryItem,
   ListeningType,
 } from '../lib/listening'
 
 const TYPES: ListeningType[] = ['dictation', 'gap_fill', 'comprehension']
-const TIME_ESTIMATES: Record<ListeningType, string> = {
-  dictation: '2–3 phút',
-  gap_fill: '3–4 phút',
-  comprehension: '4–5 phút',
-}
 
 interface UserProfile {
   target_band: number
 }
 
 export default function ListeningHomePage() {
+  const { t } = useTranslation('listening')
   const navigate = useNavigate()
   const [starting, setStarting] = useState<ListeningType | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -65,14 +62,14 @@ export default function ListeningHomePage() {
           to="/listening/history"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
-          Lịch sử
+          {t('historyLink')}
         </Link>
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-fg">Listening Gym</h1>
+        <h1 className="text-2xl font-bold text-fg">{t('heading')}</h1>
         <p className="text-sm text-muted-fg mt-1">
-          Luyện nghe ở Band {band}. Hôm nay đã hoàn thành {submittedToday} bài.
+          {t('subline', { band, done: submittedToday })}
         </p>
       </div>
 
@@ -83,30 +80,29 @@ export default function ListeningHomePage() {
       )}
 
       <div className="space-y-3">
-        {TYPES.map((t) => {
-          const label = EXERCISE_LABELS[t]
+        {TYPES.map((type) => {
           return (
             <button
-              key={t}
-              onClick={() => start(t)}
+              key={type}
+              onClick={() => start(type)}
               disabled={!!starting}
               className="w-full text-left bg-surface-raised rounded-xl border border-border hover:border-primary/40 hover:shadow-sm p-4 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Icon name={label.icon} size="xl" variant="primary" />
+              <Icon name={EXERCISE_ICONS[type]} size="xl" variant="primary" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold text-fg">{label.title}</p>
+                  <p className="font-semibold text-fg">{t(`types.${type}.title`)}</p>
                   <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
-                    Band {band}
+                    {t('exercise.band', { band })}
                   </span>
                 </div>
-                <p className="text-sm text-muted-fg">{label.description}</p>
+                <p className="text-sm text-muted-fg">{t(`types.${type}.hint`)}</p>
                 <p className="text-xs text-muted-fg mt-0.5 inline-flex items-center gap-1">
-                  <Icon name="Clock" size="sm" variant="muted" /> {TIME_ESTIMATES[t]}
+                  <Icon name="Clock" size="sm" variant="muted" /> {t(`types.${type}.duration`)}
                 </p>
               </div>
               <span className="text-sm text-primary">
-                {starting === t ? 'Đang tạo...' : 'Bắt đầu →'}
+                {starting === type ? t('generatingBtn') : t('startBtn')}
               </span>
             </button>
           )
@@ -115,17 +111,16 @@ export default function ListeningHomePage() {
 
       {recent.length > 0 && (
         <div className="pt-4">
-          <h2 className="text-sm font-semibold text-fg mb-2">Gần đây</h2>
+          <h2 className="text-sm font-semibold text-fg mb-2">{t('recentHeading')}</h2>
           <div className="space-y-2">
             {recent.map((it) => {
-              const label = EXERCISE_LABELS[it.exercise_type]
               return (
                 <Link
                   key={it.id}
                   to={`/listening/${it.id}`}
                   className="flex items-center gap-3 bg-surface-raised rounded-lg border border-border hover:border-primary/40 p-2.5 text-sm"
                 >
-                  <Icon name={label.icon} size="md" variant="primary" />
+                  <Icon name={EXERCISE_ICONS[it.exercise_type]} size="md" variant="primary" />
                   <span className="flex-1 text-fg truncate">{it.title}</span>
                   <span
                     className={`text-xs font-semibold ${
