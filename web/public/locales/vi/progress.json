@@ -15,7 +15,16 @@
   "predictionsHeading": "Dự đoán",
   "predictionItem": "Sau {days} ngày: {band}",
   "skillsHeading": "Theo kỹ năng",
-  "recommendationsHeading": "Gợi ý tuần này",
+  "recommendationsHeading": "Gợi ý của coach tuần này",
+  "recommendationsError": "Không tải được gợi ý: {error}",
+  "recommendationsEmpty": "Chưa có gợi ý cho tuần này.",
+  "recommendationsActionBySkill": {
+    "vocabulary": "Ôn tập từ vựng",
+    "writing": "Luyện Writing",
+    "listening": "Luyện nghe ngay",
+    "reading": "Luyện Reading",
+    "overall": "Bắt đầu ngay"
+  },
   "empty": {
     "writing": "Chưa có bài viết nào.",
     "listening": "Chưa có bài nghe nào.",

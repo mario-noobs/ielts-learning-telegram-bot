@@ -39,19 +39,15 @@ interface TopicsResponse {
 
 const STRENGTH_FILTER_KEYS: Strength[] = ['Weak', 'Learning', 'Good', 'Mastered']
 
-const TOPIC_NAMES_VI: Record<string, string> = {
-  education: 'Giáo dục & Học tập',
-  environment: 'Môi trường & Thiên nhiên',
-  technology: 'Công nghệ & Đổi mới',
-  health: 'Sức khỏe & Wellbeing',
-  society: 'Xã hội & Văn hóa',
-  economy: 'Kinh tế & Kinh doanh',
-  government: 'Chính phủ & Pháp luật',
-  media: 'Truyền thông & Giao tiếp',
-  science: 'Khoa học & Nghiên cứu',
-  travel: 'Du lịch',
-  food: 'Ẩm thực & Nông nghiệp',
-  arts: 'Nghệ thuật & Sáng tạo',
+// Topic names now come from vocab:topicNames.<slug> so they follow the
+// active locale. Falls back to the API-supplied topic.name (which is
+// English from the backend) when no translation exists.
+function topicLabel(
+  slug: string,
+  apiName: string,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string {
+  return t(`topicNames.${slug}`, { defaultValue: apiName })
 }
 
 const STRENGTH_STYLES: Record<Strength, string> = {
@@ -86,7 +82,6 @@ function TopicCard({
   onClick: () => void
   t: (k: string, o?: Record<string, unknown>) => string
 }) {
-  const nameVi = TOPIC_NAMES_VI[topic.id] ?? topic.name
   return (
     <button
       onClick={onClick}
@@ -94,8 +89,7 @@ function TopicCard({
         selected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-border'
       }`}
     >
-      <p className="font-medium text-fg">{nameVi}</p>
-      <p className="text-xs text-muted-fg">{topic.name}</p>
+      <p className="font-medium text-fg">{topicLabel(topic.id, topic.name, t)}</p>
       <p className="text-sm text-muted-fg mt-2">{t('wordCount', { count })}</p>
       <div className="mt-3 h-1.5 bg-surface rounded-full overflow-hidden">
         <div
@@ -133,7 +127,7 @@ function WordCard({ word, t }: { word: VocabularyWord; t: (k: string) => string 
       )}
       {word.topic && (
         <span className="inline-block mt-2 text-xs bg-surface text-muted-fg px-2 py-0.5 rounded">
-          {TOPIC_NAMES_VI[word.topic] ?? word.topic}
+          {topicLabel(word.topic, word.topic, t)}
         </span>
       )}
     </Link>
@@ -300,7 +294,7 @@ export default function VocabHomePage() {
               className="text-sm px-3 py-1 rounded-full bg-surface text-fg hover:bg-border"
             >
               {t('filters.clearTopic', {
-                name: TOPIC_NAMES_VI[selectedTopic] ?? selectedTopic,
+                name: topicLabel(selectedTopic, selectedTopic, t),
               })} ×
             </button>
           )}

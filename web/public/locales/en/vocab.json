@@ -1,5 +1,19 @@
 {
   "heading": "Vocabulary",
+  "topicNames": {
+    "education": "Education & Learning",
+    "environment": "Environment & Nature",
+    "technology": "Technology & Innovation",
+    "health": "Health & Wellbeing",
+    "society": "Society & Culture",
+    "economy": "Economy & Business",
+    "government": "Government & Law",
+    "media": "Media & Communication",
+    "science": "Science & Research",
+    "travel": "Travel & Tourism",
+    "food": "Food & Agriculture",
+    "arts": "Arts & Creativity"
+  },
   "listHeading": "Word list",
   "topicsHeading": "Topics",
   "wordCount": "{count} words",

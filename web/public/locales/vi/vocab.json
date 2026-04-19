@@ -1,5 +1,19 @@
 {
   "heading": "Từ vựng",
+  "topicNames": {
+    "education": "Giáo dục & Học tập",
+    "environment": "Môi trường & Thiên nhiên",
+    "technology": "Công nghệ & Đổi mới",
+    "health": "Sức khỏe & Wellbeing",
+    "society": "Xã hội & Văn hóa",
+    "economy": "Kinh tế & Kinh doanh",
+    "government": "Chính phủ & Pháp luật",
+    "media": "Truyền thông & Giao tiếp",
+    "science": "Khoa học & Nghiên cứu",
+    "travel": "Du lịch",
+    "food": "Ẩm thực & Nông nghiệp",
+    "arts": "Nghệ thuật & Sáng tạo"
+  },
   "listHeading": "Danh sách từ",
   "topicsHeading": "Chủ đề",
   "wordCount": "{count} từ",

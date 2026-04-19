@@ -15,7 +15,16 @@
   "predictionsHeading": "Predictions",
   "predictionItem": "{days}d from now: {band}",
   "skillsHeading": "By skill",
-  "recommendationsHeading": "This week's tips",
+  "recommendationsHeading": "This week's coach tips",
+  "recommendationsError": "Couldn't load tips: {error}",
+  "recommendationsEmpty": "No tips for this week yet.",
+  "recommendationsActionBySkill": {
+    "vocabulary": "Review vocabulary",
+    "writing": "Practise writing",
+    "listening": "Practise listening",
+    "reading": "Practise reading",
+    "overall": "Start now"
+  },
   "empty": {
     "writing": "No essays yet.",
     "listening": "No listening sessions yet.",
