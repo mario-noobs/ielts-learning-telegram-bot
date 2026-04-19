@@ -32,7 +32,24 @@
     "reading": "Reading",
     "progress": "Progress",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signIn": "Sign in",
+    "signInWithGoogle": "Sign in with Google",
+    "mainNav": "Main navigation",
+    "landingNav": "Landing navigation",
+    "legalNav": "Legal navigation",
+    "skipToContent": "Skip to main content",
+    "tabs": {
+      "home": "Home",
+      "learn": "Learn",
+      "practice": "Practice",
+      "progress": "Progress",
+      "profile": "Me"
+    }
+  },
+  "auth": {
+    "tagline": "Practice IELTS with AI",
+    "brandBetaLabel": "Beta version"
   },
   "skills": {
     "writing": "Writing",

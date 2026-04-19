@@ -32,7 +32,24 @@
     "reading": "Reading",
     "progress": "Tiến độ",
     "settings": "Cài đặt",
-    "signOut": "Đăng xuất"
+    "signOut": "Đăng xuất",
+    "signIn": "Đăng nhập",
+    "signInWithGoogle": "Đăng nhập với Google",
+    "mainNav": "Điều hướng chính",
+    "landingNav": "Điều hướng landing",
+    "legalNav": "Điều hướng",
+    "skipToContent": "Bỏ qua, đến nội dung chính",
+    "tabs": {
+      "home": "Trang chủ",
+      "learn": "Học",
+      "practice": "Luyện",
+      "progress": "Tiến độ",
+      "profile": "Tôi"
+    }
+  },
+  "auth": {
+    "tagline": "Luyện IELTS cùng AI",
+    "brandBetaLabel": "Phiên bản thử nghiệm"
   },
   "skills": {
     "writing": "Writing",
