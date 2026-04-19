@@ -128,7 +128,7 @@ async def start_session(
             detail=f"Passage '{body.passage_id}' not found.",
         )
 
-    questions_client, answer_key = reading_service.generate_question_set(passage)
+    questions_client, answer_key = await reading_service.get_or_generate_questions(passage)
     now = _utcnow()
     expires_at = now + timedelta(seconds=_SESSION_DURATION_SECONDS)
     session_id = f"rs_{uuid.uuid4().hex[:12]}"
