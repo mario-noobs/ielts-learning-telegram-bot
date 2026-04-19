@@ -75,6 +75,26 @@ class TestPatchMe:
         res = client.patch("/api/v1/me", json={"weekly_goal_minutes": 5})
         assert res.status_code == 422
 
+    def test_preferred_locale_round_trips(self, client):
+        """US-M7.2: PATCH accepts + persists preferred_locale; /me returns it."""
+        captured: dict = {}
+
+        def upd(_uid, data):
+            captured.update(data)
+
+        with patch(
+            "api.routes.auth.firebase_service.update_user",
+            side_effect=upd,
+        ):
+            res = client.patch("/api/v1/me", json={"preferred_locale": "en"})
+        assert res.status_code == 200
+        assert res.json()["preferred_locale"] == "en"
+        assert captured["preferred_locale"] == "en"
+
+    def test_preferred_locale_rejects_invalid(self, client):
+        res = client.patch("/api/v1/me", json={"preferred_locale": "fr"})
+        assert res.status_code == 422
+
     def test_partial_update_leaves_other_fields(self, client):
         captured: dict = {}
 
