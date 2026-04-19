@@ -21,6 +21,7 @@ STARTING_BAND = 4.0
 MIN_BAND = 4.0
 MAX_BAND = 9.0
 WRITING_SAMPLE = 5
+READING_SAMPLE = 5
 
 
 def _round_half(value: float) -> float:
@@ -87,6 +88,30 @@ def _listening_accuracy_by_type(history: list[dict]) -> dict[str, float]:
     }
 
 
+def estimate_reading_band(reading_sessions: list[dict]) -> float:
+    """Average the band from the last N *submitted* reading sessions.
+
+    Sessions without a grade (in-progress / expired) are skipped. If no
+    submitted session exists yet, returns the starting band.
+    """
+    bands: list[float] = []
+    for s in reading_sessions:
+        if s.get("status") != "submitted":
+            continue
+        grade = s.get("grade") or {}
+        try:
+            score = float(grade.get("band") or 0)
+        except (TypeError, ValueError):
+            continue
+        if score > 0:
+            bands.append(score)
+        if len(bands) >= READING_SAMPLE:
+            break
+    if not bands:
+        return STARTING_BAND
+    return _clamp_band(sum(bands) / len(bands))
+
+
 def estimate_listening_band(listening_history: list[dict]) -> float:
     """Weighted-accuracy → band, treating untouched types as 0.0.
 
@@ -131,7 +156,13 @@ def build_snapshot(user: dict) -> dict:
     listening_accuracy = _listening_accuracy_by_type(listening_history)
     listening_band = estimate_listening_band(listening_history)
 
-    overall = _clamp_band((vocab_band + writing_band + listening_band) / 3.0)
+    reading_sessions = firebase_service.list_reading_sessions(user_id, limit=20)
+    reading_band = estimate_reading_band(reading_sessions)
+    reading_sample = sum(1 for s in reading_sessions if s.get("status") == "submitted")
+
+    overall = _clamp_band(
+        (vocab_band + writing_band + listening_band + reading_band) / 4.0
+    )
 
     return {
         "overall_band": overall,
@@ -153,6 +184,10 @@ def build_snapshot(user: dict) -> dict:
                 "accuracy_by_type": {
                     t: round(acc, 3) for t, acc in listening_accuracy.items()
                 },
+            },
+            "reading": {
+                "band": reading_band,
+                "sample_size": reading_sample,
             },
         },
         "target_band": float(user.get("target_band", 7.0)),

@@ -66,13 +66,45 @@ class TestPlanGeneration:
         assert "sprint_quiz" in ids
 
     def test_writing_rotates_by_day(self):
+        """Odd-parity days run the writing big-block (reading runs on even days —
+        see test_reading_vs_writing_alternate)."""
+        user = {"id": "u1"}
+        w = _fresh_weakness()
+        # 2026-04-19 and 2026-04-21 are both odd ordinals, so both plans
+        # carry writing — but the task_type rotates by inner parity.
+        # Using two even-delta days keeps this a writing-vs-writing check.
+        p_a = plan_service.generate_plan(user, w, today=date(2026, 4, 19))
+        p_b = plan_service.generate_plan(user, w, today=date(2026, 4, 21))
+        wa = next(a for a in p_a["activities"] if a["type"] == "writing")
+        wb = next(a for a in p_b["activities"] if a["type"] == "writing")
+        assert wa["meta"]["task_type"] != wb["meta"]["task_type"]
+
+    def test_reading_picks_band_matched_passage(self):
+        """AC1: target_band=6.5 user should see a passage within 6.0–7.0."""
+        user = {"id": "u1", "target_band": 6.5}
+        w = _fresh_weakness()
+        # Even ordinal day → reading is active
+        plan = plan_service.generate_plan(user, w, today=date(2026, 4, 18))
+        reading = next(
+            (a for a in plan["activities"] if a["type"] == "reading"),
+            None,
+        )
+        assert reading is not None, "reading activity expected on even-ordinal day"
+        assert 6.0 <= reading["meta"]["band"] <= 7.0
+        assert reading["route"].startswith("/reading/")
+
+    def test_reading_vs_writing_alternate(self):
+        """Reading runs on even ordinal days, writing on odd (US-M9.5)."""
         user = {"id": "u1"}
         w = _fresh_weakness()
         p_even = plan_service.generate_plan(user, w, today=date(2026, 4, 18))
         p_odd = plan_service.generate_plan(user, w, today=date(2026, 4, 19))
-        e = next(a for a in p_even["activities"] if a["type"] == "writing")
-        o = next(a for a in p_odd["activities"] if a["type"] == "writing")
-        assert e["meta"]["task_type"] != o["meta"]["task_type"]
+        even_types = [a["type"] for a in p_even["activities"]]
+        odd_types = [a["type"] for a in p_odd["activities"]]
+        # On days when a seeded corpus is present, the even-parity day
+        # carries reading (not writing); the odd-parity day carries writing.
+        assert ("reading" in even_types) != ("reading" in odd_types)
+        assert "writing" in odd_types
 
     def test_listening_picks_weakest_type(self):
         user = {"id": "u1"}

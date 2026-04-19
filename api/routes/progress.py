@@ -22,12 +22,14 @@ def _to_trend_point(doc: dict) -> TrendPoint:
     vocab = (skills.get("vocabulary") or {}).get("band", 0.0)
     writing = (skills.get("writing") or {}).get("band", 0.0)
     listening = (skills.get("listening") or {}).get("band", 0.0)
+    reading = (skills.get("reading") or {}).get("band", 0.0)
     return TrendPoint(
         date=doc.get("date", ""),
         overall_band=float(doc.get("overall_band", 0.0)),
         vocabulary_band=float(vocab),
         writing_band=float(writing),
         listening_band=float(listening),
+        reading_band=float(reading),
     )
 
 

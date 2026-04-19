@@ -15,12 +15,11 @@ const SKILLS: Array<{
   label: string
   iconName: 'PenLine' | 'Headphones' | 'BookOpen' | 'FileText'
   to: string
-  placeholder?: boolean
 }> = [
   { key: 'writing', label: 'Writing', iconName: 'PenLine', to: '/write' },
   { key: 'listening', label: 'Listening', iconName: 'Headphones', to: '/listening' },
   { key: 'vocabulary', label: 'Vocab', iconName: 'BookOpen', to: '/vocab' },
-  { key: 'reading', label: 'Reading', iconName: 'FileText', to: '/', placeholder: true },
+  { key: 'reading', label: 'Reading', iconName: 'FileText', to: '/reading' },
 ]
 
 export default function ReadinessStrip({ progress }: Props) {
@@ -42,20 +41,17 @@ export default function ReadinessStrip({ progress }: Props) {
 
       <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:px-0 md:pb-0">
         {SKILLS.map((s) => {
-          const card = s.placeholder
+          const card = progress
             ? {
-                band: 0,
-                target,
-                delta: 0,
-                subline: 'M9 — 2027',
-              }
-            : progress
-            ? {
-                band: progress.snapshot.skills[s.key as 'writing' | 'listening' | 'vocabulary'].band,
+                band: progress.snapshot.skills[s.key].band,
                 target,
                 delta: deltaFrom(
                   progress.trend,
-                  `${s.key}_band` as 'writing_band' | 'listening_band' | 'vocabulary_band',
+                  `${s.key}_band` as
+                    | 'writing_band'
+                    | 'listening_band'
+                    | 'vocabulary_band'
+                    | 'reading_band',
                 ),
                 subline: undefined,
               }
@@ -66,14 +62,9 @@ export default function ReadinessStrip({ progress }: Props) {
               key={s.key}
               to={s.to}
               onClick={() =>
-                !s.placeholder &&
                 track('dashboard_readiness_card_click', { skill: s.key })
               }
-              aria-disabled={s.placeholder || undefined}
-              tabIndex={s.placeholder ? -1 : 0}
-              className={`min-w-[220px] snap-start rounded-xl md:min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                s.placeholder ? 'pointer-events-none' : ''
-              }`}
+              className="min-w-[220px] snap-start rounded-xl md:min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <SkillBandCard
                 iconName={s.iconName}
@@ -82,7 +73,6 @@ export default function ReadinessStrip({ progress }: Props) {
                 target={card.target}
                 delta={card.delta}
                 subline={card.subline}
-                placeholder={s.placeholder}
               />
             </Link>
           )
