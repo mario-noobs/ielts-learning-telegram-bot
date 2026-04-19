@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import BandRing from '../components/BandRing'
@@ -13,6 +14,7 @@ import {
 } from '../lib/progress'
 
 export default function ProgressPage() {
+  const { t } = useTranslation(['progress', 'common'])
   const [data, setData] = useState<ProgressResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,22 +57,22 @@ export default function ProgressPage() {
           to="/settings"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
-          Đổi mục tiêu
+          {t('progress:changeTargetLink')}
         </Link>
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-fg">Band Progress</h1>
-        <p className="text-sm text-muted-fg">
-          Cập nhật từ bài nghe, viết, và từ vựng của bạn.
-        </p>
+        <h1 className="text-2xl font-bold text-fg">{t('progress:heading')}</h1>
+        <p className="text-sm text-muted-fg">{t('progress:subline')}</p>
       </div>
 
       <div className="bg-surface-raised rounded-2xl border border-border p-5 flex flex-col sm:flex-row items-center gap-4">
         <BandRing band={snapshot.overall_band} target={target} />
         <div className="flex-1 text-center sm:text-left space-y-1">
           <p className="text-sm text-muted-fg">
-            Cách mục tiêu {(target - snapshot.overall_band).toFixed(1)} band
+            {t('progress:distanceToTarget', {
+              gap: (target - snapshot.overall_band).toFixed(1),
+            })}
           </p>
           {eta && <p className="text-sm text-primary font-medium">{eta}</p>}
           {predictions.length > 0 && (
@@ -80,7 +82,9 @@ export default function ProgressPage() {
                   key={p.days_ahead}
                   className="bg-surface rounded-lg p-2 border border-border"
                 >
-                  <p className="text-muted-fg">+{p.days_ahead} ngày</p>
+                  <p className="text-muted-fg">
+                    {t('progress:daysAhead', { days: p.days_ahead })}
+                  </p>
                   <p className="text-base font-semibold text-fg">
                     {p.projected_band.toFixed(1)}
                   </p>
@@ -94,34 +98,37 @@ export default function ProgressPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <SkillBandCard
           iconName="BookOpen"
-          label="Vocabulary"
+          label={t('common:skills.vocabulary')}
           band={snapshot.skills.vocabulary.band}
           target={target}
           delta={deltaFrom(trend, 'vocabulary_band')}
-          subline={`${snapshot.skills.vocabulary.total_words} từ · ${snapshot.skills.vocabulary.mastered_count} đã thuộc`}
+          subline={t('progress:vocabSubline', {
+            words: snapshot.skills.vocabulary.total_words,
+            mastered: snapshot.skills.vocabulary.mastered_count,
+          })}
         />
         <SkillBandCard
           iconName="PenLine"
-          label="Writing"
+          label={t('common:skills.writing')}
           band={snapshot.skills.writing.band}
           target={target}
           delta={deltaFrom(trend, 'writing_band')}
           subline={
             snapshot.skills.writing.sample_size > 0
-              ? `Trung bình ${snapshot.skills.writing.sample_size} bài gần nhất`
-              : 'Chưa có bài viết nào'
+              ? t('progress:writingAvgOf', { count: snapshot.skills.writing.sample_size })
+              : t('progress:empty.writing')
           }
         />
         <SkillBandCard
           iconName="Headphones"
-          label="Listening"
+          label={t('common:skills.listening')}
           band={snapshot.skills.listening.band}
           target={target}
           delta={deltaFrom(trend, 'listening_band')}
           subline={
             snapshot.skills.listening.sample_size > 0
-              ? `${snapshot.skills.listening.sample_size} bài đã chấm`
-              : 'Chưa có bài nghe nào'
+              ? t('progress:listeningChecked', { count: snapshot.skills.listening.sample_size })
+              : t('progress:empty.listening')
           }
         />
         <SkillBandCard
@@ -134,7 +141,9 @@ export default function ProgressPage() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-fg mb-2">Xu hướng 30 ngày</h2>
+        <h2 className="text-sm font-semibold text-fg mb-2">
+          {t('progress:trendHeading')}
+        </h2>
         <BandTrendChart trend={trend} target={target} />
       </div>
 

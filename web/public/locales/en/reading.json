@@ -1,0 +1,55 @@
+{
+  "heading": "Reading Lab",
+  "subline": "Pick a passage at your target band. Each session is 20 minutes with 13 questions.",
+  "filters": {
+    "band": "Band:",
+    "topic": "Topic:",
+    "all": "All"
+  },
+  "passageMeta": "{topic} · Band {band} · {count} words",
+  "errorLoad": "Couldn't load the passage.",
+  "backLink": "← Reading Lab",
+  "tabs": {
+    "passage": "Passage",
+    "questions": "Questions ({answered}/{total})"
+  },
+  "timerAria": "Remaining time",
+  "submitBtn": "Submit ({answered}/{total})",
+  "clearHighlights": "Clear highlights ({count})",
+  "questionTypeLabel": {
+    "gap-fill": "Gap fill",
+    "tfng": "True / False / Not given",
+    "matching-headings": "Match headings",
+    "mcq": "Multiple choice"
+  },
+  "answerPlaceholder": "Type your answer",
+  "tfng": {
+    "TRUE": "True",
+    "FALSE": "False",
+    "NOT_GIVEN": "Not given"
+  },
+  "confirmSubmit": {
+    "title": "Submit now?",
+    "description": "You've answered {answered} of {total} questions. You can't go back after submitting.",
+    "keepGoing": "Keep going",
+    "submit": "Submit"
+  },
+  "review": {
+    "resultFor": "Result · {title}",
+    "estimatedBand": "Estimated band",
+    "correctCount": "{correct} / {total}",
+    "correctPct": "Correct ({pct}%)",
+    "perQuestionHeading": "Per-question details",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "yourAnswer": "Your answer:",
+    "correctAnswer": "Correct answer:",
+    "blank": "(blank)",
+    "otherPassageBtn": "Another passage",
+    "viewProgressBtn": "View progress"
+  },
+  "empty": {
+    "title": "No matching passages",
+    "description": "Try a different band or topic."
+  }
+}

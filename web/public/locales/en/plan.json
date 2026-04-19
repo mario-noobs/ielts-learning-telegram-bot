@@ -1,0 +1,41 @@
+{
+  "activity": {
+    "srs_review": {
+      "title": "Review due words",
+      "description": "{count, plural, one {# word due today} other {# words due today}}"
+    },
+    "daily_words": {
+      "title": "10 new words today",
+      "description": "Vocabulary at your target band"
+    },
+    "listening": {
+      "title": {
+        "dictation": "Dictation",
+        "gap_fill": "Gap fill",
+        "comprehension": "Listening comprehension"
+      },
+      "description": "Listening practice at your target band"
+    },
+    "reading": {
+      "title": "Reading · 20m",
+      "description": "Band {band} · {title}"
+    },
+    "writing": {
+      "title": {
+        "task1": "Write IELTS Task 1",
+        "task2": "Write IELTS Task 2"
+      },
+      "description": "AI-graded feedback"
+    },
+    "sprint_quiz": {
+      "title": "Quick flashcards",
+      "description": "5 random cards to keep your streak"
+    }
+  },
+  "card": {
+    "ariaMarkDone": "Mark complete: {title}",
+    "ariaCompleted": "{title} — completed",
+    "ariaOpen": "Open {title}",
+    "minutesSuffix": "{count} min"
+  }
+}

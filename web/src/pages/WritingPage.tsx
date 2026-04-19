@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { clearDraft, formatTimeVi, loadDraft, useAutosave } from '../lib/autosave'
@@ -70,12 +71,14 @@ function PromptCard({
   loading,
   onGenerate,
   visualization,
+  t,
 }: {
   prompt: string
   typewriter: string
   loading: boolean
   onGenerate: () => void
   visualization: Task1Visualization | null
+  t: (k: string) => string
 }) {
   const display = loading || !prompt ? typewriter : prompt
   return (
@@ -83,18 +86,18 @@ function PromptCard({
       <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-primary uppercase tracking-wide">
-            Đề bài
+            {t('promptHeading')}
           </h2>
           <button
             onClick={onGenerate}
             disabled={loading}
             className="text-xs text-primary hover:text-primary-hover underline disabled:opacity-50"
           >
-            {prompt ? 'Đề khác' : 'Tạo đề'}
+            {prompt ? t('differentPromptBtn') : t('generatePromptBtn')}
           </button>
         </div>
         <p className="text-fg whitespace-pre-line min-h-[3rem]">
-          {display || 'Chưa có đề. Bấm "Tạo đề" để bắt đầu.'}
+          {display || t('promptEmpty')}
         </p>
       </div>
       {visualization && prompt && <TaskVisualization viz={visualization} />}
@@ -103,6 +106,7 @@ function PromptCard({
 }
 
 export default function WritingPage() {
+  const { t } = useTranslation('writing')
   const [searchParams] = useSearchParams()
   const reviseOf = searchParams.get('reviseOf')
 
@@ -265,13 +269,13 @@ export default function WritingPage() {
       <div className="max-w-3xl mx-auto p-4 space-y-4">
         <div className="flex items-center justify-between">
           <Link to="/write/history" className="text-sm text-muted-fg hover:text-fg">
-            Lịch sử bài viết
+            {t('history.heading')}
           </Link>
           <Link
             to="/write"
             className="text-sm text-primary hover:text-primary-hover font-medium"
           >
-            Viết bài mới
+            {t('history.newEssayBtn')}
           </Link>
         </div>
         {delta !== null && delta !== undefined && (
@@ -283,11 +287,9 @@ export default function WritingPage() {
             }`}
           >
             <p className="font-medium text-fg">
-              Thay đổi so với bản gốc:{' '}
-              <span className={delta >= 0 ? 'text-success' : 'text-danger'}>
-                {delta > 0 ? '+' : ''}
-                {delta.toFixed(1)} band
-              </span>
+              {t('detail.deltaLabel', {
+                delta: `${delta > 0 ? '+' : ''}${delta.toFixed(1)} band`,
+              })}
             </p>
           </div>
         )}
@@ -307,9 +309,8 @@ export default function WritingPage() {
         <span className="font-mono tabular-nums">{formatDuration(elapsed)}</span>
         <span>
           <span className={wordCount < MIN_WORDS ? 'text-danger' : 'text-success'}>
-            {wordCount}
-          </span>{' '}
-          từ
+            {t('wordCount', { count: wordCount })}
+          </span>
         </span>
       </div>
 
@@ -327,6 +328,7 @@ export default function WritingPage() {
         loading={promptLoading}
         onGenerate={generatePrompt}
         visualization={visualization}
+        t={t}
       />
 
       {error && (
@@ -346,28 +348,34 @@ export default function WritingPage() {
               if (!startedAt && e.target.value.length > 0) setStartedAt(Date.now())
             }}
             disabled={submitting}
-            placeholder="Bắt đầu viết tại đây..."
-            aria-label="Nội dung bài viết"
+            placeholder={t('editorPlaceholder')}
+            aria-label={t('editorAria')}
             className="w-full min-h-[360px] p-4 bg-surface-raised rounded-xl border border-border focus:border-primary focus:outline-none text-fg leading-relaxed disabled:opacity-60"
           />
 
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-fg">
-              {draftSavedAt ? `Đã lưu nháp lúc ${formatTimeVi(draftSavedAt)}` : `Tự động lưu nháp sau ${MIN_WORDS} từ.`}
+              {draftSavedAt
+                ? t('draftSavedAt', { time: formatTimeVi(draftSavedAt) })
+                : t('draftAutosaveHint', { count: MIN_WORDS })}
             </span>
-            <WordTargetIndicator words={wordCount} target={IELTS_WORD_TARGET[taskType]} />
+            <WordTargetIndicator
+              words={wordCount}
+              target={IELTS_WORD_TARGET[taskType]}
+              t={t}
+            />
           </div>
 
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-fg">
-              Tối thiểu {MIN_WORDS} từ để nộp bài.
+              {t('minWords', { count: MIN_WORDS })}
             </p>
             <button
               onClick={submit}
               disabled={!canSubmit}
               className="px-6 py-2 min-h-[44px] bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
             >
-              Nộp bài
+              {submitting ? t('submittingBtn') : t('submitBtn')}
             </button>
           </div>
         </>
@@ -376,14 +384,22 @@ export default function WritingPage() {
   )
 }
 
-function WordTargetIndicator({ words, target }: { words: number; target: number }) {
+function WordTargetIndicator({
+  words,
+  target,
+  t,
+}: {
+  words: number
+  target: number
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
   const pct = Math.min(100, (words / target) * 100)
   const status =
     pct >= 100 ? 'success' : pct >= 50 ? 'warning' : 'danger'
   const message =
     pct >= 100
-      ? `Đạt mục tiêu ${target} từ`
-      : `${target - words} từ nữa đạt mục tiêu ${target}`
+      ? t('wordTargetReached', { target })
+      : t('wordTargetRemaining', { remaining: target - words, target })
   const barClass = status === 'success' ? 'bg-success' : status === 'warning' ? 'bg-warning' : 'bg-danger'
   const textClass = status === 'success' ? 'text-success' : status === 'warning' ? 'text-warning' : 'text-danger'
   return (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import EmptyState from '../components/EmptyState'
@@ -36,26 +37,17 @@ interface TopicsResponse {
   total_words: number
 }
 
-const STRENGTH_FILTERS: { key: Strength; label: string }[] = [
-  { key: 'Weak', label: 'Yếu' },
-  { key: 'Learning', label: 'Đang học' },
-  { key: 'Good', label: 'Tốt' },
-  { key: 'Mastered', label: 'Thạo' },
-]
+const STRENGTH_FILTER_KEYS: Strength[] = ['Weak', 'Learning', 'Good', 'Mastered']
 
-const TOPIC_NAMES_VI: Record<string, string> = {
-  education: 'Giáo dục & Học tập',
-  environment: 'Môi trường & Thiên nhiên',
-  technology: 'Công nghệ & Đổi mới',
-  health: 'Sức khỏe & Wellbeing',
-  society: 'Xã hội & Văn hóa',
-  economy: 'Kinh tế & Kinh doanh',
-  government: 'Chính phủ & Pháp luật',
-  media: 'Truyền thông & Giao tiếp',
-  science: 'Khoa học & Nghiên cứu',
-  travel: 'Du lịch',
-  food: 'Ẩm thực & Nông nghiệp',
-  arts: 'Nghệ thuật & Sáng tạo',
+// Topic names now come from vocab:topicNames.<slug> so they follow the
+// active locale. Falls back to the API-supplied topic.name (which is
+// English from the backend) when no translation exists.
+function topicLabel(
+  slug: string,
+  apiName: string,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string {
+  return t(`topicNames.${slug}`, { defaultValue: apiName })
 }
 
 const STRENGTH_STYLES: Record<Strength, string> = {
@@ -64,14 +56,6 @@ const STRENGTH_STYLES: Record<Strength, string> = {
   Learning: 'bg-warning/10 text-warning',
   Good: 'bg-success/10 text-success',
   Mastered: 'bg-primary/10 text-primary',
-}
-
-const STRENGTH_LABELS_VI: Record<Strength, string> = {
-  New: 'Mới',
-  Weak: 'Yếu',
-  Learning: 'Đang học',
-  Good: 'Tốt',
-  Mastered: 'Thạo',
 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
@@ -89,14 +73,15 @@ function TopicCard({
   masteredPct,
   selected,
   onClick,
+  t,
 }: {
   topic: TopicSummary
   count: number
   masteredPct: number
   selected: boolean
   onClick: () => void
+  t: (k: string, o?: Record<string, unknown>) => string
 }) {
-  const nameVi = TOPIC_NAMES_VI[topic.id] ?? topic.name
   return (
     <button
       onClick={onClick}
@@ -104,21 +89,22 @@ function TopicCard({
         selected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-border'
       }`}
     >
-      <p className="font-medium text-fg">{nameVi}</p>
-      <p className="text-xs text-muted-fg">{topic.name}</p>
-      <p className="text-sm text-muted-fg mt-2">{count} từ</p>
+      <p className="font-medium text-fg">{topicLabel(topic.id, topic.name, t)}</p>
+      <p className="text-sm text-muted-fg mt-2">{t('wordCount', { count })}</p>
       <div className="mt-3 h-1.5 bg-surface rounded-full overflow-hidden">
         <div
           className="h-full bg-primary"
           style={{ width: `${masteredPct}%` }}
         />
       </div>
-      <p className="text-xs text-muted-fg mt-1">{Math.round(masteredPct)}% thạo</p>
+      <p className="text-xs text-muted-fg mt-1">
+        {t('masteryPct', { pct: Math.round(masteredPct) })}
+      </p>
     </button>
   )
 }
 
-function WordCard({ word }: { word: VocabularyWord }) {
+function WordCard({ word, t }: { word: VocabularyWord; t: (k: string) => string }) {
   return (
     <Link
       to={`/vocab/${encodeURIComponent(word.word)}`}
@@ -132,7 +118,7 @@ function WordCard({ word }: { word: VocabularyWord }) {
         <div className="flex items-center gap-2 shrink-0">
           <PronunciationButton word={word.word} compact />
           <span className={`text-xs px-2 py-0.5 rounded-full ${STRENGTH_STYLES[word.strength]}`}>
-            {STRENGTH_LABELS_VI[word.strength]}
+            {t(`strength.${word.strength}`)}
           </span>
         </div>
       </div>
@@ -141,7 +127,7 @@ function WordCard({ word }: { word: VocabularyWord }) {
       )}
       {word.topic && (
         <span className="inline-block mt-2 text-xs bg-surface text-muted-fg px-2 py-0.5 rounded">
-          {TOPIC_NAMES_VI[word.topic] ?? word.topic}
+          {topicLabel(word.topic, word.topic, t)}
         </span>
       )}
     </Link>
@@ -149,6 +135,7 @@ function WordCard({ word }: { word: VocabularyWord }) {
 }
 
 export default function VocabHomePage() {
+  const { t } = useTranslation('vocab')
   const [words, setWords] = useState<VocabularyWord[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [topics, setTopics] = useState<TopicSummary[]>([])
@@ -236,7 +223,7 @@ export default function VocabHomePage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Từ vựng</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('heading')}</h1>
 
       {error && (
         <div className="bg-danger/10 border-l-4 border-danger p-4 rounded-lg mb-4">
@@ -245,26 +232,27 @@ export default function VocabHomePage() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Tổng số từ" value={loading ? '—' : stats.total} />
-        <StatCard label="Đến hạn ôn" value={loading ? '—' : stats.due} />
-        <StatCard label="Streak" value="—" />
-        <StatCard label="Đã thạo" value={loading ? '—' : stats.mastered} />
+        <StatCard label={t('stats.total')} value={loading ? '—' : stats.total} />
+        <StatCard label={t('stats.due')} value={loading ? '—' : stats.due} />
+        <StatCard label={t('stats.streak')} value="—" />
+        <StatCard label={t('stats.mastered')} value={loading ? '—' : stats.mastered} />
       </div>
 
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Chủ đề</h2>
+        <h2 className="text-lg font-semibold mb-3">{t('topicsHeading')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {topics.map((t) => {
-            const entry = topicCounts.get(t.id) ?? { count: 0, mastered: 0 }
+          {topics.map((topic) => {
+            const entry = topicCounts.get(topic.id) ?? { count: 0, mastered: 0 }
             const pct = entry.count === 0 ? 0 : (entry.mastered / entry.count) * 100
             return (
               <TopicCard
-                key={t.id}
-                topic={t}
+                key={topic.id}
+                topic={topic}
                 count={entry.count}
                 masteredPct={pct}
-                selected={selectedTopic === t.id}
-                onClick={() => setSelectedTopic((cur) => (cur === t.id ? null : t.id))}
+                selected={selectedTopic === topic.id}
+                onClick={() => setSelectedTopic((cur) => (cur === topic.id ? null : topic.id))}
+                t={t}
               />
             )
           })}
@@ -273,31 +261,31 @@ export default function VocabHomePage() {
 
       <section>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <h2 className="text-lg font-semibold">Danh sách từ</h2>
+          <h2 className="text-lg font-semibold">{t('listHeading')}</h2>
           <input
             type="search"
             value={searchRaw}
             onChange={(e) => setSearchRaw(e.target.value)}
-            placeholder="Tìm từ, nghĩa..."
+            placeholder={t('search.placeholder')}
             className="w-full md:w-72 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-surface-raised text-fg"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          {STRENGTH_FILTERS.map((f) => (
+          {STRENGTH_FILTER_KEYS.map((key) => (
             <button
-              key={f.key}
+              key={key}
               onClick={() =>
-                setSelectedStrength((cur) => (cur === f.key ? null : f.key))
+                setSelectedStrength((cur) => (cur === key ? null : key))
               }
-              aria-pressed={selectedStrength === f.key}
+              aria-pressed={selectedStrength === key}
               className={`text-sm px-3 py-2 min-h-[44px] rounded-full border transition-colors duration-base ${
-                selectedStrength === f.key
+                selectedStrength === key
                   ? 'bg-primary text-primary-fg border-primary'
                   : 'bg-surface-raised text-fg border-border hover:border-primary/60'
               }`}
             >
-              {f.label}
+              {t(`strength.${key}`)}
             </button>
           ))}
           {selectedTopic && (
@@ -305,11 +293,16 @@ export default function VocabHomePage() {
               onClick={() => setSelectedTopic(null)}
               className="text-sm px-3 py-1 rounded-full bg-surface text-fg hover:bg-border"
             >
-              Bỏ lọc: {TOPIC_NAMES_VI[selectedTopic] ?? selectedTopic} ×
+              {t('filters.clearTopic', {
+                name: topicLabel(selectedTopic, selectedTopic, t),
+              })} ×
             </button>
           )}
           <span className="text-sm text-muted-fg ml-auto">
-            {filteredWords.length} / {words.length} từ
+            {t('filters.countOfTotal', {
+              filtered: filteredWords.length,
+              total: words.length,
+            })}
           </span>
         </div>
 
@@ -326,17 +319,17 @@ export default function VocabHomePage() {
           words.length === 0 ? (
             <EmptyState
               illustration="empty-vocab"
-              title="Chưa có từ vựng nào"
-              description="Học từ qua Telegram bot hoặc bắt đầu một bài quiz để thêm từ đầu tiên."
-              primaryAction={{ label: 'Bắt đầu ôn tập', to: '/review' }}
+              title={t('empty.noWords.title')}
+              description={t('empty.noWords.description')}
+              primaryAction={{ label: t('empty.noWords.cta'), to: '/review' }}
             />
           ) : (
             <EmptyState
               illustration="empty-vocab"
-              title="Không có từ phù hợp"
-              description="Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm."
+              title={t('empty.noMatch.title')}
+              description={t('empty.noMatch.description')}
               primaryAction={{
-                label: 'Xoá bộ lọc',
+                label: t('empty.noMatch.cta'),
                 onClick: () => {
                   setSelectedTopic(null)
                   setSelectedStrength(null)
@@ -348,7 +341,7 @@ export default function VocabHomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredWords.map((w) => (
-              <WordCard key={w.id} word={w} />
+              <WordCard key={w.id} word={w} t={t} />
             ))}
           </div>
         )}
@@ -360,7 +353,7 @@ export default function VocabHomePage() {
               disabled={loadingMore}
               className="px-4 py-2 bg-primary text-primary-fg rounded-lg hover:bg-primary-hover disabled:opacity-50"
             >
-              {loadingMore ? 'Đang tải...' : 'Tải thêm'}
+              {loadingMore ? t('loadingMore') : t('loadMore')}
             </button>
           </div>
         )}

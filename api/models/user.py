@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+Locale = Literal["en", "vi"]
 
 
 class UserCreate(BaseModel):
@@ -24,6 +28,7 @@ class UserProfile(BaseModel):
     challenge_wins: int = 0
     exam_date: str | None = None
     weekly_goal_minutes: int = 150
+    preferred_locale: Locale | None = None
 
 
 class UserUpdate(BaseModel):
@@ -35,3 +40,4 @@ class UserUpdate(BaseModel):
         description="ISO date (YYYY-MM-DD) or empty string to clear",
     )
     weekly_goal_minutes: int | None = Field(default=None, ge=30, le=2000)
+    preferred_locale: Locale | None = None

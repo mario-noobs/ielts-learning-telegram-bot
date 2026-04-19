@@ -1,0 +1,96 @@
+{
+  "heading": "Vocabulary",
+  "topicNames": {
+    "education": "Education & Learning",
+    "environment": "Environment & Nature",
+    "technology": "Technology & Innovation",
+    "health": "Health & Wellbeing",
+    "society": "Society & Culture",
+    "economy": "Economy & Business",
+    "government": "Government & Law",
+    "media": "Media & Communication",
+    "science": "Science & Research",
+    "travel": "Travel & Tourism",
+    "food": "Food & Agriculture",
+    "arts": "Arts & Creativity"
+  },
+  "listHeading": "Word list",
+  "topicsHeading": "Topics",
+  "wordCount": "{count} words",
+  "masteryPct": "{pct}% mastered",
+  "stats": {
+    "total": "Total words",
+    "due": "Due for review",
+    "streak": "Streak",
+    "mastered": "Mastered"
+  },
+  "search": {
+    "placeholder": "Search words, meanings…"
+  },
+  "strength": {
+    "New": "New",
+    "Weak": "Weak",
+    "Learning": "Learning",
+    "Good": "Good",
+    "Mastered": "Mastered"
+  },
+  "filters": {
+    "clearTopic": "Clear topic: {name}",
+    "countOfTotal": "{filtered} of {total} words"
+  },
+  "loadMore": "Load more",
+  "loadingMore": "Loading…",
+  "empty": {
+    "noWords": {
+      "title": "No vocabulary yet",
+      "description": "Learn via Telegram bot or start a quiz to add your first word.",
+      "cta": "Start reviewing"
+    },
+    "noMatch": {
+      "title": "No matching words",
+      "description": "Try removing a filter or changing your search.",
+      "cta": "Clear filters"
+    }
+  },
+  "review": {
+    "heading": "Flashcard review",
+    "intro": "Review due words with multiple-choice and fill-in-the-blank questions.",
+    "cardAria": "Fill in the right word",
+    "placeholder": "e.g. abandon",
+    "startBtn": "Start",
+    "startingBtn": "Loading…",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "correctTitle": "Correct!",
+    "incorrectTitle": "Not quite",
+    "continueBtn": "Continue",
+    "seeResultsBtn": "See results",
+    "continueHint": "(Space)",
+    "resultsHeading": "Results",
+    "reviewAgainBtn": "Review more",
+    "backToVocabBtn": "Back to vocabulary",
+    "progressAria": "Question {current} of {total}",
+    "mcqOptionAria": "Option {letter}: {text}",
+    "noQuestions": "No questions available right now.",
+    "keyboardHint": "Tip: press {keys}",
+    "nextReviewIn": {
+      "now": "now",
+      "inMinutes": "in {count} min",
+      "inHours": "in {count} h",
+      "inDays": "in {count} d"
+    },
+    "noDueWords": {
+      "title": "No words due for review",
+      "description": "Add new vocabulary or wait for SRS to bring cards back in a few hours.",
+      "cta": "Add vocabulary"
+    }
+  },
+  "detail": {
+    "pronunciation": "Pronunciation",
+    "meaning": "Meaning",
+    "examplesByBand": "Examples by band",
+    "similarWords": "Similar words",
+    "addedOn": "Added on {date}",
+    "nextReview": "Next review: {when}"
+  }
+}

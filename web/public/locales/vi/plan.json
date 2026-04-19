@@ -1,0 +1,41 @@
+{
+  "activity": {
+    "srs_review": {
+      "title": "Ôn từ đến hạn",
+      "description": "Có {count} từ cần ôn hôm nay"
+    },
+    "daily_words": {
+      "title": "10 từ mới hôm nay",
+      "description": "Học từ vựng theo band mục tiêu"
+    },
+    "listening": {
+      "title": {
+        "dictation": "Dictation",
+        "gap_fill": "Gap Fill",
+        "comprehension": "Listening Comprehension"
+      },
+      "description": "Luyện nghe ở band mục tiêu"
+    },
+    "reading": {
+      "title": "Luyện Reading 20m",
+      "description": "Band {band} · {title}"
+    },
+    "writing": {
+      "title": {
+        "task1": "Viết IELTS Task 1",
+        "task2": "Viết IELTS Task 2"
+      },
+      "description": "Chấm tự động với AI"
+    },
+    "sprint_quiz": {
+      "title": "Flashcard nhanh",
+      "description": "5 câu ngẫu nhiên để duy trì streak"
+    }
+  },
+  "card": {
+    "ariaMarkDone": "Đánh dấu hoàn thành: {title}",
+    "ariaCompleted": "{title} — đã hoàn thành",
+    "ariaOpen": "Mở {title}",
+    "minutesSuffix": "{count} phút"
+  }
+}

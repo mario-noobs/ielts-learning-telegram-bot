@@ -16,7 +16,13 @@ export const NAMESPACES = [
   'common',
   'dashboard',
   'landing',
+  'listening',
+  'plan',
+  'progress',
+  'reading',
   'settings',
+  'vocab',
+  'writing',
 ] as const
 
 const LANG_STORAGE_KEY = 'ieltscoach_lang_v1'

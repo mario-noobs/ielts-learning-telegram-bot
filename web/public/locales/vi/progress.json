@@ -1,0 +1,39 @@
+{
+  "heading": "Band Progress",
+  "subline": "Cập nhật từ bài nghe, viết, và từ vựng của bạn.",
+  "changeTargetLink": "Đổi mục tiêu",
+  "distanceToTarget": "Cách mục tiêu {gap} band",
+  "daysAhead": "+{days} ngày",
+  "vocabSubline": "{words} từ · {mastered} đã thuộc",
+  "writingAvgOf": "Trung bình {count} bài gần nhất",
+  "listeningChecked": "{count} bài đã chấm",
+  "readingAvgOf": "Trung bình {count} phiên gần nhất",
+  "overallBand": "Band tổng",
+  "targetBand": "Mục tiêu: {band}",
+  "bandDelta30d": "Đổi 30 ngày",
+  "trendHeading": "Xu hướng 30 ngày",
+  "predictionsHeading": "Dự đoán",
+  "predictionItem": "Sau {days} ngày: {band}",
+  "skillsHeading": "Theo kỹ năng",
+  "recommendationsHeading": "Gợi ý của coach tuần này",
+  "recommendationsError": "Không tải được gợi ý: {error}",
+  "recommendationsEmpty": "Chưa có gợi ý cho tuần này.",
+  "recommendationsActionBySkill": {
+    "vocabulary": "Ôn tập từ vựng",
+    "writing": "Luyện Writing",
+    "listening": "Luyện nghe ngay",
+    "reading": "Luyện Reading",
+    "overall": "Bắt đầu ngay"
+  },
+  "empty": {
+    "writing": "Chưa có bài viết nào.",
+    "listening": "Chưa có bài nghe nào.",
+    "reading": "Chưa có bài đọc nào.",
+    "vocabulary": "Chưa có từ vựng nào."
+  },
+  "timeToTarget": {
+    "achieved": "Đã đạt mục tiêu",
+    "needMore": "Cần tăng nhịp luyện tập",
+    "estimate": "Dự kiến {days} ngày nữa"
+  }
+}

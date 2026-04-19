@@ -1,15 +1,21 @@
 {
+  "pageTitle": "Practice IELTS every day",
+  "pricingTitle": "Pricing",
   "nav": {
     "features": "Features",
     "pricing": "Pricing",
     "login": "Sign in",
-    "signup": "Start free"
+    "signup": "Start free",
+    "ariaLabel": "Landing navigation"
   },
   "hero": {
     "eyebrow": "AI-powered IELTS prep",
-    "title": "Practice IELTS in minutes a day, reach your target band faster",
-    "subtitle": "Writing feedback, listening drills, reading passages, and spaced-repetition vocabulary — personalised to your band goal.",
+    "title": "From 6.0 to 7.5 in 90 days",
+    "subtitleLine1": "Practice IELTS 20 minutes a day.",
+    "subtitleLine2": "AI grades your Writing and Speaking to your target band.",
     "ctaPrimary": "Start free",
-    "ctaSecondary": "See how it works"
+    "ctaPrimaryAria": "Start free — sign up with Google",
+    "ctaSecondary": "See a demo",
+    "socialProof": "2,000+ learners practising IELTS"
   }
 }

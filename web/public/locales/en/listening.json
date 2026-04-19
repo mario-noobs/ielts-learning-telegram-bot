@@ -1,0 +1,42 @@
+{
+  "heading": "Listening Gym",
+  "subline": "Practise listening at band {band}. {done, plural, one {# done today} other {# done today}}",
+  "historyLink": "History",
+  "types": {
+    "dictation": {
+      "title": "Dictation",
+      "hint": "Type what you hear, sentence by sentence.",
+      "duration": "2–3 min"
+    },
+    "gap_fill": {
+      "title": "Gap fill",
+      "hint": "Fill the missing words while the audio plays.",
+      "duration": "3–4 min"
+    },
+    "comprehension": {
+      "title": "Comprehension",
+      "hint": "Listen, then answer multiple-choice questions.",
+      "duration": "4–5 min"
+    }
+  },
+  "startBtn": "Start →",
+  "generatingBtn": "Generating…",
+  "exercise": {
+    "band": "Band {band}",
+    "estimated": "Estimated {time}",
+    "submitBtn": "Submit",
+    "submittedAt": "Submitted {date}"
+  },
+  "recentHeading": "Recent",
+  "history": {
+    "heading": "Listening history",
+    "newLink": "New session",
+    "empty": {
+      "title": "No listening sessions yet",
+      "description": "Pick a drill type in Listening Gym to start your first session.",
+      "cta": "Start practising"
+    },
+    "itemMeta": "{type} · Band {band} · {date}",
+    "notSubmitted": "Not submitted"
+  }
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { apiFetch } from '../lib/api'
 import { DailyPlan } from '../lib/plan'
 import type { ProgressResponse } from '../lib/progress'
@@ -46,6 +47,7 @@ async function getOrCreateProfile(): Promise<UserProfile> {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation('dashboard')
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [progress, setProgress] = useState<ProgressResponse | null>(null)
@@ -141,8 +143,8 @@ export default function DashboardPage() {
                     size="md"
                     variant={plan.exam_urgent ? 'danger' : 'warning'}
                   />
-                  Còn {plan.days_until_exam} ngày nữa đến IELTS
-                  {plan.exam_urgent && ' — tăng cường luyện tập!'}
+                  {t('examCountdown.days', { count: plan.days_until_exam })}
+                  {plan.exam_urgent && t('examCountdown.urgent')}
                 </span>
               </div>
             )}
@@ -158,10 +160,13 @@ export default function DashboardPage() {
                       id="todays-plan-heading"
                       className="font-semibold text-fg"
                     >
-                      Kế hoạch hôm nay
+                      {t('todaysPlan.heading')}
                     </h2>
                     <p className="text-xs text-muted-fg">
-                      {plan.total_minutes} phút · tối đa {plan.cap_minutes} phút
+                      {t('todaysPlan.subline', {
+                        total: plan.total_minutes,
+                        cap: plan.cap_minutes,
+                      })}
                     </p>
                   </div>
                   <ProgressRing
@@ -173,10 +178,13 @@ export default function DashboardPage() {
                 {allDone ? (
                   <EmptyState
                     illustration="plan-complete"
-                    title="Hoàn thành kế hoạch hôm nay!"
-                    description="Mai quay lại để tiếp tục streak nhé."
+                    title={t('todaysPlan.allDone.title')}
+                    description={t('todaysPlan.allDone.description')}
                     variant="celebration"
-                    primaryAction={{ label: 'Xem tiến độ', to: '/progress' }}
+                    primaryAction={{
+                      label: t('todaysPlan.allDone.cta'),
+                      to: '/progress',
+                    }}
                   />
                 ) : (
                   <div className="space-y-2">

@@ -1,0 +1,51 @@
+{
+  "heading": "Writing",
+  "newPromptBtn": "New prompt",
+  "generatePromptBtn": "Generate prompt",
+  "generatingBtn": "Generating…",
+  "differentPromptBtn": "Different prompt",
+  "submitBtn": "Submit",
+  "submittingBtn": "Submitting…",
+  "wordCount": "{count, plural, one {# word} other {# words}}",
+  "taskLabel": {
+    "task1": "Task 1",
+    "task2": "Task 2"
+  },
+  "promptEmpty": "No prompt yet. Click \"Generate prompt\" to start.",
+  "editorPlaceholder": "Start typing your essay here…",
+  "editorAria": "Essay body",
+  "promptHeading": "Prompt",
+  "minWords": "Minimum {count} words to submit.",
+  "draftSavedAt": "Draft saved at {time}",
+  "draftAutosaveHint": "Autosaves after {count} words.",
+  "wordTargetReached": "Target {target} words reached",
+  "wordTargetRemaining": "{remaining} words to target {target}",
+  "history": {
+    "heading": "Writing history",
+    "newEssayBtn": "New essay",
+    "newEssayLink": "New essay →",
+    "bandTrendHeading": "Band trend",
+    "revisedBadge": "Revised",
+    "submittedAt": "Submitted {date}",
+    "empty": {
+      "title": "No essays yet",
+      "description": "Practise Task 1 or Task 2 to receive band scores and detailed feedback.",
+      "cta": "Start writing"
+    }
+  },
+  "detail": {
+    "backToHistory": "← History",
+    "reviseBtn": "Revise",
+    "deltaLabel": "Δ vs. original: {delta}",
+    "scoresHeading": "Scores",
+    "feedbackHeading": "Feedback",
+    "annotationsHeading": "Paragraph annotations",
+    "summaryHeading": "Summary"
+  },
+  "criteria": {
+    "task_achievement": "Task Achievement",
+    "coherence_cohesion": "Coherence & Cohesion",
+    "lexical_resource": "Lexical Resource",
+    "grammatical_range_accuracy": "Grammatical Range & Accuracy"
+  }
+}
