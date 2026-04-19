@@ -36,7 +36,7 @@ class QuestionOption(BaseModel):
     text: str
 
 
-QuestionType = Literal["mcq", "tfng", "gap-fill", "matching"]
+QuestionType = Literal["mcq", "tfng", "gap-fill", "matching-headings"]
 
 
 class ReadingQuestion(BaseModel):

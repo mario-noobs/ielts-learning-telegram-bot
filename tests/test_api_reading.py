@@ -14,6 +14,16 @@ from services import reading_service
 FAKE_USER = {"id": "tester-1", "name": "Tester", "target_band": 7.0}
 
 
+def test_reading_question_model_accepts_all_service_types():
+    """Regression for the mismatch where the Literal listed 'matching'
+    but the service + prompt use 'matching-headings' — POST /sessions
+    500'd because pydantic rejected the AI-generated payload."""
+    from api.models.reading import ReadingQuestion
+
+    for qtype in ("mcq", "tfng", "gap-fill", "matching-headings"):
+        ReadingQuestion(id="q1", type=qtype, stem="?")  # must not raise
+
+
 @pytest.fixture(autouse=True)
 def _reset_rate_limit():
     from services import rate_limit_service
