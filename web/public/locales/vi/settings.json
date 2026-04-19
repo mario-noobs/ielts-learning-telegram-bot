@@ -1,0 +1,32 @@
+{
+  "heading": "Cài đặt",
+  "savedToast": "Đã lưu cài đặt.",
+  "theme": {
+    "label": "Giao diện",
+    "system": "Hệ thống",
+    "light": "Sáng",
+    "dark": "Tối"
+  },
+  "locale": {
+    "label": "Ngôn ngữ",
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  },
+  "examDate": {
+    "label": "Ngày thi IELTS",
+    "daysLeft": "Còn {count} ngày nữa.",
+    "urgentSuffix": " Kế hoạch sẽ tăng cường.",
+    "past": "Ngày đã qua.",
+    "clear": "Xóa ngày thi"
+  },
+  "weeklyGoal": {
+    "label": "Mục tiêu mỗi tuần (phút)",
+    "dailyAverage": "Trung bình {count} phút mỗi ngày."
+  },
+  "profile": {
+    "name": "Tên",
+    "email": "Email",
+    "targetBand": "Band mục tiêu",
+    "streak": "Streak"
+  }
+}

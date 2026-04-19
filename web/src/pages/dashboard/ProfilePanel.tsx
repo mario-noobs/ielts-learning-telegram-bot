@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Badge } from '../../components/ui'
 import Icon, { IconName } from '../../components/Icon'
 import type { ProgressResponse } from '../../lib/progress'
@@ -43,6 +44,7 @@ function trendVariant(t: StatRow['trend']): 'success' | 'danger' | 'muted' {
 }
 
 export default function ProfilePanel({ profile, progress }: Props) {
+  const { t } = useTranslation('dashboard')
   const bandDelta = progress ? deltaFrom(progress.trend, 'overall_band') : 0
   const writingSamples = progress?.snapshot.skills.writing.sample_size ?? 0
   const listeningSessions = progress?.snapshot.skills.listening.sample_size ?? 0
@@ -50,27 +52,27 @@ export default function ProfilePanel({ profile, progress }: Props) {
 
   const stats: StatRow[] = [
     {
-      label: 'Flashcard đã học',
+      label: t('profilePanel.stats.flashcards'),
       value: String(profile.total_words),
       trend: profile.total_words > 0 ? 'up' : 'flat',
     },
     {
-      label: 'Bài Writing đã nộp',
+      label: t('profilePanel.stats.writingSubmitted'),
       value: String(writingSamples),
       trend: writingSamples > 0 ? 'up' : 'flat',
     },
     {
-      label: 'Buổi Listening',
+      label: t('profilePanel.stats.listeningSessions'),
       value: String(listeningSessions),
       trend: listeningSessions > 0 ? 'up' : 'flat',
     },
     {
-      label: 'Bài Reading',
+      label: t('profilePanel.stats.readingSessions'),
       value: String(readingSessions),
       trend: readingSessions > 0 ? 'up' : 'flat',
     },
     {
-      label: 'Đổi band 30 ngày',
+      label: t('profilePanel.stats.bandDelta30d'),
       value: `${bandDelta > 0 ? '+' : ''}${bandDelta.toFixed(1)}`,
       trend: bandDelta > 0 ? 'up' : bandDelta < 0 ? 'down' : 'flat',
     },
@@ -82,7 +84,7 @@ export default function ProfilePanel({ profile, progress }: Props) {
       className="flex flex-col gap-4 lg:sticky lg:top-4"
     >
       <h2 id="profile-panel-heading" className="sr-only">
-        Thông tin của bạn
+        {t('profilePanel.statsHeading')}
       </h2>
 
       {/* Identity card */}
@@ -100,7 +102,7 @@ export default function ProfilePanel({ profile, progress }: Props) {
               <p className="truncate text-xs text-muted-fg">{profile.email}</p>
             )}
             <div className="mt-1">
-              <Badge variant="primary">Beta</Badge>
+              <Badge variant="primary">{t('profilePanel.beta')}</Badge>
             </div>
           </div>
         </div>
@@ -112,24 +114,25 @@ export default function ProfilePanel({ profile, progress }: Props) {
           <span aria-hidden="true" className="text-2xl">
             🔥
           </span>
-          <p className="text-sm font-semibold text-fg">Chuỗi ngày luyện</p>
+          <p className="text-sm font-semibold text-fg">
+            {t('profilePanel.streakHeading')}
+          </p>
         </div>
         <p className="mt-2 text-3xl font-bold text-fg">
-          {profile.streak}{' '}
-          <span className="text-sm font-medium text-muted-fg">
-            {profile.streak === 1 ? 'ngày' : 'ngày'}
-          </span>
+          {t('profilePanel.streakDays', { count: profile.streak })}
         </p>
         {profile.streak === 0 && (
           <p className="mt-1 text-xs text-muted-fg">
-            Hoàn thành một bài hôm nay để bắt đầu chuỗi.
+            {t('profilePanel.streakEmpty')}
           </p>
         )}
       </div>
 
       {/* Stats card */}
       <div className="rounded-2xl border border-border bg-surface-raised p-5">
-        <p className="text-sm font-semibold text-fg">Thống kê</p>
+        <p className="text-sm font-semibold text-fg">
+          {t('profilePanel.statsHeading')}
+        </p>
         <ul className="mt-3 flex flex-col gap-2.5">
           {stats.map((s) => (
             <li

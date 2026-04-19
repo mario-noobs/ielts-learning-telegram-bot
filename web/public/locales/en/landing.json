@@ -1,0 +1,15 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "login": "Sign in",
+    "signup": "Start free"
+  },
+  "hero": {
+    "eyebrow": "AI-powered IELTS prep",
+    "title": "Practice IELTS in minutes a day, reach your target band faster",
+    "subtitle": "Writing feedback, listening drills, reading passages, and spaced-repetition vocabulary — personalised to your band goal.",
+    "ctaPrimary": "Start free",
+    "ctaSecondary": "See how it works"
+  }
+}

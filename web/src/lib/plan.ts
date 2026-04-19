@@ -40,9 +40,11 @@ export const TYPE_META: Record<
   quiz: { icon: 'Zap', color: 'from-rose-400 to-pink-500' },
 }
 
-export function greetingFor(date: Date): string {
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening'
+
+export function timeOfDay(date: Date): TimeOfDay {
   const h = date.getHours()
-  if (h < 12) return 'Chào buổi sáng'
-  if (h < 18) return 'Chào buổi chiều'
-  return 'Chào buổi tối'
+  if (h < 12) return 'morning'
+  if (h < 18) return 'afternoon'
+  return 'evening'
 }

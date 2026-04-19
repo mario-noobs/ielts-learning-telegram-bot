@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
 import { track } from '../../lib/analytics'
@@ -9,16 +10,12 @@ interface Props {
 }
 
 export default function PersonalizationCTA({ focusField }: Props) {
+  const { t } = useTranslation('dashboard')
   const [dismissed, setDismissed] = useState(false)
   if (dismissed) return null
 
   const isBand = focusField === 'target-band'
-  const title = isBand
-    ? 'Đặt mục tiêu band IELTS của bạn'
-    : 'Cho chúng tôi biết ngày thi của bạn'
-  const hint = isBand
-    ? 'Cá nhân hoá kế hoạch luyện hàng ngày theo band mục tiêu.'
-    : 'Chúng tôi sẽ tăng cường luyện tập khi ngày thi đến gần.'
+  const key = isBand ? 'targetBand' : 'examDate'
 
   return (
     <section
@@ -31,22 +28,24 @@ export default function PersonalizationCTA({ focusField }: Props) {
             id="personalization-cta-heading"
             className="font-semibold text-fg"
           >
-            {title}
+            {t('personalization.heading')}
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted-fg">{hint}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-fg">
+            {t(`personalization.${key}.message`)}
+          </p>
           <Link
             to={`/settings#${focusField}`}
             onClick={() => track('dashboard_personalization_cta_click', { field: focusField })}
             className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <Icon name="Plus" size="sm" />
-            {isBand ? 'Thêm mục tiêu' : 'Thêm ngày thi'}
+            {t(`personalization.${key}.cta`)}
           </Link>
         </div>
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          aria-label="Ẩn gợi ý"
+          aria-label={t('personalization.dismiss')}
           className="rounded-lg p-1.5 text-muted-fg transition-colors hover:bg-surface hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon name="X" size="sm" />

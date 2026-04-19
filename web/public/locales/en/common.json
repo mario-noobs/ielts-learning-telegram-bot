@@ -1,0 +1,55 @@
+{
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "retry": "Retry",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "viewAll": "View all",
+    "viewDetails": "View details",
+    "goToDashboard": "Go to dashboard",
+    "getStarted": "Get started",
+    "learnMore": "Learn more"
+  },
+  "status": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "error": "Something went wrong",
+    "offline": "You're offline",
+    "empty": "Nothing here yet"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "vocab": "Vocabulary",
+    "writing": "Writing",
+    "listening": "Listening",
+    "reading": "Reading",
+    "progress": "Progress",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "skills": {
+    "writing": "Writing",
+    "listening": "Listening",
+    "reading": "Reading",
+    "vocabulary": "Vocabulary"
+  },
+  "time": {
+    "daysUntilExam": "{count, plural, one {# day} other {# days}} until your exam",
+    "minutes": "{count, plural, one {# minute} other {# minutes}}",
+    "minutesShort": "{count} min",
+    "agoMinutes": "{count, plural, one {# minute ago} other {# minutes ago}}",
+    "agoHours": "{count, plural, one {# hour ago} other {# hours ago}}",
+    "agoDays": "{count, plural, one {# day ago} other {# days ago}}"
+  },
+  "brand": {
+    "name": "IELTS Coach",
+    "beta": "Beta"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon, { IconName } from '../../components/Icon'
 import { track } from '../../lib/analytics'
@@ -8,8 +9,8 @@ type Action = {
   id: ActionId
   to: string
   icon: IconName
-  title: string
-  hint: string
+  titleKey: string
+  hintKey: string
 }
 
 const ACTIONS: Action[] = [
@@ -17,23 +18,24 @@ const ACTIONS: Action[] = [
     id: 'writing',
     to: '/write',
     icon: 'PenLine',
-    title: 'Luyện Writing hôm nay',
-    hint: 'Nộp bài Task 1 hoặc Task 2, nhận AI feedback theo 4 tiêu chí.',
+    titleKey: 'quickActions.writing.title',
+    hintKey: 'quickActions.writing.description',
   },
   {
     id: 'flashcards',
     to: '/review',
     icon: 'RotateCcw',
-    title: 'Ôn flashcard',
-    hint: 'Review các từ đến hạn theo thuật toán SM-2.',
+    titleKey: 'quickActions.flashcards.title',
+    hintKey: 'quickActions.flashcards.description',
   },
 ]
 
 export default function QuickActions() {
+  const { t } = useTranslation('dashboard')
   return (
     <section aria-labelledby="quick-actions-heading">
       <h2 id="quick-actions-heading" className="sr-only">
-        Hành động nhanh
+        {t('quickActions.heading')}
       </h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
         {ACTIONS.map((a) => (
@@ -47,9 +49,9 @@ export default function QuickActions() {
               <Icon name={a.icon} size="lg" variant="primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-fg">{a.title}</p>
+              <p className="font-semibold text-fg">{t(a.titleKey)}</p>
               <p className="mt-0.5 text-sm leading-relaxed text-muted-fg">
-                {a.hint}
+                {t(a.hintKey)}
               </p>
             </div>
             <Icon
