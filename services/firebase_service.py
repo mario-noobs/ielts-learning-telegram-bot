@@ -218,6 +218,30 @@ def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
     ]
 
 
+# ─── Reading Sessions (US-M9.2) ───────────────────────────────────
+# Kept on Firestore; will move behind the repositories Protocol if/when
+# Reading grows enough state to justify it.
+
+def save_reading_session(telegram_id, session_id: str, data: dict) -> None:
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("reading_sessions").document(session_id)
+     .set({**data, "updated_at": datetime.now(timezone.utc)}))
+
+
+def get_reading_session(telegram_id, session_id: str) -> Optional[dict]:
+    doc = (_get_db().collection("users").document(str(telegram_id))
+           .collection("reading_sessions").document(session_id).get())
+    if not doc.exists:
+        return None
+    return {"id": doc.id, **(doc.to_dict() or {})}
+
+
+def update_reading_session(telegram_id, session_id: str, data: dict) -> None:
+    (_get_db().collection("users").document(str(telegram_id))
+     .collection("reading_sessions").document(session_id)
+     .update({**data, "updated_at": datetime.now(timezone.utc)}))
+
+
 # ─── Daily Plans (US-4.1) ─────────────────────────────────────────
 # Not migrated — kept on Firestore for now, pending separate refinement.
 
