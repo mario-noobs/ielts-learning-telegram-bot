@@ -15,6 +15,8 @@ import WritingDetailPage from './pages/WritingDetailPage'
 import ListeningHomePage from './pages/ListeningHomePage'
 import ListeningExercisePage from './pages/ListeningExercisePage'
 import ListeningHistoryPage from './pages/ListeningHistoryPage'
+import ReadingHomePage from './pages/ReadingHomePage'
+import ReadingExercisePage from './pages/ReadingExercisePage'
 import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -66,6 +68,8 @@ export default function App() {
             <Route path="/listening" element={<ListeningHomePage />} />
             <Route path="/listening/history" element={<ListeningHistoryPage />} />
             <Route path="/listening/:id" element={<ListeningExercisePage />} />
+            <Route path="/reading" element={<ReadingHomePage />} />
+            <Route path="/reading/:id" element={<ReadingExercisePage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
