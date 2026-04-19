@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import Icon, { IconName } from './Icon'
+import UpgradeBanner from './UpgradeBanner'
 
 interface Tab {
   to: string
@@ -77,6 +78,7 @@ export default function AppShell() {
         </nav>
 
         <main id="main" className="flex-1 min-w-0 pb-20 md:pb-0">
+          <UpgradeBanner />
           <Outlet />
         </main>
       </div>

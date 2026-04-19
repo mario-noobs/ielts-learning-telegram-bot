@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AppShell from './components/AppShell'
 import LandingPage from './pages/LandingPage'
+import LegalPage from './pages/LegalPage'
 import LoginPage from './pages/LoginPage'
+import PricingPage from './pages/PricingPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
 import WordDetailPage from './pages/WordDetailPage'
@@ -48,6 +50,9 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+          <Route path="/terms" element={<LegalPage kind="terms" />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/" element={<RootRoute />}>
             <Route index element={<DashboardPage />} />
           </Route>

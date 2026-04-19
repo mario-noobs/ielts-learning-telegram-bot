@@ -21,9 +21,11 @@ import {
   LayoutDashboard,
   Lightbulb,
   LogOut,
+  Mail,
   Mic,
   Minus,
   PartyPopper,
+  Plus,
   Pause,
   PenLine,
   Play,
@@ -46,9 +48,9 @@ import {
 const REGISTRY = {
   AlertCircle, ArrowLeft, ArrowRight, BookOpen, Calendar, Check, CheckCircle2,
   ChevronRight, Clock, FileText, Flag, Flame, Headphones, Hourglass, Info,
-  LayoutDashboard, Lightbulb, LogOut, Mic, Minus, PartyPopper, Pause, PenLine,
-  Play, RotateCcw, Settings, ShieldCheck, Sparkles, SquarePen, Target,
-  TrendingDown, TrendingUp, Trophy, User, Volume2, X, Zap,
+  LayoutDashboard, Lightbulb, LogOut, Mail, Mic, Minus, PartyPopper, Pause,
+  PenLine, Play, Plus, RotateCcw, Settings, ShieldCheck, Sparkles, SquarePen,
+  Target, TrendingDown, TrendingUp, Trophy, User, Volume2, X, Zap,
 } satisfies Record<string, LucideIcon>
 
 export type IconName = keyof typeof REGISTRY
