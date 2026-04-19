@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
-import { DailyPlan, greetingFor } from '../lib/plan'
+import { DailyPlan } from '../lib/plan'
+import type { ProgressResponse } from '../lib/progress'
 import EmptyState from '../components/EmptyState'
 import ErrorBanner from '../components/ErrorBanner'
 import Icon from '../components/Icon'
 import LinkTelegramCard from '../components/LinkTelegramCard'
 import PlanTaskCard from '../components/PlanTaskCard'
 import ProgressRing from '../components/ProgressRing'
+import DashboardGreeting from './dashboard/DashboardGreeting'
+import QuickActions from './dashboard/QuickActions'
+import PersonalizationCTA from './dashboard/PersonalizationCTA'
+import ReadinessStrip from './dashboard/ReadinessStrip'
+import RecentContent from './dashboard/RecentContent'
+import ProfilePanel from './dashboard/ProfilePanel'
 
 interface UserProfile {
   id: string
   name: string
   email: string | null
   target_band: number
+  exam_date: string | null
   topics: string[]
   streak: number
   total_words: number
@@ -40,6 +48,7 @@ async function getOrCreateProfile(): Promise<UserProfile> {
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [plan, setPlan] = useState<DailyPlan | null>(null)
+  const [progress, setProgress] = useState<ProgressResponse | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,10 +64,17 @@ export default function DashboardPage() {
       .catch((e) => setError(e.message))
   }, [])
 
+  const loadProgress = useCallback(() => {
+    apiFetch<ProgressResponse>('/api/v1/progress')
+      .then(setProgress)
+      .catch(() => setProgress(null))
+  }, [])
+
   useEffect(() => {
     loadProfile()
     loadPlan()
-  }, [loadProfile, loadPlan])
+    loadProgress()
+  }, [loadProfile, loadPlan, loadProgress])
 
   const toggle = async (activityId: string) => {
     if (busyId) return
@@ -76,99 +92,147 @@ export default function DashboardPage() {
     }
   }
 
-  const greeting = greetingFor(new Date())
   const allDone =
     plan && plan.activities.length > 0 &&
     plan.completed_count === plan.activities.length
 
+  const showPersonalizationCta =
+    !!profile && (!profile.target_band || !profile.exam_date)
+  const ctaFocusField: 'target-band' | 'exam-date' =
+    profile && !profile.target_band ? 'target-band' : 'exam-date'
+
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <ErrorBanner error={error} onRetry={() => { setError(null); loadProfile(); loadPlan() }} />
+    <div className="mx-auto max-w-6xl p-4 md:p-6">
+      <ErrorBanner
+        error={error}
+        onRetry={() => {
+          setError(null)
+          loadProfile()
+          loadPlan()
+          loadProgress()
+        }}
+      />
 
-      {profile ? (
-        <div className="bg-primary rounded-2xl p-5 text-primary-fg shadow-md">
-          <p className="text-sm opacity-90">{greeting},</p>
-          <p className="text-2xl font-bold">{profile.name}!</p>
-          <div className="mt-3 flex items-center gap-4 text-sm">
-            <div>
-              <p className="opacity-80 text-xs uppercase tracking-wide">Band mục tiêu</p>
-              <p className="text-xl font-semibold">{profile.target_band}</p>
-            </div>
-            <div>
-              <p className="opacity-80 text-xs uppercase tracking-wide">Streak</p>
-              <p className="text-xl font-semibold inline-flex items-center gap-1">
-                <Icon name="Flame" size="md" variant="accent" label="Streak" />
-                {profile.streak}
-              </p>
-            </div>
-            <div>
-              <p className="opacity-80 text-xs uppercase tracking-wide">Từ đã học</p>
-              <p className="text-xl font-semibold">{profile.total_words}</p>
-            </div>
-          </div>
-        </div>
+      {!profile ? (
+        <DashboardSkeleton />
       ) : (
-        <div className="h-28 bg-surface rounded-2xl animate-pulse" />
-      )}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main column */}
+          <div className="flex flex-col gap-6 lg:col-span-2">
+            <DashboardGreeting name={profile.name} />
 
-      {plan && plan.days_until_exam !== null && plan.days_until_exam >= 0 && (
-        <div
-          className={`rounded-xl p-3 text-sm font-medium border ${
-            plan.exam_urgent
-              ? 'bg-danger/10 border-danger/30 text-danger'
-              : 'bg-warning/10 border-warning/30 text-warning'
-          }`}
-        >
-          <span className="inline-flex items-center gap-2">
-            <Icon name="Hourglass" size="md" variant={plan.exam_urgent ? 'danger' : 'warning'} />
-            Còn {plan.days_until_exam} ngày nữa đến IELTS
-            {plan.exam_urgent && ' — tăng cường luyện tập!'}
-          </span>
-        </div>
-      )}
+            <QuickActions />
 
-      {plan && (
-        <div className="bg-surface-raised rounded-2xl border border-border p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="font-semibold text-fg">Kế hoạch hôm nay</h2>
-              <p className="text-xs text-muted-fg">
-                {plan.total_minutes} phút · tối đa {plan.cap_minutes} phút
-              </p>
+            {showPersonalizationCta && (
+              <PersonalizationCTA focusField={ctaFocusField} />
+            )}
+
+            {plan && plan.days_until_exam !== null && plan.days_until_exam >= 0 && (
+              <div
+                className={`rounded-xl border p-3 text-sm font-medium ${
+                  plan.exam_urgent
+                    ? 'bg-danger/10 border-danger/30 text-danger'
+                    : 'bg-warning/10 border-warning/30 text-warning'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Icon
+                    name="Hourglass"
+                    size="md"
+                    variant={plan.exam_urgent ? 'danger' : 'warning'}
+                  />
+                  Còn {plan.days_until_exam} ngày nữa đến IELTS
+                  {plan.exam_urgent && ' — tăng cường luyện tập!'}
+                </span>
+              </div>
+            )}
+
+            {plan && (
+              <section
+                aria-labelledby="todays-plan-heading"
+                className="rounded-2xl border border-border bg-surface-raised p-4"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h2
+                      id="todays-plan-heading"
+                      className="font-semibold text-fg"
+                    >
+                      Kế hoạch hôm nay
+                    </h2>
+                    <p className="text-xs text-muted-fg">
+                      {plan.total_minutes} phút · tối đa {plan.cap_minutes} phút
+                    </p>
+                  </div>
+                  <ProgressRing
+                    completed={plan.completed_count}
+                    total={plan.activities.length}
+                  />
+                </div>
+
+                {allDone ? (
+                  <EmptyState
+                    illustration="plan-complete"
+                    title="Hoàn thành kế hoạch hôm nay!"
+                    description="Mai quay lại để tiếp tục streak nhé."
+                    variant="celebration"
+                    primaryAction={{ label: 'Xem tiến độ', to: '/progress' }}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {plan.activities.map((a) => (
+                      <PlanTaskCard
+                        key={a.id}
+                        activity={a}
+                        onToggle={toggle}
+                        busy={busyId === a.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            <ReadinessStrip progress={progress} />
+
+            {/* Profile panel stacks between readiness and recent on <lg per AC7 */}
+            <div className="lg:hidden">
+              <ProfilePanel profile={profile} progress={progress} />
             </div>
-            <ProgressRing
-              completed={plan.completed_count}
-              total={plan.activities.length}
-            />
+
+            <RecentContent />
+
+            {isWebPlaceholder(profile) && (
+              <LinkTelegramCard onLinked={loadProfile} />
+            )}
           </div>
 
-          {allDone ? (
-            <EmptyState
-              illustration="plan-complete"
-              title="Hoàn thành kế hoạch hôm nay!"
-              description="Mai quay lại để tiếp tục streak nhé."
-              variant="celebration"
-              primaryAction={{ label: 'Xem tiến độ', to: '/progress' }}
-            />
-          ) : (
-            <div className="space-y-2">
-              {plan.activities.map((a) => (
-                <PlanTaskCard
-                  key={a.id}
-                  activity={a}
-                  onToggle={toggle}
-                  busy={busyId === a.id}
-                />
-              ))}
-            </div>
-          )}
+          {/* Right column — desktop only */}
+          <div className="hidden lg:block">
+            <ProfilePanel profile={profile} progress={progress} />
+          </div>
         </div>
       )}
+    </div>
+  )
+}
 
-      {profile && isWebPlaceholder(profile) && (
-        <LinkTelegramCard onLinked={loadProfile} />
-      )}
-
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <div className="flex flex-col gap-6 lg:col-span-2">
+        <div className="h-32 animate-pulse rounded-2xl bg-surface" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="h-24 animate-pulse rounded-2xl bg-surface" />
+          <div className="h-24 animate-pulse rounded-2xl bg-surface" />
+        </div>
+        <div className="h-40 animate-pulse rounded-2xl bg-surface" />
+      </div>
+      <div className="hidden lg:flex lg:flex-col lg:gap-4">
+        <div className="h-28 animate-pulse rounded-2xl bg-surface" />
+        <div className="h-28 animate-pulse rounded-2xl bg-surface" />
+        <div className="h-40 animate-pulse rounded-2xl bg-surface" />
+      </div>
     </div>
   )
 }

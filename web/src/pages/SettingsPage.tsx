@@ -70,6 +70,19 @@ export default function SettingsPage() {
       .catch((e) => setError((e as Error).message))
   }, [])
 
+  // Respect deep-link hash from Dashboard personalization CTA:
+  // /settings#exam-date or /settings#target-band → scroll + focus after load.
+  useEffect(() => {
+    if (!profile) return
+    const hash = window.location.hash.replace('#', '')
+    if (!hash) return
+    const el = document.getElementById(hash)
+    if (el instanceof HTMLElement) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (el instanceof HTMLInputElement) el.focus()
+    }
+  }, [profile])
+
   const daysLeft = useMemo(() => {
     if (!examDate) return null
     const d = new Date(examDate + 'T00:00:00')
@@ -131,10 +144,11 @@ export default function SettingsPage() {
         <ThemeToggle />
 
         <div>
-          <label className="text-sm font-semibold text-fg block mb-1">
+          <label htmlFor="exam-date" className="text-sm font-semibold text-fg block mb-1">
             Ngày thi IELTS
           </label>
           <input
+            id="exam-date"
             type="date"
             value={examDate}
             onChange={(e) => setExamDate(e.target.value)}
