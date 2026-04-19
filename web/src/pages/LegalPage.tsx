@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui'
 
@@ -46,6 +47,7 @@ const CONTENT = {
 } as const
 
 export default function LegalPage({ kind }: Props) {
+  const { t } = useTranslation('common')
   const c = CONTENT[kind]
 
   useEffect(() => {
@@ -59,20 +61,20 @@ export default function LegalPage({ kind }: Props) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <nav
-        aria-label="Điều hướng"
+        aria-label={t('nav.legalNav')}
         className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-4 md:px-6"
       >
         <Link to="/" className="flex items-center gap-2 text-lg font-bold text-fg">
-          IELTS Coach
-          <Badge variant="primary" aria-label="Phiên bản thử nghiệm">
-            Beta
+          {t('brand.name')}
+          <Badge variant="primary" aria-label={t('auth.brandBetaLabel')}>
+            {t('brand.beta')}
           </Badge>
         </Link>
         <Link
           to="/"
           className="rounded-xl px-3 py-2 text-sm font-medium text-muted-fg hover:bg-surface hover:text-fg"
         >
-          ← Về trang chủ
+          ← {t('actions.goToDashboard')}
         </Link>
       </nav>
       <main className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-16">

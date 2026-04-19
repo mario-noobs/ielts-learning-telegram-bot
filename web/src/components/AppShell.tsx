@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
@@ -7,18 +8,18 @@ import UpgradeBanner from './UpgradeBanner'
 
 interface Tab {
   to: string
-  label: string
+  labelKey: string
   icon: IconName
   /** Additional routes that should mark this tab as active */
   matches?: string[]
 }
 
 const TABS: Tab[] = [
-  { to: '/', label: 'Home', icon: 'LayoutDashboard' },
-  { to: '/vocab', label: 'Học', icon: 'BookOpen', matches: ['/review'] },
-  { to: '/write', label: 'Luyện', icon: 'PenLine', matches: ['/listening'] },
-  { to: '/progress', label: 'Tiến độ', icon: 'TrendingUp' },
-  { to: '/settings', label: 'Tôi', icon: 'User' },
+  { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
+  { to: '/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/review'] },
+  { to: '/write', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/listening', '/reading'] },
+  { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
+  { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
 ]
 
 function isTabActive(tab: Tab, pathname: string): boolean {
@@ -28,6 +29,7 @@ function isTabActive(tab: Tab, pathname: string): boolean {
 }
 
 export default function AppShell() {
+  const { t } = useTranslation('common')
   const { pathname } = useLocation()
   const { user, logout } = useAuth()
   useProfileLocaleSync(!!user)
@@ -38,25 +40,25 @@ export default function AppShell() {
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:bg-surface-raised focus:text-fg focus:rounded-md focus:shadow-md"
       >
-        Bỏ qua, đến nội dung chính
+        {t('nav.skipToContent')}
       </a>
 
       <div className="md:flex">
         {/* Desktop side rail (≥md) */}
         <nav
-          aria-label="Điều hướng chính"
+          aria-label={t('nav.mainNav')}
           className="hidden md:flex md:flex-col md:w-20 lg:w-60 md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0"
         >
           <div className="hidden lg:block px-3 py-2 mb-2">
-            <p className="text-lg font-bold text-primary">IELTS Coach</p>
+            <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
           </div>
           <ul className="flex-1 space-y-1">
-            {TABS.map((t) => {
-              const active = isTabActive(t, pathname)
+            {TABS.map((tab) => {
+              const active = isTabActive(tab, pathname)
               return (
-                <li key={t.to}>
+                <li key={tab.to}>
                   <NavLink
-                    to={t.to}
+                    to={tab.to}
                     aria-current={active ? 'page' : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-fast ${
                       active
@@ -64,8 +66,8 @@ export default function AppShell() {
                         : 'text-muted-fg hover:bg-surface hover:text-fg'
                     }`}
                   >
-                    <Icon name={t.icon} size="lg" variant={active ? 'primary' : 'muted'} />
-                    <span className="hidden lg:inline font-medium">{t.label}</span>
+                    <Icon name={tab.icon} size="lg" variant={active ? 'primary' : 'muted'} />
+                    <span className="hidden lg:inline font-medium">{t(tab.labelKey)}</span>
                   </NavLink>
                 </li>
               )
@@ -76,7 +78,7 @@ export default function AppShell() {
             className="hidden lg:flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors duration-fast"
           >
             <Icon name="LogOut" size="lg" variant="muted" />
-            <span>Đăng xuất</span>
+            <span>{t('nav.signOut')}</span>
           </button>
         </nav>
 
@@ -91,26 +93,26 @@ export default function AppShell() {
 
       {/* Mobile bottom tab bar (<md) */}
       <nav
-        aria-label="Điều hướng chính"
+        aria-label={t('nav.mainNav')}
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-raised border-t border-border"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <ul className="flex">
-          {TABS.map((t) => {
-            const active = isTabActive(t, pathname)
+          {TABS.map((tab) => {
+            const active = isTabActive(tab, pathname)
             return (
-              <li key={t.to} className="flex-1">
+              <li key={tab.to} className="flex-1">
                 <NavLink
-                  to={t.to}
+                  to={tab.to}
                   aria-current={active ? 'page' : undefined}
                   className={`flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] relative transition-colors duration-fast ${
                     active ? 'text-primary' : 'text-muted-fg'
                   }`}
                 >
                   {active && <span aria-hidden className="absolute top-0 inset-x-0 h-0.5 bg-primary" />}
-                  <Icon name={t.icon} size="lg" variant={active ? 'primary' : 'muted'} />
+                  <Icon name={tab.icon} size="lg" variant={active ? 'primary' : 'muted'} />
                   <span className={`text-[11px] ${active ? 'font-semibold' : 'font-medium'}`}>
-                    {t.label}
+                    {t(tab.labelKey)}
                   </span>
                 </NavLink>
               </li>

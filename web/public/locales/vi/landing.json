@@ -1,15 +1,21 @@
 {
+  "pageTitle": "Luyện IELTS mỗi ngày",
+  "pricingTitle": "Gói & giá",
   "nav": {
     "features": "Tính năng",
     "pricing": "Giá",
     "login": "Đăng nhập",
-    "signup": "Dùng thử"
+    "signup": "Dùng thử",
+    "ariaLabel": "Điều hướng landing"
   },
   "hero": {
     "eyebrow": "Luyện IELTS cùng AI",
-    "title": "Luyện IELTS mỗi ngày vài phút, đạt band mục tiêu nhanh hơn",
-    "subtitle": "Chấm Writing, luyện nghe, bài đọc, và từ vựng theo SRS — cá nhân hóa theo band mục tiêu của bạn.",
-    "ctaPrimary": "Dùng thử miễn phí",
-    "ctaSecondary": "Xem cách hoạt động"
+    "title": "Từ 6.0 lên 7.5 trong 90 ngày",
+    "subtitleLine1": "Luyện IELTS mỗi ngày, 20 phút.",
+    "subtitleLine2": "AI chấm Writing, Speaking theo band mục tiêu.",
+    "ctaPrimary": "Bắt đầu miễn phí",
+    "ctaPrimaryAria": "Bắt đầu miễn phí — đăng ký bằng Google",
+    "ctaSecondary": "Xem demo",
+    "socialProof": "Đã có 2.000+ học viên đang luyện IELTS"
   }
 }
