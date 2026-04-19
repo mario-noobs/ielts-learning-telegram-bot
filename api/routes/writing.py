@@ -1,10 +1,11 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 import config
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.writing import (
     TaskPromptRequest,
     TaskPromptResponse,
@@ -66,18 +67,16 @@ async def _score_and_store(
 ) -> WritingSubmission:
     word_count = writing_service.count_words(text)
     if word_count < _MIN_WORDS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Essay must be at least {_MIN_WORDS} words.",
+        raise ApiError(
+            ERR.writing_too_short,
+            min_words=_MIN_WORDS,
+            got=word_count,
         )
 
     try:
         feedback = await writing_service.score_essay(text, task_type, prompt)
     except json.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Scoring service returned invalid JSON: {exc}",
-        )
+        raise ApiError(ERR.writing_scoring_failed, detail=str(exc))
 
     data: dict = {
         "text": text,
@@ -143,10 +142,7 @@ async def get_writing(
         firebase_service.get_writing_submission, user["id"], submission_id
     )
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission not found.",
-        )
+        raise ApiError(ERR.writing_submission_not_found, submission_id=submission_id)
     return _to_submission(doc)
 
 
@@ -160,10 +156,7 @@ async def revise_writing(
         firebase_service.get_writing_submission, user["id"], submission_id
     )
     if not original:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Original submission not found.",
-        )
+        raise ApiError(ERR.writing_submission_not_found, submission_id=submission_id)
 
     return await _score_and_store(
         user,

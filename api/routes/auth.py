@@ -2,10 +2,11 @@ import asyncio
 from datetime import datetime, timezone
 
 import firebase_admin.auth
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 
 from api.auth import get_current_user, security
+from api.errors import ApiError, ERR
 from api.models.user import LinkCodeRequest, UserCreate, UserProfile, UserUpdate
 from services import firebase_service
 
@@ -71,10 +72,7 @@ async def update_me(
             try:
                 parsed = datetime.strptime(body.exam_date, "%Y-%m-%d").date()
             except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="exam_date must be YYYY-MM-DD.",
-                )
+                raise ApiError(ERR.settings_invalid_exam_date, got=body.exam_date)
             updates["exam_date"] = parsed.isoformat()
     if body.preferred_locale is not None:
         updates["preferred_locale"] = body.preferred_locale
@@ -88,7 +86,7 @@ async def update_me(
     return _to_profile(merged)
 
 
-@router.post("/users", response_model=UserProfile, status_code=status.HTTP_201_CREATED)
+@router.post("/users", response_model=UserProfile, status_code=201)
 async def create_user(
     body: UserCreate,
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -101,18 +99,12 @@ async def create_user(
         auth_uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+        raise ApiError(ERR.auth_invalid_token)
 
     # Check if user already exists for this auth UID
     existing = await asyncio.to_thread(firebase_service.get_user_by_auth_uid, auth_uid)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User already exists for this account.",
-        )
+        raise ApiError(ERR.auth_user_exists)
 
     user = await asyncio.to_thread(
         firebase_service.create_web_user,
@@ -140,32 +132,20 @@ async def link_telegram(
         email = decoded_token.get("email", "")
         display_name = decoded_token.get("name", "")
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+        raise ApiError(ERR.auth_invalid_token)
 
     code = body.code.strip()
     if not code.isdigit() or len(code) != 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mã không hợp lệ.",
-        )
+        raise ApiError(ERR.auth_link_code_invalid)
 
     record = await asyncio.to_thread(firebase_service.get_link_code, code)
     if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy mã. Hãy chạy /link trên bot để lấy mã mới.",
-        )
+        raise ApiError(ERR.auth_link_code_not_found)
 
     expires_at = record.get("expires_at")
     if expires_at and expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         await asyncio.to_thread(firebase_service.delete_link_code, code)
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="Mã đã hết hạn.",
-        )
+        raise ApiError(ERR.auth_link_code_expired)
 
     telegram_id = int(record["telegram_id"])
 
@@ -173,24 +153,15 @@ async def link_telegram(
     if existing:
         existing_id = str(existing.get("id"))
         if existing_id != str(telegram_id) and not existing_id.startswith("web_"):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Tài khoản Google này đã liên kết với người dùng khác.",
-            )
+            raise ApiError(ERR.auth_link_conflict)
 
     telegram_user = await asyncio.to_thread(firebase_service.get_user, telegram_id)
     if not telegram_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy người dùng Telegram.",
-        )
+        raise ApiError(ERR.auth_user_not_registered)
 
     existing_auth = telegram_user.get("auth_uid")
     if existing_auth and existing_auth != auth_uid:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Tài khoản Telegram này đã liên kết với tài khoản Google khác.",
-        )
+        raise ApiError(ERR.auth_link_conflict)
 
     await asyncio.to_thread(firebase_service.link_telegram_to_auth, telegram_id, auth_uid)
     updates: dict = {}

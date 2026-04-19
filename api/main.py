@@ -1,10 +1,12 @@
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import config
+from api.errors import ApiError, ERR
 from api.logging_config import configure_logging
 from api.middleware import RequestIDMiddleware
 from api.routes.audio import router as audio_router
@@ -47,14 +49,68 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestIDMiddleware)
 
+    @app.exception_handler(ApiError)
+    async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
+        """Contract error responses (US-M7.3). Body: {error: {code, params, http_status}}."""
+        return JSONResponse(status_code=exc.http_status, content=exc.to_response())
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(
+        request: Request, exc: HTTPException,
+    ) -> JSONResponse:
+        """Bridge un-converted HTTPException into the error-code shape.
+
+        Legacy routes still raise HTTPException(detail="Human message").
+        We emit a provisional code keyed by status so the frontend's error
+        renderer can at least pick a sensible fallback, and stash the
+        detail in params.message for debugging / log inspection. This
+        keeps existing tests green while routes migrate incrementally.
+        """
+        fallback_code = {
+            400: ERR.validation.code,
+            401: ERR.unauthorized.code,
+            403: ERR.forbidden.code,
+            404: ERR.not_found.code,
+            409: ERR.auth_user_exists.code,
+            410: ERR.reading_session_expired.code,
+            429: ERR.rate_limited.code,
+        }.get(exc.status_code, ERR.unknown_error.code)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": {
+                    "code": fallback_code,
+                    "params": {"message": str(exc.detail)} if exc.detail else {},
+                    "http_status": exc.status_code,
+                }
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error_handler(
+        request: Request, exc: RequestValidationError,
+    ) -> JSONResponse:
+        """FastAPI request-body validation → common.validation code."""
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": ERR.validation.code,
+                    "params": {"errors": exc.errors()},
+                    "http_status": 422,
+                }
+            },
+        )
+
     @app.exception_handler(RateLimitError)
     async def rate_limit_handler(request: Request, exc: RateLimitError) -> JSONResponse:
         return JSONResponse(
             status_code=429,
             content={
                 "error": {
-                    "code": "rate_limit",
-                    "message": str(exc),
+                    "code": ERR.rate_limited.code,
+                    "params": {"message": str(exc)},
+                    "http_status": 429,
                 }
             },
         )
@@ -66,8 +122,9 @@ def create_app() -> FastAPI:
             status_code=500,
             content={
                 "error": {
-                    "code": "internal_error",
-                    "message": str(exc),
+                    "code": ERR.unknown_error.code,
+                    "params": {"message": str(exc)},
+                    "http_status": 500,
                 }
             },
         )

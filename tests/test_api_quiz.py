@@ -55,7 +55,12 @@ class TestStartQuiz:
                    new=AsyncMock(return_value=None)):
             response = client.post("/api/v1/quiz/start", json={"count": 5})
         assert response.status_code == 400
-        assert "Add more words" in response.json()["detail"]
+        # Error shape changed in US-M7.3: prose `detail` → `{error: {code, params}}`.
+        # Legacy routes still raise HTTPException(detail=...); the main.py
+        # bridge stashes the message in params.message.
+        body = response.json()
+        assert body["error"]["code"] == "common.validation"
+        assert "Add more words" in body["error"]["params"]["message"]
 
     def test_default_count_applied(self, client):
         """No count in body → falls back to default."""
