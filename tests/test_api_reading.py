@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from api.auth import get_current_user
 from api.main import create_app
+from services import reading_service
 
 FAKE_USER = {"id": "tester-1", "name": "Tester", "target_band": 7.0}
 
@@ -63,6 +64,9 @@ class TestPassageDetail:
 class TestSessionLifecycle:
     def test_create_then_submit_happy_path(self, client):
         session_doc: dict = {}
+        passage = reading_service.get_passage("p001")
+        assert passage is not None, "p001 must be present for this test"
+        stub_client, stub_key = reading_service.generate_question_set_stub(passage)
 
         def _save(uid, sid, data):
             session_doc.update({"id": sid, **data})
@@ -73,8 +77,11 @@ class TestSessionLifecycle:
         def _update(uid, sid, data):
             session_doc.update(data)
 
-        with patch("api.routes.reading.firebase_service.save_reading_session",
-                   side_effect=_save), \
+        with patch(
+            "services.reading_service.get_or_generate_questions",
+            new=AsyncMock(return_value=(stub_client, stub_key)),
+        ), patch("api.routes.reading.firebase_service.save_reading_session",
+                 side_effect=_save), \
              patch("api.routes.reading.firebase_service.get_reading_session",
                    side_effect=_get), \
              patch("api.routes.reading.firebase_service.update_reading_session",
@@ -99,6 +106,10 @@ class TestSessionLifecycle:
             assert grade["correct"] == 5
             assert grade["total"] == 5
             assert grade["band"] >= 7.0
+            # Explanations from the stub now surface per AC3
+            assert all(
+                "explanation" in pq for pq in grade["per_question"]
+            )
 
     def test_submit_404_when_session_missing(self, client):
         with patch("api.routes.reading.firebase_service.get_reading_session",
