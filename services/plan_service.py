@@ -6,7 +6,7 @@ that rotate across skills and respect the daily time cap.
 
 from datetime import date, datetime, timezone
 
-from services import weakness_service
+from services import reading_service, weakness_service
 
 DEFAULT_CAP_MIN = 30
 INTENSIFIED_CAP_MIN = 45
@@ -54,9 +54,37 @@ def _activity(
 
 
 def _pick_writing_task(today: date) -> str:
-    """Alternate Task 1 and Task 2 by day-of-year parity so consecutive
-    days exercise different essay types."""
-    return "task1" if today.toordinal() % 2 == 0 else "task2"
+    """Alternate Task 1 and Task 2 so consecutive writing days exercise
+    different essay types.
+
+    Uses ``(toordinal // 2) % 2`` rather than plain parity because the
+    reading-vs-writing alternation (US-M9.5) means writing only appears
+    on odd-ordinal days — plain parity would always pick the same task.
+    """
+    return "task1" if (today.toordinal() // 2) % 2 == 0 else "task2"
+
+
+def _pick_reading_passage(target_band: float) -> dict | None:
+    """Return the best band-matched passage summary, or None if no corpus.
+
+    Preference order (widening window):
+        1. exact target_band match
+        2. target ±0.5
+        3. target ±1.0
+    Within a window, pick the first id ordered by the corpus sort (stable).
+    """
+    summaries = reading_service.list_summaries()
+    if not summaries:
+        return None
+
+    def _at(delta: float) -> list[dict]:
+        return [p for p in summaries if abs(p["band"] - target_band) <= delta + 1e-6]
+
+    for window in (0.0, 0.5, 1.0):
+        matches = _at(window)
+        if matches:
+            return matches[0]
+    return summaries[0]
 
 
 def generate_plan(
@@ -111,17 +139,35 @@ def generate_plan(
         meta={"exercise_type": listen_type},
     ))
 
-    # Writing — rotate task1/task2 by day parity
-    task_type = _pick_writing_task(today)
-    activities.append(_activity(
-        aid=f"writing_{task_type}",
-        atype="writing",
-        title=f"Viết IELTS {task_type.upper()}",
-        description="Chấm tự động với AI",
-        minutes=20 if task_type == "task2" else 15,
-        route="/write",
-        meta={"task_type": task_type},
-    ))
+    # Big-block skill (reading OR writing), alternating by day parity so
+    # learners hit both in a week without blowing the time cap (US-M9.5).
+    # Reading is offered only when a seeded corpus is present; fall back
+    # to writing on both parities if reading is unavailable.
+    do_reading = today.toordinal() % 2 == 0
+    target_band = float(user.get("target_band", 7.0))
+    passage = _pick_reading_passage(target_band) if do_reading else None
+
+    if passage is not None:
+        activities.append(_activity(
+            aid=f"reading_{passage['id']}",
+            atype="reading",
+            title="Luyện Reading 20m",
+            description=f"Band {passage['band']:.1f} · {passage['title']}",
+            minutes=20,
+            route=f"/reading/{passage['id']}",
+            meta={"passage_id": passage["id"], "band": passage["band"]},
+        ))
+    else:
+        task_type = _pick_writing_task(today)
+        activities.append(_activity(
+            aid=f"writing_{task_type}",
+            atype="writing",
+            title=f"Viết IELTS {task_type.upper()}",
+            description="Chấm tự động với AI",
+            minutes=20 if task_type == "task2" else 15,
+            route="/write",
+            meta={"task_type": task_type},
+        ))
 
     # Trim from the end to respect the cap while keeping at least 3 items.
     while (

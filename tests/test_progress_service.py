@@ -39,6 +39,30 @@ class TestBandEstimation:
     def test_listening_band_no_data_returns_starting(self):
         assert progress_service.estimate_listening_band([]) == 4.0
 
+    def test_reading_band_no_data_returns_starting(self):
+        assert progress_service.estimate_reading_band([]) == 4.0
+
+    def test_reading_band_averages_submitted_only(self):
+        sessions = [
+            {"status": "in_progress", "grade": {"band": 9.0}},  # ignored
+            {"status": "submitted", "grade": {"band": 6.0}},
+            {"status": "submitted", "grade": {"band": 7.0}},
+            {"status": "expired", "grade": None},  # ignored
+        ]
+        assert progress_service.estimate_reading_band(sessions) == 6.5
+
+    def test_reading_band_caps_at_sample_window(self):
+        sessions = [
+            {"status": "submitted", "grade": {"band": 8.0}},
+            {"status": "submitted", "grade": {"band": 8.0}},
+            {"status": "submitted", "grade": {"band": 8.0}},
+            {"status": "submitted", "grade": {"band": 8.0}},
+            {"status": "submitted", "grade": {"band": 8.0}},
+            # 6th session below is beyond READING_SAMPLE and must not pull down
+            {"status": "submitted", "grade": {"band": 3.0}},
+        ]
+        assert progress_service.estimate_reading_band(sessions) == 8.0
+
     def test_listening_band_weights_type_accuracy(self):
         history = [
             {"exercise_type": "dictation", "score": 0.8, "submitted": True},
@@ -72,11 +96,15 @@ class TestBuildSnapshot:
         ), patch(
             "services.progress_service.firebase_service.list_listening_exercises",
             return_value=[],
+        ), patch(
+            "services.progress_service.firebase_service.list_reading_sessions",
+            return_value=[],
         ):
             snap = progress_service.build_snapshot(user)
         assert snap["skills"]["vocabulary"]["band"] == 4.0
         assert snap["skills"]["writing"]["band"] == 4.0
         assert snap["skills"]["listening"]["band"] == 4.0
+        assert snap["skills"]["reading"]["band"] == 4.0
         assert snap["overall_band"] == 4.0
 
     def test_snapshot_aggregates_skills(self):
@@ -94,10 +122,18 @@ class TestBuildSnapshot:
                 {"exercise_type": "gap_fill", "score": 0.6, "submitted": True},
                 {"exercise_type": "comprehension", "score": 0.6, "submitted": True},
             ],
+        ), patch(
+            "services.progress_service.firebase_service.list_reading_sessions",
+            return_value=[
+                {"status": "submitted", "grade": {"band": 6.5}},
+                {"status": "submitted", "grade": {"band": 7.0}},
+            ],
         ):
             snap = progress_service.build_snapshot(user)
         assert snap["skills"]["writing"]["band"] == 7.0
         assert snap["skills"]["writing"]["sample_size"] == 2
+        assert snap["skills"]["reading"]["band"] == 7.0  # (6.5 + 7.0) / 2 = 6.75 → 7.0 clamped
+        assert snap["skills"]["reading"]["sample_size"] == 2
         assert 6.0 <= snap["overall_band"] <= 8.0
         assert snap["target_band"] == 7.0
 

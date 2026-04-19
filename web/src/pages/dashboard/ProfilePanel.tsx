@@ -46,6 +46,7 @@ export default function ProfilePanel({ profile, progress }: Props) {
   const bandDelta = progress ? deltaFrom(progress.trend, 'overall_band') : 0
   const writingSamples = progress?.snapshot.skills.writing.sample_size ?? 0
   const listeningSessions = progress?.snapshot.skills.listening.sample_size ?? 0
+  const readingSessions = progress?.snapshot.skills.reading?.sample_size ?? 0
 
   const stats: StatRow[] = [
     {
@@ -62,6 +63,11 @@ export default function ProfilePanel({ profile, progress }: Props) {
       label: 'Buổi Listening',
       value: String(listeningSessions),
       trend: listeningSessions > 0 ? 'up' : 'flat',
+    },
+    {
+      label: 'Bài Reading',
+      value: String(readingSessions),
+      trend: readingSessions > 0 ? 'up' : 'flat',
     },
     {
       label: 'Đổi band 30 ngày',

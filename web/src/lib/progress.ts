@@ -15,10 +15,16 @@ export interface ListeningSkill {
   accuracy_by_type: Record<string, number>
 }
 
+export interface ReadingSkill {
+  band: number
+  sample_size: number
+}
+
 export interface SkillBreakdown {
   vocabulary: VocabSkill
   writing: WritingSkill
   listening: ListeningSkill
+  reading: ReadingSkill
 }
 
 export interface ProgressSnapshot {
@@ -35,6 +41,7 @@ export interface TrendPoint {
   vocabulary_band: number
   writing_band: number
   listening_band: number
+  reading_band: number
 }
 
 export interface ProgressPrediction {

@@ -20,10 +20,16 @@ class ListeningSkill(BaseModel):
     accuracy_by_type: dict[str, float] = {}
 
 
+class ReadingSkill(BaseModel):
+    band: float
+    sample_size: int = 0
+
+
 class SkillBreakdown(BaseModel):
     vocabulary: VocabSkill
     writing: WritingSkill
     listening: ListeningSkill
+    reading: ReadingSkill
 
 
 class ProgressSnapshot(BaseModel):
@@ -40,6 +46,7 @@ class TrendPoint(BaseModel):
     vocabulary_band: float
     writing_band: float
     listening_band: float
+    reading_band: float = 0.0
 
 
 class ProgressPrediction(BaseModel):
