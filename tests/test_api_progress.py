@@ -34,6 +34,7 @@ def _history_docs(dates: list[str]) -> list[dict]:
                 "vocabulary": {"band": 5.5},
                 "writing": {"band": 6.5},
                 "listening": {"band": 6.0},
+                "reading": {"band": 6.0, "sample_size": 0},
             },
         }
         for d in dates
@@ -58,6 +59,7 @@ class TestGetProgress:
                     "vocabulary": {"band": 5.5, "total_words": 120, "mastered_count": 10},
                     "writing": {"band": 6.5, "sample_size": 2},
                     "listening": {"band": 6.0, "sample_size": 3, "accuracy_by_type": {}},
+                    "reading": {"band": 6.0, "sample_size": 2},
                 },
                 "target_band": 7.0,
                 "date": "2026-04-12",
@@ -89,6 +91,7 @@ class TestGetProgress:
                     "vocabulary": {"band": 4.0, "total_words": 0, "mastered_count": 0},
                     "writing": {"band": 4.0, "sample_size": 0},
                     "listening": {"band": 4.0, "sample_size": 0, "accuracy_by_type": {}},
+                    "reading": {"band": 4.0, "sample_size": 0},
                 },
                 "target_band": 7.0,
             },

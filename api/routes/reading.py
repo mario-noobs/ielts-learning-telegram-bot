@@ -20,12 +20,14 @@ Design notes:
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+import config
 from api.auth import get_current_user
 from api.models.reading import (
     PassageDetail,
@@ -39,6 +41,8 @@ from api.models.reading import (
     SessionSubmitResponse,
 )
 from services import firebase_service, rate_limit_service, reading_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/reading", tags=["reading"])
 
@@ -220,6 +224,18 @@ async def submit_session(
             "user_answers": body.answers,
         },
     )
+
+    # US-M9.5 AC4: auto-complete the matching plan activity if present.
+    # Best-effort — failures here must not fail the submit.
+    passage_id = doc.get("passage_id")
+    if passage_id:
+        try:
+            await asyncio.to_thread(
+                firebase_service.complete_plan_activity,
+                user["id"], config.local_date_str(), f"reading_{passage_id}",
+            )
+        except Exception as exc:
+            logger.warning("reading: plan auto-complete failed: %s", exc)
 
     return SessionSubmitResponse(
         session_id=session_id,
