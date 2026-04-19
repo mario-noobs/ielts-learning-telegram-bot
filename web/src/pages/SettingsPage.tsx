@@ -1,27 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { ThemePref, useTheme } from '../lib/theme'
 
-const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
-  { value: 'system', label: 'Hệ thống' },
-  { value: 'light', label: 'Sáng' },
-  { value: 'dark', label: 'Tối' },
-]
-
 function ThemeToggle() {
+  const { t } = useTranslation('settings')
   const { pref, setPref } = useTheme()
+  const options: { value: ThemePref; label: string }[] = [
+    { value: 'system', label: t('theme.system') },
+    { value: 'light', label: t('theme.light') },
+    { value: 'dark', label: t('theme.dark') },
+  ]
   return (
     <div>
       <label id="theme-label" className="text-sm font-semibold text-fg block mb-1">
-        Giao diện
+        {t('theme.label')}
       </label>
       <div
         role="radiogroup"
         aria-labelledby="theme-label"
         className="inline-flex rounded-lg border border-border bg-surface-raised overflow-hidden"
       >
-        {THEME_OPTIONS.map((o) => (
+        {options.map((o) => (
           <button
             key={o.value}
             role="radio"
@@ -53,6 +54,7 @@ interface UserProfile {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation(['settings', 'common'])
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [examDate, setExamDate] = useState('')
   const [weeklyGoal, setWeeklyGoal] = useState<number>(150)
@@ -70,8 +72,6 @@ export default function SettingsPage() {
       .catch((e) => setError((e as Error).message))
   }, [])
 
-  // Respect deep-link hash from Dashboard personalization CTA:
-  // /settings#exam-date or /settings#target-band → scroll + focus after load.
   useEffect(() => {
     if (!profile) return
     const hash = window.location.hash.replace('#', '')
@@ -113,16 +113,17 @@ export default function SettingsPage() {
     }
   }
 
-  // Auto-dismiss the saved confirmation after 3s (audit #15)
   useEffect(() => {
     if (!saved) return
-    const t = setTimeout(() => setSaved(false), 3000)
-    return () => clearTimeout(t)
+    const to = setTimeout(() => setSaved(false), 3000)
+    return () => clearTimeout(to)
   }, [saved])
+
+  const urgent = daysLeft !== null && daysLeft <= 30
 
   return (
     <div className="max-w-xl mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold text-fg">Cài đặt</h1>
+      <h1 className="text-2xl font-bold text-fg">{t('heading')}</h1>
 
       {error && (
         <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-sm text-danger">
@@ -136,7 +137,7 @@ export default function SettingsPage() {
           aria-live="polite"
           className="bg-success/10 border-l-4 border-success p-3 rounded text-sm text-success"
         >
-          Đã lưu cài đặt.
+          {t('savedToast')}
         </div>
       )}
 
@@ -145,7 +146,7 @@ export default function SettingsPage() {
 
         <div>
           <label htmlFor="exam-date" className="text-sm font-semibold text-fg block mb-1">
-            Ngày thi IELTS
+            {t('examDate.label')}
           </label>
           <input
             id="exam-date"
@@ -157,28 +158,29 @@ export default function SettingsPage() {
           {daysLeft !== null && daysLeft >= 0 && (
             <p
               className={`text-xs mt-1 font-medium ${
-                daysLeft <= 30 ? 'text-danger' : 'text-warning'
+                urgent ? 'text-danger' : 'text-warning'
               }`}
             >
-              Còn {daysLeft} ngày nữa. {daysLeft <= 30 && 'Kế hoạch sẽ tăng cường.'}
+              {t('examDate.daysLeft', { count: daysLeft })}
+              {urgent && t('examDate.urgentSuffix')}
             </p>
           )}
           {daysLeft !== null && daysLeft < 0 && (
-            <p className="text-xs mt-1 text-muted-fg">Ngày đã qua.</p>
+            <p className="text-xs mt-1 text-muted-fg">{t('examDate.past')}</p>
           )}
           {examDate && (
             <button
               onClick={() => setExamDate('')}
               className="text-xs text-muted-fg hover:text-fg mt-1 underline"
             >
-              Xóa ngày thi
+              {t('examDate.clear')}
             </button>
           )}
         </div>
 
         <div>
           <label className="text-sm font-semibold text-fg block mb-1">
-            Mục tiêu mỗi tuần (phút)
+            {t('weeklyGoal.label')}
           </label>
           <input
             type="number"
@@ -190,7 +192,7 @@ export default function SettingsPage() {
             className="w-full px-3 py-2 border border-border rounded-lg focus:border-primary focus:outline-none bg-surface-raised text-fg"
           />
           <p className="text-xs text-muted-fg mt-1">
-            Trung bình {Math.round(weeklyGoal / 7)} phút mỗi ngày.
+            {t('weeklyGoal.dailyAverage', { count: Math.round(weeklyGoal / 7) })}
           </p>
         </div>
 
@@ -199,19 +201,19 @@ export default function SettingsPage() {
           disabled={saving}
           className="w-full py-2 bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
         >
-          {saving ? 'Đang lưu...' : 'Lưu'}
+          {saving ? t('common:status.saving') : t('common:actions.save')}
         </button>
       </div>
 
       {profile && (
         <div className="bg-surface-raised rounded-xl border border-border p-4 text-sm text-muted-fg space-y-1">
-          <p><span className="text-muted-fg">Tên:</span> {profile.name}</p>
-          {profile.email && <p><span className="text-muted-fg">Email:</span> {profile.email}</p>}
+          <p><span className="text-muted-fg">{t('profile.name')}:</span> {profile.name}</p>
+          {profile.email && <p><span className="text-muted-fg">{t('profile.email')}:</span> {profile.email}</p>}
           <p>
-            <span className="text-muted-fg">Band mục tiêu:</span> {profile.target_band}
+            <span className="text-muted-fg">{t('profile.targetBand')}:</span> {profile.target_band}
           </p>
           <p className="inline-flex items-center gap-1">
-            <span className="text-muted-fg">Streak:</span>
+            <span className="text-muted-fg">{t('profile.streak')}:</span>
             <Icon name="Flame" size="sm" variant="accent" />
             {profile.streak}
           </p>

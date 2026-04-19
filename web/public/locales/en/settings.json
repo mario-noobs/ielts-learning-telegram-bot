@@ -1,0 +1,32 @@
+{
+  "heading": "Settings",
+  "savedToast": "Settings saved.",
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "locale": {
+    "label": "Language",
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  },
+  "examDate": {
+    "label": "IELTS exam date",
+    "daysLeft": "{count, plural, one {# day} other {# days}} to go.{urgent, select, true {} other {}}",
+    "urgentSuffix": " Your plan will intensify.",
+    "past": "The date has passed.",
+    "clear": "Clear exam date"
+  },
+  "weeklyGoal": {
+    "label": "Weekly goal (minutes)",
+    "dailyAverage": "Averages {count} minutes per day."
+  },
+  "profile": {
+    "name": "Name",
+    "email": "Email",
+    "targetBand": "Target band",
+    "streak": "Streak"
+  }
+}

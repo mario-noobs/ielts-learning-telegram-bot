@@ -1,0 +1,15 @@
+{
+  "nav": {
+    "features": "Tính năng",
+    "pricing": "Giá",
+    "login": "Đăng nhập",
+    "signup": "Dùng thử"
+  },
+  "hero": {
+    "eyebrow": "Luyện IELTS cùng AI",
+    "title": "Luyện IELTS mỗi ngày vài phút, đạt band mục tiêu nhanh hơn",
+    "subtitle": "Chấm Writing, luyện nghe, bài đọc, và từ vựng theo SRS — cá nhân hóa theo band mục tiêu của bạn.",
+    "ctaPrimary": "Dùng thử miễn phí",
+    "ctaSecondary": "Xem cách hoạt động"
+  }
+}

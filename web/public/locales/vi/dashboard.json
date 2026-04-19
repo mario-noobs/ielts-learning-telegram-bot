@@ -1,0 +1,72 @@
+{
+  "greeting": {
+    "morning": "Chào buổi sáng, {name}",
+    "afternoon": "Chào buổi chiều, {name}",
+    "evening": "Chào buổi tối, {name}",
+    "motivation": {
+      "0": "Từng bài một — đó là cách band tăng đều.",
+      "1": "Luyện đều mỗi ngày tốt hơn học dồn cuối tuần.",
+      "2": "Không cần cảm thấy sẵn sàng; chỉ cần bắt đầu.",
+      "3": "Mười phút tập trung hơn một giờ lơ đễnh.",
+      "4": "Tiến bộ nằm trong những buổi bạn chọn không bỏ."
+    }
+  },
+  "quickActions": {
+    "heading": "Hành động nhanh",
+    "writing": {
+      "title": "Writing",
+      "description": "Chấm điểm bởi AI · Task 1 hoặc Task 2"
+    },
+    "flashcards": {
+      "title": "Flashcards",
+      "description": "Ôn tập từ đến hạn theo SRS"
+    }
+  },
+  "personalization": {
+    "heading": "Hoàn thiện hồ sơ",
+    "targetBand": {
+      "message": "Đặt band mục tiêu để chúng tôi cá nhân hóa gợi ý.",
+      "cta": "Đặt band mục tiêu"
+    },
+    "examDate": {
+      "message": "Thêm ngày thi để hiện đếm ngược và tăng cường kế hoạch.",
+      "cta": "Đặt ngày thi"
+    },
+    "dismiss": "Nhắc sau"
+  },
+  "todaysPlan": {
+    "heading": "Kế hoạch hôm nay",
+    "subline": "{total} / {cap} phút",
+    "allDone": {
+      "title": "Hoàn thành kế hoạch hôm nay!",
+      "description": "Mai quay lại để tiếp tục streak nhé.",
+      "cta": "Xem tiến độ"
+    }
+  },
+  "readiness": {
+    "heading": "Mức độ sẵn sàng",
+    "details": "Xem chi tiết →"
+  },
+  "recent": {
+    "heading": "Từ vừa học gần đây",
+    "viewAll": "Xem tất cả →"
+  },
+  "examCountdown": {
+    "days": "Còn {count} ngày đến kỳ thi IELTS",
+    "urgent": " — tăng cường luyện tập!"
+  },
+  "profilePanel": {
+    "streakHeading": "Chuỗi ngày luyện",
+    "streakDays": "{count} ngày",
+    "streakEmpty": "Hoàn thành một bài hôm nay để bắt đầu chuỗi.",
+    "statsHeading": "Thống kê",
+    "stats": {
+      "flashcards": "Flashcard đã học",
+      "writingSubmitted": "Bài Writing đã nộp",
+      "listeningSessions": "Buổi Listening",
+      "readingSessions": "Bài Reading",
+      "bandDelta30d": "Đổi band 30 ngày"
+    },
+    "beta": "Beta"
+  }
+}

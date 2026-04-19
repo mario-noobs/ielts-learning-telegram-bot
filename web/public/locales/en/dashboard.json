@@ -1,0 +1,72 @@
+{
+  "greeting": {
+    "morning": "Good morning, {name}",
+    "afternoon": "Good afternoon, {name}",
+    "evening": "Good evening, {name}",
+    "motivation": {
+      "0": "One passage at a time — that's how bands grow.",
+      "1": "Small daily reps beat weekend cramming.",
+      "2": "You don't have to feel ready; you just have to begin.",
+      "3": "Ten focused minutes beat an hour of half-attention.",
+      "4": "Progress hides in the sessions you show up for anyway."
+    }
+  },
+  "quickActions": {
+    "heading": "Quick actions",
+    "writing": {
+      "title": "Writing",
+      "description": "AI-graded Task 1 or Task 2 essay"
+    },
+    "flashcards": {
+      "title": "Flashcards",
+      "description": "Review due vocabulary with SRS"
+    }
+  },
+  "personalization": {
+    "heading": "Complete your profile",
+    "targetBand": {
+      "message": "Set a target band so we can tailor recommendations.",
+      "cta": "Set target band"
+    },
+    "examDate": {
+      "message": "Add your exam date to unlock a countdown and an intensified plan.",
+      "cta": "Set exam date"
+    },
+    "dismiss": "Remind me later"
+  },
+  "todaysPlan": {
+    "heading": "Today's plan",
+    "subline": "{total} of {cap} minutes",
+    "allDone": {
+      "title": "Today's plan complete!",
+      "description": "Come back tomorrow to keep your streak.",
+      "cta": "View progress"
+    }
+  },
+  "readiness": {
+    "heading": "Readiness",
+    "details": "See details →"
+  },
+  "recent": {
+    "heading": "Recently learned",
+    "viewAll": "View all →"
+  },
+  "examCountdown": {
+    "days": "{count, plural, one {# day} other {# days}} until IELTS",
+    "urgent": " — intensify your practice!"
+  },
+  "profilePanel": {
+    "streakHeading": "Study streak",
+    "streakDays": "{count, plural, one {# day} other {# days}}",
+    "streakEmpty": "Finish a task today to start your streak.",
+    "statsHeading": "Stats",
+    "stats": {
+      "flashcards": "Flashcards learned",
+      "writingSubmitted": "Writing submitted",
+      "listeningSessions": "Listening sessions",
+      "readingSessions": "Reading sessions",
+      "bandDelta30d": "Band change (30 days)"
+    },
+    "beta": "Beta"
+  }
+}

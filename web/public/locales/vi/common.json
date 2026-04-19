@@ -1,0 +1,55 @@
+{
+  "actions": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "continue": "Tiếp tục",
+    "retry": "Thử lại",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "submit": "Gửi",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "viewAll": "Xem tất cả",
+    "viewDetails": "Xem chi tiết",
+    "goToDashboard": "Về trang chính",
+    "getStarted": "Bắt đầu",
+    "learnMore": "Tìm hiểu thêm"
+  },
+  "status": {
+    "loading": "Đang tải…",
+    "saving": "Đang lưu…",
+    "saved": "Đã lưu",
+    "error": "Có lỗi xảy ra",
+    "offline": "Mất kết nối",
+    "empty": "Chưa có gì ở đây"
+  },
+  "nav": {
+    "dashboard": "Trang chính",
+    "vocab": "Từ vựng",
+    "writing": "Writing",
+    "listening": "Listening",
+    "reading": "Reading",
+    "progress": "Tiến độ",
+    "settings": "Cài đặt",
+    "signOut": "Đăng xuất"
+  },
+  "skills": {
+    "writing": "Writing",
+    "listening": "Listening",
+    "reading": "Reading",
+    "vocabulary": "Từ vựng"
+  },
+  "time": {
+    "daysUntilExam": "Còn {count} ngày đến kỳ thi",
+    "minutes": "{count} phút",
+    "minutesShort": "{count} phút",
+    "agoMinutes": "{count} phút trước",
+    "agoHours": "{count} giờ trước",
+    "agoDays": "{count} ngày trước"
+  },
+  "brand": {
+    "name": "IELTS Coach",
+    "beta": "Beta"
+  }
+}
