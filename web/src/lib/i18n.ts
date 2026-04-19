@@ -16,6 +16,7 @@ export const NAMESPACES = [
   'common',
   'dashboard',
   'landing',
+  'plan',
   'settings',
 ] as const
 
