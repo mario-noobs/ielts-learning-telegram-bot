@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Button } from '../../components/ui'
+import { Badge, Button } from '../../components/ui'
 import { track } from '../../lib/analytics'
 
 const SOCIAL_PROOF_COUNT = 2000
@@ -27,8 +27,11 @@ export default function Hero() {
         aria-label="Landing navigation"
         className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-6"
       >
-        <Link to="/" className="text-lg font-bold text-fg">
+        <Link to="/" className="flex items-center gap-2 text-lg font-bold text-fg">
           IELTS Coach
+          <Badge variant="primary" aria-label="Phiên bản thử nghiệm">
+            Beta
+          </Badge>
         </Link>
         <Link
           to="/login"
