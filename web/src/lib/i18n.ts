@@ -15,6 +15,7 @@ export const DEFAULT_LOCALE: SupportedLocale = 'en'
 export const NAMESPACES = [
   'common',
   'dashboard',
+  'errors',
   'landing',
   'listening',
   'plan',

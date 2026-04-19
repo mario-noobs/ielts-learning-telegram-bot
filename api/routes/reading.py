@@ -25,10 +25,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 
 import config
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.reading import (
     PassageDetail,
     PassageListResponse,
@@ -64,9 +65,7 @@ def _check_rate_limit(user: dict) -> None:
         uid = hash(str(uid)) & 0x7FFFFFFF
     allowed, msg = rate_limit_service.check_rate_limit(uid, _RATE_LIMIT_COMMAND)
     if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=msg,
-        )
+        raise ApiError(ERR.rate_limited, message=msg)
 
 
 def _utcnow() -> datetime:
@@ -99,10 +98,7 @@ async def get_passage(
 ) -> PassageDetail:
     passage = reading_service.get_passage(passage_id)
     if not passage:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Passage '{passage_id}' not found.",
-        )
+        raise ApiError(ERR.reading_passage_not_found, passage_id=passage_id)
     return PassageDetail(
         id=passage["id"],
         title=passage.get("title", ""),
@@ -127,10 +123,7 @@ async def start_session(
 
     passage = reading_service.get_passage(body.passage_id)
     if not passage:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Passage '{body.passage_id}' not found.",
-        )
+        raise ApiError(ERR.reading_passage_not_found, passage_id=body.passage_id)
 
     questions_client, answer_key = await reading_service.get_or_generate_questions(passage)
     now = _utcnow()
@@ -176,10 +169,7 @@ async def submit_session(
         firebase_service.get_reading_session, user["id"], session_id,
     )
     if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Session '{session_id}' not found.",
-        )
+        raise ApiError(ERR.reading_session_not_found, session_id=session_id)
 
     # AC2: idempotent re-submit — return the original grading unchanged.
     if doc.get("status") == "submitted":
@@ -191,10 +181,7 @@ async def submit_session(
                 submitted_at=_parse_dt(doc["submitted_at"]),
                 grade=SessionGrade(**grade),
             )
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Session already submitted.",
-        )
+        raise ApiError(ERR.reading_session_already_submitted, session_id=session_id)
 
     expires_at = _parse_dt(doc["expires_at"])
     if _utcnow() > expires_at:
@@ -202,10 +189,7 @@ async def submit_session(
             firebase_service.update_reading_session,
             user["id"], session_id, {"status": "expired"},
         )
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="Session expired before submission.",
-        )
+        raise ApiError(ERR.reading_session_expired, session_id=session_id)
 
     grade_dict = reading_service.grade_answers(
         user_answers=body.answers,

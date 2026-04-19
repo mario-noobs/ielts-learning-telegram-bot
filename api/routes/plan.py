@@ -1,10 +1,11 @@
 import asyncio
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 import config
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.plan import DailyPlan
 from services import firebase_service, plan_service, weakness_service
 
@@ -84,13 +85,7 @@ async def complete_activity(
         user["id"], date_str, activity_id,
     )
     if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No plan exists for today; fetch /plan/today first.",
-        )
+        raise ApiError(ERR.plan_not_found, date=date_str)
     if result == "NOT_FOUND":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Activity {activity_id} not in today's plan.",
-        )
+        raise ApiError(ERR.plan_activity_not_found, activity_id=activity_id)
     return _to_plan(result, user)

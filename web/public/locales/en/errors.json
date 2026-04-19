@@ -1,0 +1,60 @@
+{
+  "common": {
+    "unknown_error": "Something went wrong. Please try again.",
+    "not_found": "Not found.",
+    "unauthorized": "Please sign in to continue.",
+    "forbidden": "You don't have permission for this.",
+    "validation": "Check your input and try again.",
+    "rate_limited": "Too many requests — slow down for a moment.",
+    "upstream_error": "Upstream service is having a bad time. Try again in a minute."
+  },
+  "reading": {
+    "passage": {
+      "not_found": "Passage \"{passage_id}\" is not available."
+    },
+    "session": {
+      "not_found": "Reading session \"{session_id}\" is not available.",
+      "already_submitted": "This session was already submitted.",
+      "expired": "This session expired before you submitted."
+    }
+  },
+  "plan": {
+    "not_found": "No plan has been generated for today yet.",
+    "activity": {
+      "not_found": "That activity isn't part of today's plan."
+    }
+  },
+  "auth": {
+    "token": {
+      "invalid": "Your session has expired. Please sign in again."
+    },
+    "user": {
+      "not_registered": "We couldn't find an account linked to this sign-in.",
+      "exists": "An account already exists for this sign-in."
+    },
+    "link_code": {
+      "invalid": "Link code must be 6 digits.",
+      "not_found": "Link code not found. Run /link on the bot for a new one.",
+      "expired": "Link code has expired. Request a new one from the bot."
+    },
+    "link": {
+      "conflict": "This account is already linked to a different user."
+    }
+  },
+  "writing": {
+    "text": {
+      "too_short": "Essay must be at least {min_words} words (got {got})."
+    },
+    "submission": {
+      "not_found": "Writing submission \"{submission_id}\" is not available."
+    },
+    "scoring": {
+      "failed": "The scoring service returned invalid data. Please try again."
+    }
+  },
+  "settings": {
+    "exam_date": {
+      "invalid": "Exam date must be in YYYY-MM-DD format."
+    }
+  }
+}

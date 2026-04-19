@@ -1,0 +1,60 @@
+{
+  "common": {
+    "unknown_error": "Có lỗi xảy ra. Vui lòng thử lại.",
+    "not_found": "Không tìm thấy.",
+    "unauthorized": "Vui lòng đăng nhập để tiếp tục.",
+    "forbidden": "Bạn không có quyền thực hiện thao tác này.",
+    "validation": "Kiểm tra lại thông tin và thử lại.",
+    "rate_limited": "Quá nhiều yêu cầu — hãy chậm lại một chút.",
+    "upstream_error": "Dịch vụ bên ngoài đang gặp sự cố. Thử lại sau."
+  },
+  "reading": {
+    "passage": {
+      "not_found": "Không tìm thấy bài đọc \"{passage_id}\"."
+    },
+    "session": {
+      "not_found": "Không tìm thấy phiên đọc \"{session_id}\".",
+      "already_submitted": "Phiên này đã được nộp rồi.",
+      "expired": "Phiên này đã hết hạn trước khi bạn nộp."
+    }
+  },
+  "plan": {
+    "not_found": "Hôm nay chưa có kế hoạch được tạo.",
+    "activity": {
+      "not_found": "Hoạt động này không thuộc kế hoạch hôm nay."
+    }
+  },
+  "auth": {
+    "token": {
+      "invalid": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+    },
+    "user": {
+      "not_registered": "Không tìm thấy tài khoản được liên kết.",
+      "exists": "Đã có tài khoản cho đăng nhập này."
+    },
+    "link_code": {
+      "invalid": "Mã liên kết phải là 6 chữ số.",
+      "not_found": "Không tìm thấy mã. Hãy chạy /link trên bot để lấy mã mới.",
+      "expired": "Mã đã hết hạn. Hãy lấy mã mới từ bot."
+    },
+    "link": {
+      "conflict": "Tài khoản này đã liên kết với người dùng khác."
+    }
+  },
+  "writing": {
+    "text": {
+      "too_short": "Bài viết phải có ít nhất {min_words} từ (hiện tại {got})."
+    },
+    "submission": {
+      "not_found": "Không tìm thấy bài viết \"{submission_id}\"."
+    },
+    "scoring": {
+      "failed": "Dịch vụ chấm điểm trả về dữ liệu không hợp lệ. Vui lòng thử lại."
+    }
+  },
+  "settings": {
+    "exam_date": {
+      "invalid": "Ngày thi phải theo định dạng YYYY-MM-DD."
+    }
+  }
+}
