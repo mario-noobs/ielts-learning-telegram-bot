@@ -15,6 +15,7 @@ import {
   FileText,
   Flag,
   Flame,
+  Globe,
   Headphones,
   Hourglass,
   Info,
@@ -47,7 +48,7 @@ import {
 
 const REGISTRY = {
   AlertCircle, ArrowLeft, ArrowRight, BookOpen, Calendar, Check, CheckCircle2,
-  ChevronRight, Clock, FileText, Flag, Flame, Headphones, Hourglass, Info,
+  ChevronRight, Clock, FileText, Flag, Flame, Globe, Headphones, Hourglass, Info,
   LayoutDashboard, Lightbulb, LogOut, Mail, Mic, Minus, PartyPopper, Pause,
   PenLine, Play, Plus, RotateCcw, Settings, ShieldCheck, Sparkles, SquarePen,
   Target, TrendingDown, TrendingUp, Trophy, User, Volume2, X, Zap,

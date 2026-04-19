@@ -27,6 +27,10 @@ def _to_profile(user: dict) -> UserProfile:
     else:
         exam_date = None
 
+    preferred_locale = user.get("preferred_locale")
+    if preferred_locale not in ("en", "vi"):
+        preferred_locale = None
+
     return UserProfile(
         id=user["id"],
         name=user.get("name", ""),
@@ -40,6 +44,7 @@ def _to_profile(user: dict) -> UserProfile:
         challenge_wins=user.get("challenge_wins", 0),
         exam_date=exam_date,
         weekly_goal_minutes=int(user.get("weekly_goal_minutes") or 150),
+        preferred_locale=preferred_locale,
     )
 
 
@@ -71,6 +76,8 @@ async def update_me(
                     detail="exam_date must be YYYY-MM-DD.",
                 )
             updates["exam_date"] = parsed.isoformat()
+    if body.preferred_locale is not None:
+        updates["preferred_locale"] = body.preferred_locale
 
     if updates:
         await asyncio.to_thread(

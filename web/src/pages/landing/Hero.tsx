@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Badge, Button } from '../../components/ui'
+import LanguageSwitcher from '../../components/LanguageSwitcher'
 import { track } from '../../lib/analytics'
 
 const SOCIAL_PROOF_COUNT = 2000
@@ -33,12 +34,15 @@ export default function Hero() {
             Beta
           </Badge>
         </Link>
-        <Link
-          to="/login"
-          className="rounded-xl px-3 py-2 text-sm font-medium text-fg hover:bg-surface"
-        >
-          Đăng nhập
-        </Link>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <Link
+            to="/login"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-fg hover:bg-surface"
+          >
+            Đăng nhập
+          </Link>
+        </div>
       </nav>
 
       <section

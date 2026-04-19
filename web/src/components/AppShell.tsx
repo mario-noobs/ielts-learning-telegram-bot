@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
+import LanguageSwitcher from './LanguageSwitcher'
 import UpgradeBanner from './UpgradeBanner'
 
 interface Tab {
@@ -27,7 +29,8 @@ function isTabActive(tab: Tab, pathname: string): boolean {
 
 export default function AppShell() {
   const { pathname } = useLocation()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
+  useProfileLocaleSync(!!user)
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -78,6 +81,9 @@ export default function AppShell() {
         </nav>
 
         <main id="main" className="flex-1 min-w-0 pb-20 md:pb-0">
+          <div className="flex items-center justify-end px-4 pt-3 md:px-6">
+            <LanguageSwitcher persistToServer />
+          </div>
           <UpgradeBanner />
           <Outlet />
         </main>
