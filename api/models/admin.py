@@ -108,6 +108,80 @@ class AdminUserUsageResponse(BaseModel):
     points: list[AiUsagePoint]
 
 
+# ─── Teams (US-M11.4) ────────────────────────────────────────────────
+
+
+class AdminTeamSummary(BaseModel):
+    id: str
+    name: str
+    owner_uid: str
+    plan_id: str
+    plan_expires_at: Optional[date] = None
+    seat_limit: int
+    created_by: str
+    created_at: Optional[datetime] = None
+    member_count: int = 0
+
+
+class AdminTeamCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    owner_uid: str = Field(..., min_length=1)
+    plan_id: str = Field(..., min_length=1)
+    seat_limit: int = Field(..., ge=1, le=10000)
+
+
+class AdminTeamUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    plan_id: Optional[str] = None
+    plan_expires_at: Optional[date] = None
+    seat_limit: Optional[int] = Field(default=None, ge=1, le=10000)
+
+
+class AdminTeamMemberRow(BaseModel):
+    user_uid: str
+    role: str  # 'member' | 'admin'
+    joined_at: Optional[datetime] = None
+
+
+class AdminTeamMemberAdd(BaseModel):
+    user_uid: str = Field(..., min_length=1)
+    role: Literal["member", "admin"] = "member"
+
+
+# ─── Orgs (US-M11.4) ─────────────────────────────────────────────────
+
+
+class AdminOrgSummary(BaseModel):
+    id: str
+    name: str
+    owner_uid: str
+    plan_id: str
+    plan_expires_at: Optional[date] = None
+    created_at: Optional[datetime] = None
+    admin_count: int = 0
+    team_count: int = 0
+
+
+class AdminOrgCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    owner_uid: str = Field(..., min_length=1)
+    plan_id: str = Field(..., min_length=1)
+
+
+class AdminOrgUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    plan_id: Optional[str] = None
+    plan_expires_at: Optional[date] = None
+
+
+class AdminOrgAdminAdd(BaseModel):
+    user_uid: str = Field(..., min_length=1)
+
+
+class AdminOrgTeamLink(BaseModel):
+    team_id: str = Field(..., min_length=1)
+
+
 # ─── Generic ─────────────────────────────────────────────────────────
 
 
