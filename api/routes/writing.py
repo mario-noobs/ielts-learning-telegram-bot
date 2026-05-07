@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 
 import config
 from api.auth import get_current_user
-from api.errors import ApiError, ERR
+from api.errors import ERR, ApiError
 from api.models.writing import (
     TaskPromptRequest,
     TaskPromptResponse,
@@ -15,6 +15,7 @@ from api.models.writing import (
     WritingSubmission,
     WritingSubmitRequest,
 )
+from api.permissions import enforce_ai_quota
 from services import firebase_service, writing_service
 
 router = APIRouter(prefix="/api/v1/writing", tags=["writing"])
@@ -105,7 +106,11 @@ async def _score_and_store(
     return _to_submission(stored or {"id": submission_id, **data})
 
 
-@router.post("/submit", response_model=WritingSubmission)
+@router.post(
+    "/submit",
+    response_model=WritingSubmission,
+    dependencies=[Depends(enforce_ai_quota("writing"))],
+)
 async def submit_writing(
     body: WritingSubmitRequest,
     user: dict = Depends(get_current_user),

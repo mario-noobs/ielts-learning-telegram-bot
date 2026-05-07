@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 import config
 from api.auth import get_current_user
 from api.models.vocabulary import Collocation, EnrichedExample, EnrichedWord
+from api.permissions import enforce_ai_quota
 from services import word_service
 
 
@@ -14,7 +15,11 @@ def _to_collocation(item) -> Collocation:
 router = APIRouter(prefix="/api/v1/words", tags=["words"])
 
 
-@router.get("/{word}", response_model=EnrichedWord)
+@router.get(
+    "/{word}",
+    response_model=EnrichedWord,
+    dependencies=[Depends(enforce_ai_quota("words"))],
+)
 async def get_enriched_word(
     word: str,
     user: dict = Depends(get_current_user),

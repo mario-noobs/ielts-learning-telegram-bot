@@ -12,6 +12,7 @@ from api.models.quiz import (
     QuizStartResponse,
     SRSUpdate,
 )
+from api.permissions import enforce_ai_quota
 from services import firebase_service, quiz_service
 from services.srs_service import get_word_strength
 
@@ -44,7 +45,11 @@ def _normalize_answer(answer: str, question: dict) -> str:
     return stripped
 
 
-@router.post("/start", response_model=QuizStartResponse)
+@router.post(
+    "/start",
+    response_model=QuizStartResponse,
+    dependencies=[Depends(enforce_ai_quota("quiz"))],
+)
 async def start_quiz(
     body: QuizStartRequest | None = None,
     user: dict = Depends(get_current_user),
