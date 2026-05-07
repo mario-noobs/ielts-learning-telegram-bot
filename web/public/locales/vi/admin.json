@@ -1,7 +1,7 @@
 {
   "landing": {
     "title": "Bảng quản trị",
-    "subtitle": "Quản lý người dùng, gói và feature flags."
+    "subtitle": "Quản lý người dùng, nhóm, tổ chức, gói và feature flags."
   },
   "users": {
     "title": "Người dùng",
@@ -60,6 +60,68 @@
     },
     "deleteBlocked": "Không thể xoá: vẫn còn {count} người dùng trên gói này.",
     "empty": "Chưa có gói nào."
+  },
+  "teams": {
+    "title": "Nhóm",
+    "form": {
+      "name": "Tên nhóm",
+      "ownerUid": "UID chủ nhóm",
+      "seatLimit": "Số chỗ tối đa",
+      "create": "Tạo nhóm"
+    },
+    "table": {
+      "name": "Tên",
+      "plan": "Gói",
+      "seats": "Chỗ",
+      "members": "Thành viên",
+      "actions": "Thao tác"
+    },
+    "detail": {
+      "back": "Quay lại danh sách nhóm",
+      "members": "Thành viên",
+      "addMemberUid": "UID người dùng",
+      "add": "Thêm",
+      "remove": "Xoá",
+      "noMembers": "Chưa có thành viên."
+    },
+    "memberRoles": {
+      "member": "Thành viên",
+      "admin": "Quản trị"
+    },
+    "errors": {
+      "seatLimitReached": "Nhóm đã đủ số chỗ tối đa.",
+      "memberAlreadyExists": "Người dùng đã là thành viên."
+    },
+    "empty": "Chưa có nhóm nào."
+  },
+  "orgs": {
+    "title": "Tổ chức",
+    "form": {
+      "name": "Tên tổ chức",
+      "ownerUid": "UID chủ tổ chức",
+      "create": "Tạo tổ chức"
+    },
+    "table": {
+      "name": "Tên",
+      "plan": "Gói",
+      "admins": "Quản trị",
+      "teams": "Nhóm",
+      "actions": "Thao tác"
+    },
+    "detail": {
+      "back": "Quay lại danh sách tổ chức",
+      "admins": "Quản trị viên",
+      "teams": "Nhóm đã liên kết",
+      "addAdminUid": "UID quản trị",
+      "linkTeamId": "ID nhóm",
+      "add": "Thêm",
+      "remove": "Xoá",
+      "link": "Liên kết",
+      "unlink": "Bỏ liên kết",
+      "noAdmins": "Chưa có quản trị.",
+      "noTeams": "Chưa liên kết nhóm nào."
+    },
+    "empty": "Chưa có tổ chức nào."
   },
   "flags": {
     "title": "Feature flags",

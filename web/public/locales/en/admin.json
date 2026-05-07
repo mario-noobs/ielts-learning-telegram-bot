@@ -1,7 +1,7 @@
 {
   "landing": {
     "title": "Admin Console",
-    "subtitle": "Manage users, plans, and feature flags."
+    "subtitle": "Manage users, teams, organizations, plans, and feature flags."
   },
   "users": {
     "title": "Users",
@@ -60,6 +60,68 @@
     },
     "deleteBlocked": "Cannot delete: {count} user(s) still on this plan.",
     "empty": "No plans yet."
+  },
+  "teams": {
+    "title": "Teams",
+    "form": {
+      "name": "Team name",
+      "ownerUid": "Owner user UID",
+      "seatLimit": "Seat limit",
+      "create": "Create team"
+    },
+    "table": {
+      "name": "Name",
+      "plan": "Plan",
+      "seats": "Seats",
+      "members": "Members",
+      "actions": "Actions"
+    },
+    "detail": {
+      "back": "Back to teams",
+      "members": "Members",
+      "addMemberUid": "User UID",
+      "add": "Add",
+      "remove": "Remove",
+      "noMembers": "No members yet."
+    },
+    "memberRoles": {
+      "member": "Member",
+      "admin": "Admin"
+    },
+    "errors": {
+      "seatLimitReached": "Team is at its seat limit.",
+      "memberAlreadyExists": "User is already a member."
+    },
+    "empty": "No teams yet."
+  },
+  "orgs": {
+    "title": "Organizations",
+    "form": {
+      "name": "Org name",
+      "ownerUid": "Owner user UID",
+      "create": "Create org"
+    },
+    "table": {
+      "name": "Name",
+      "plan": "Plan",
+      "admins": "Admins",
+      "teams": "Teams",
+      "actions": "Actions"
+    },
+    "detail": {
+      "back": "Back to orgs",
+      "admins": "Admins",
+      "teams": "Linked teams",
+      "addAdminUid": "Admin user UID",
+      "linkTeamId": "Team ID",
+      "add": "Add",
+      "remove": "Remove",
+      "link": "Link",
+      "unlink": "Unlink",
+      "noAdmins": "No admins yet.",
+      "noTeams": "No teams linked."
+    },
+    "empty": "No organizations yet."
   },
   "flags": {
     "title": "Feature flags",

@@ -31,6 +31,10 @@ const AdminUsersPage = lazy(() => import('./pages/admin/UsersPage'))
 const AdminUserDetailPage = lazy(() => import('./pages/admin/UserDetailPage'))
 const AdminPlansPage = lazy(() => import('./pages/admin/PlansPage'))
 const AdminFlagsPage = lazy(() => import('./pages/admin/FlagsPage'))
+const AdminTeamsPage = lazy(() => import('./pages/admin/TeamsPage'))
+const AdminTeamDetailPage = lazy(() => import('./pages/admin/TeamDetailPage'))
+const AdminOrgsPage = lazy(() => import('./pages/admin/OrgsPage'))
+const AdminOrgDetailPage = lazy(() => import('./pages/admin/OrgDetailPage'))
 
 function AdminFallback() {
   return (
@@ -141,6 +145,46 @@ export default function App() {
                 <AdminGate>
                   <Suspense fallback={<AdminFallback />}>
                     <AdminFlagsPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/teams"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminTeamsPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/teams/:id"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminTeamDetailPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/orgs"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminOrgsPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/orgs/:id"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminOrgDetailPage />
                   </Suspense>
                 </AdminGate>
               }

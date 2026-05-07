@@ -131,6 +131,24 @@ class _Registry:
         "admin.target_not_found", 404,
         "Admin operation target does not exist.",
     )
+    admin_invalid_role_change = ErrorCode(
+        "admin.invalid_role_change", 400,
+        "Role change not allowed for the current actor.",
+    )
+
+    # ─── Teams (US-M11.4) ─────────────────────────────────────────────
+    team_seat_limit_reached = ErrorCode(
+        "team.seat_limit_reached", 409,
+        "Team is at its seat limit.",
+    )
+    team_member_already_exists = ErrorCode(
+        "team.member_already_exists", 409,
+        "User is already a member of this team.",
+    )
+    team_not_member = ErrorCode(
+        "team.not_member", 404,
+        "User is not a member of this team.",
+    )
 
     # ─── Quota (US-M11.2) ─────────────────────────────────────────────
     quota_daily_exceeded = ErrorCode(

@@ -56,5 +56,15 @@
     "exam_date": {
       "invalid": "Ngày thi phải theo định dạng YYYY-MM-DD."
     }
+  },
+  "team": {
+    "seat_limit_reached": "Nhóm đã đủ số chỗ tối đa ({seat_limit}).",
+    "member_already_exists": "Người dùng đã là thành viên của nhóm này.",
+    "not_member": "Người dùng không thuộc nhóm này."
+  },
+  "admin": {
+    "forbidden_role": "Hành động yêu cầu quyền cao hơn.",
+    "target_not_found": "Đối tượng không tồn tại.",
+    "invalid_role_change": "Không được phép thay đổi vai trò này."
   }
 }
