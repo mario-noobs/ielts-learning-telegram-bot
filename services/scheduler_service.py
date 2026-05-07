@@ -301,6 +301,53 @@ async def scheduled_daily_greeting(bot):
         logger.error(f"Failed to send daily greetings: {e}")
 
 
+def aggregate_platform_metrics_daily():
+    """US-M11.5: aggregate yesterday's metrics into ``platform_metrics``.
+
+    Idempotent — re-running for the same date overwrites the row. Wired
+    through ``setup_metrics_schedule`` to fire at 00:30 Asia/Ho_Chi_Minh.
+    """
+    try:
+        from datetime import datetime, timedelta, timezone
+
+        from services.admin import metrics_service
+
+        # "Yesterday" in UTC — the day whose ai_usage / last_active_date
+        # data has stopped accumulating by the 00:30 ICT cron tick.
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+        snapshot = metrics_service.aggregate_daily(yesterday)
+        logger.info(
+            "platform_metrics aggregated date=%s dau=%s signups=%s ai_calls=%s",
+            yesterday, snapshot["dau"], snapshot["signups"], snapshot["ai_calls"],
+        )
+    except Exception as e:  # noqa: BLE001 — swallowed so cron doesn't crash
+        logger.exception(f"Failed to aggregate platform_metrics: {e}")
+
+
+def setup_metrics_schedule():
+    """Register the daily metrics aggregation cron (US-M11.5).
+
+    Fires at 00:30 Asia/Ho_Chi_Minh — late enough that the previous UTC
+    day's tail of activity has settled, early enough that admins see
+    yesterday's numbers when they open the dashboard.
+    """
+    scheduler = get_scheduler()
+    job_id = "aggregate_platform_metrics_daily"
+
+    existing = scheduler.get_job(job_id)
+    if existing:
+        existing.remove()
+
+    scheduler.add_job(
+        aggregate_platform_metrics_daily,
+        "cron",
+        hour=0, minute=30,
+        id=job_id,
+        replace_existing=True,
+    )
+    logger.info("Platform metrics aggregation scheduled at 00:30 ICT")
+
+
 def setup_greeting_schedule(bot):
     """Set up the daily greeting job at 07:00 Vietnam time."""
     scheduler = get_scheduler()

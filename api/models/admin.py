@@ -182,6 +182,53 @@ class AdminOrgTeamLink(BaseModel):
     team_id: str = Field(..., min_length=1)
 
 
+# ─── Metrics + Audit (US-M11.5) ──────────────────────────────────────
+
+
+class AdminDauPoint(BaseModel):
+    date: str
+    dau: int
+    mau: int
+    signups: int
+
+
+class AdminAiUsagePoint(BaseModel):
+    date: str
+    feature: str
+    count: int
+
+
+class AdminCohortRow(BaseModel):
+    cohort_week: str
+    signups: int
+    retained_d7: int
+    retained_d30: int
+
+
+class AdminPlanDistribution(BaseModel):
+    plan_id: str
+    count: int
+
+
+class AdminAuditRow(BaseModel):
+    id: int
+    event_type: str
+    actor_uid: str
+    target_kind: str
+    target_id: str
+    before: Optional[dict[str, Any]] = None
+    after: Optional[dict[str, Any]] = None
+    request_id: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class AdminAuditPage(BaseModel):
+    items: list[AdminAuditRow]
+    total: int
+    page: int
+    page_size: int
+
+
 # ─── Generic ─────────────────────────────────────────────────────────
 
 

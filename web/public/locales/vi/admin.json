@@ -1,7 +1,46 @@
 {
-  "landing": {
+  "dashboard": {
     "title": "Bảng quản trị",
-    "subtitle": "Quản lý người dùng, nhóm, tổ chức, gói và feature flags."
+    "subtitle": "Sức khoẻ nền tảng, sử dụng AI, phân bố gói và giữ chân người dùng.",
+    "empty": "Chưa có dữ liệu cho khung thời gian này.",
+    "dau": {
+      "title": "Người dùng hoạt động ngày/tháng (30 ngày)",
+      "legendDau": "DAU",
+      "legendMau": "MAU (cuộn 30 ngày)"
+    },
+    "aiUsage": {
+      "title": "Sử dụng AI theo tính năng (30 ngày)"
+    },
+    "plans": {
+      "title": "Phân bố gói"
+    },
+    "cohorts": {
+      "title": "Giữ chân theo cohort đăng ký",
+      "week": "Tuần",
+      "signups": "Đăng ký",
+      "d7": "Ngày 7",
+      "d30": "Ngày 30"
+    }
+  },
+  "audit": {
+    "title": "Nhật ký kiểm toán",
+    "backToDashboard": "Về bảng quản trị",
+    "filters": {
+      "actorUid": "UID người thực hiện",
+      "anyEvent": "Mọi sự kiện",
+      "targetKind": "Loại đối tượng",
+      "since": "Từ",
+      "until": "Đến",
+      "apply": "Áp dụng",
+      "reset": "Đặt lại"
+    },
+    "table": {
+      "when": "Thời điểm",
+      "event": "Sự kiện",
+      "actor": "Người thực hiện",
+      "target": "Đối tượng"
+    },
+    "empty": "Không có mục nào khớp với bộ lọc."
   },
   "users": {
     "title": "Người dùng",

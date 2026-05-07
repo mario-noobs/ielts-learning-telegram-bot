@@ -26,7 +26,8 @@ import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
 
 // Admin subtree — lazy-loaded so end-user bundles don't carry it.
-const AdminLandingPage = lazy(() => import('./pages/admin/AdminLandingPage'))
+const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
+const AdminAuditLogPage = lazy(() => import('./pages/admin/AuditLogPage'))
 const AdminUsersPage = lazy(() => import('./pages/admin/UsersPage'))
 const AdminUserDetailPage = lazy(() => import('./pages/admin/UserDetailPage'))
 const AdminPlansPage = lazy(() => import('./pages/admin/PlansPage'))
@@ -104,7 +105,17 @@ export default function App() {
               element={
                 <AdminGate>
                   <Suspense fallback={<AdminFallback />}>
-                    <AdminLandingPage />
+                    <AdminDashboardPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/audit"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminAuditLogPage />
                   </Suspense>
                 </AdminGate>
               }
