@@ -2,16 +2,8 @@
   "shell": {
     "label": "Admin Console",
     "backToApp": "Back to app",
-    "sectionNav": "Admin sections"
-  },
-  "nav": {
-    "dashboard": "Dashboard",
-    "users": "Users",
-    "teams": "Teams",
-    "orgs": "Organizations",
-    "plans": "Plans",
-    "flags": "Flags",
-    "audit": "Audit log"
+    "sectionNav": "Admin sections",
+    "dashboardNav": "Dashboard"
   },
   "dashboard": {
     "title": "Admin Console",

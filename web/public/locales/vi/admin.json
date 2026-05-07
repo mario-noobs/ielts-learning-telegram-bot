@@ -2,16 +2,8 @@
   "shell": {
     "label": "Bảng quản trị",
     "backToApp": "Về ứng dụng",
-    "sectionNav": "Mục bảng quản trị"
-  },
-  "nav": {
-    "dashboard": "Trang chính",
-    "users": "Người dùng",
-    "teams": "Nhóm",
-    "orgs": "Tổ chức",
-    "plans": "Gói",
-    "flags": "Flags",
-    "audit": "Nhật ký"
+    "sectionNav": "Mục bảng quản trị",
+    "dashboardNav": "Trang chính"
   },
   "dashboard": {
     "title": "Bảng quản trị",
