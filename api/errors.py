@@ -128,6 +128,16 @@ class _Registry:
         "Action requires a higher role.",
     )
 
+    # ─── Quota (US-M11.2) ─────────────────────────────────────────────
+    quota_daily_exceeded = ErrorCode(
+        "quota.daily_exceeded", 429,
+        "Daily AI usage cap reached for this plan.",
+    )
+    quota_plan_not_found = ErrorCode(
+        "quota.plan_not_found", 404,
+        "User's plan is not registered in the plans table.",
+    )
+
 
 ERR = _Registry()
 
