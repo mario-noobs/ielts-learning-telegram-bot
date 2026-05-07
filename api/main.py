@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -6,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import config
-from api.errors import ApiError, ERR
+from api.errors import ERR, ApiError
 from api.logging_config import configure_logging
 from api.middleware import RequestIDMiddleware
 from api.routes.audio import router as audio_router
@@ -22,6 +23,7 @@ from api.routes.topics import router as topics_router
 from api.routes.vocabulary import router as vocabulary_router
 from api.routes.words import router as words_router
 from api.routes.writing import router as writing_router
+from services import db as services_db
 from services.ai_service import RateLimitError
 
 # Configure logging once at import time so even module-level loggers
@@ -31,12 +33,25 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Probe Postgres on startup so a misconfigured DATABASE_URL fails the
+    # process immediately instead of at first request.
+    if config.DATABASE_URL:
+        await services_db.init()
+    try:
+        yield
+    finally:
+        if config.DATABASE_URL:
+            await services_db.close()
+
+
 def create_app() -> FastAPI:
     # Re-run in case ENV/LOG_LEVEL changed between app instantiations
     # (e.g. tests that twiddle config).
     configure_logging()
 
-    app = FastAPI(title="IELTS Web API", version="0.1.0")
+    app = FastAPI(title="IELTS Web API", version="0.1.0", lifespan=lifespan)
 
     # RequestIDMiddleware first so the context is set before CORS / routes
     # emit any logs. Starlette runs middlewares in reverse-add order, so

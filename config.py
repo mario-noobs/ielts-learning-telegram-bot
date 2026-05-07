@@ -78,6 +78,11 @@ FEATURE_FLAG_CACHE_TTL_SECONDS = int(os.getenv("FEATURE_FLAG_CACHE_TTL_SECONDS",
 ENV = os.getenv("ENV", "development")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
+# Postgres (self-hosted) — user core doc + admin tables.
+# See services/db/__init__.py for the lazy-init engine + session factory.
+DATABASE_URL = os.getenv("DATABASE_URL")
+DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
+
 
 def local_date_str() -> str:
     """Return today's date in the configured timezone as YYYY-MM-DD."""
