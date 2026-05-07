@@ -30,6 +30,7 @@ const PLANS = ['free', 'personal_pro', 'team_member', 'org_member'] as const
 
 export default function UsersPage() {
   const { t } = useTranslation('admin')
+  const { t: tCommon } = useTranslation('common')
   const [page, setPage] = useState(1)
   const [role, setRole] = useState('')
   const [plan, setPlan] = useState('')
@@ -147,7 +148,7 @@ export default function UsersPage() {
                       to={`/admin/users/${encodeURIComponent(u.id)}`}
                       className="text-primary underline"
                     >
-                      Edit
+                      {tCommon('actions.edit')}
                     </Link>
                   </td>
                 </tr>
