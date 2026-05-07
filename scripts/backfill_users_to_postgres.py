@@ -29,13 +29,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+# Ensure project root is on sys.path when this file is run directly.
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from services.db import get_sync_session
-from services.db.models import User
-from services.repositories.firestore.user_repo import _get_db, _users_col
+from sqlalchemy.dialects.postgresql import insert as pg_insert  # noqa: E402
 
-CURSOR_FILE = Path(__file__).resolve().parent.parent / ".backfill_users.cursor"
+from services.db import get_sync_session  # noqa: E402
+from services.db.models import User  # noqa: E402
+from services.repositories.firestore.user_repo import _get_db, _users_col  # noqa: E402
+
+CURSOR_FILE = _ROOT / ".backfill_users.cursor"
 
 logger = logging.getLogger("backfill_users")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -102,46 +107,89 @@ def _upsert_batch(rows: list[dict]) -> None:
         s.execute(stmt)
 
 
-def _stream_firestore(start_after: str | None) -> Iterable[tuple[str, dict]]:
-    """Yield (doc_id, doc_dict) ordered by document id, optionally
-    skipping ids ≤ ``start_after`` for resume."""
-    _get_db()  # ensure firebase initialized
-    query = _users_col().order_by("__name__")
-    if start_after is not None:
-        query = query.start_after({"__name__": start_after})
-    for snap in query.stream():
-        yield snap.id, snap
+def _stream_firestore() -> Iterable:
+    """Yield Firestore user snapshots, ordered by document id."""
+    _get_db()
+    yield from _users_col().order_by("__name__").stream()
+
+
+def _activity_score(row: dict) -> int:
+    """Higher score = more real user activity. Used to pick a dedup winner."""
+    return (
+        (row.get("total_words") or 0)
+        + (row.get("total_quizzes") or 0)
+        + (row.get("streak") or 0)
+        + (row.get("challenge_wins") or 0)
+    )
+
+
+def _is_better(a: dict, b: dict) -> bool:
+    """True if a should beat b as the winning row for a duplicate auth_uid."""
+    sa, sb = _activity_score(a), _activity_score(b)
+    if sa != sb:
+        return sa > sb
+    ca, cb = a.get("created_at"), b.get("created_at")
+    if ca is not None and cb is not None and ca != cb:
+        return ca < cb
+    return a["id"] < b["id"]
+
+
+def _dedupe_by_auth_uid(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Pick one winner per auth_uid; return (winners, losers).
+
+    Rows with auth_uid is None pass through untouched. Losers are ids
+    Firestore stores but Postgres won't accept under ``UNIQUE(auth_uid)``.
+    """
+    by_auth: dict[str, dict] = {}
+    no_auth: list[dict] = []
+    losers: list[dict] = []
+    for row in rows:
+        auth = row.get("auth_uid")
+        if auth is None:
+            no_auth.append(row)
+            continue
+        existing = by_auth.get(auth)
+        if existing is None:
+            by_auth[auth] = row
+            continue
+        if _is_better(row, existing):
+            losers.append(existing)
+            by_auth[auth] = row
+        else:
+            losers.append(row)
+    winners = list(by_auth.values()) + no_auth
+    return winners, losers
 
 
 def run(batch_size: int) -> int:
-    cursor = _read_cursor()
-    if cursor:
-        logger.info("resuming after id=%s", cursor)
-    else:
-        logger.info("starting fresh backfill")
+    # Pre-launch: load all users into memory once, dedupe by auth_uid, then
+    # upsert. Dedup needed because Firestore tolerated multiple users sharing
+    # the same auth_uid (orphan web stubs from link_telegram_to_auth);
+    # Postgres won't under UNIQUE(auth_uid).
+    _ = _read_cursor()  # cursor compat reserved; not used in dedup path
+    logger.info("loading firestore users…")
+    all_rows = [_firestore_doc_to_row(snap) for snap in _stream_firestore()]
+    logger.info("firestore returned %d rows", len(all_rows))
 
-    batch: list[dict] = []
+    winners, losers = _dedupe_by_auth_uid(all_rows)
+    if losers:
+        logger.warning("dedup dropped %d row(s) with duplicate auth_uid:", len(losers))
+        for r in losers:
+            logger.warning(
+                "  drop id=%s auth_uid=%s activity=%d",
+                r["id"], r["auth_uid"], _activity_score(r),
+            )
+
     total = 0
-    last_id: str | None = cursor
-
-    for doc_id, snap in _stream_firestore(start_after=cursor):
-        batch.append(_firestore_doc_to_row(snap))
-        last_id = doc_id
-        if len(batch) >= batch_size:
-            _upsert_batch(batch)
-            total += len(batch)
-            _write_cursor(last_id)
-            logger.info("upserted %d (cursor=%s)", total, last_id)
-            batch = []
-
-    if batch:
+    for i in range(0, len(winners), batch_size):
+        batch = winners[i : i + batch_size]
         _upsert_batch(batch)
         total += len(batch)
-        if last_id is not None:
-            _write_cursor(last_id)
-        logger.info("upserted %d (cursor=%s)", total, last_id)
+        if batch:
+            _write_cursor(batch[-1]["id"])
+        logger.info("upserted %d / %d", total, len(winners))
 
-    logger.info("done. total upserted: %d", total)
+    logger.info("done. winners=%d, dropped=%d", total, len(losers))
     return total
 
 

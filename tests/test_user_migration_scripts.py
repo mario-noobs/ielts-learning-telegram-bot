@@ -97,20 +97,10 @@ def test_verify_passes_when_stores_match() -> None:
     rows = [_make_row("1", name="Alice"), _make_row("2", name="Bob")]
     _upsert_batch(rows)
 
-    fake_fs = {r["id"]: {k: v for k, v in r.items() if k != "id"} for r in rows}
+    fake_fs = {r["id"]: r for r in rows}
 
-    def fake_count():
-        return len(fake_fs)
-
-    def fake_ids():
-        return list(fake_fs.keys())
-
-    def fake_row(doc_id):
-        return fake_fs.get(doc_id)
-
-    with patch("scripts.verify_user_migration._firestore_count", fake_count), \
-         patch("scripts.verify_user_migration._firestore_ids", fake_ids), \
-         patch("scripts.verify_user_migration._firestore_row", fake_row), \
+    with patch("scripts.verify_user_migration._load_firestore_winners",
+               lambda: fake_fs), \
          patch("scripts.verify_user_migration._get_db", lambda: None):
         rc = verify_run(sample_size=50)
     assert rc == 0
@@ -122,7 +112,9 @@ def test_verify_fails_on_count_mismatch() -> None:
 
     _upsert_batch([_make_row("1")])
 
-    with patch("scripts.verify_user_migration._firestore_count", lambda: 99), \
+    fake_fs = {str(i): _make_row(str(i)) for i in range(99)}
+    with patch("scripts.verify_user_migration._load_firestore_winners",
+               lambda: fake_fs), \
          patch("scripts.verify_user_migration._get_db", lambda: None):
         rc = verify_run(sample_size=50)
     assert rc == 1
@@ -134,17 +126,37 @@ def test_verify_fails_on_field_drift() -> None:
 
     _upsert_batch([_make_row("1", name="postgres-name")])
 
-    fake_fs = {"1": {f: None for f in [
-        "name", "username", "email", "auth_uid", "group_id", "target_band",
-        "topics", "daily_time", "timezone", "streak", "last_active",
-        "total_words", "total_quizzes", "total_correct", "challenge_wins",
-        "exam_date", "weekly_goal_minutes", "created_at",
-    ]}}
-    fake_fs["1"]["name"] = "firestore-name"  # deliberate drift
-
-    with patch("scripts.verify_user_migration._firestore_count", lambda: 1), \
-         patch("scripts.verify_user_migration._firestore_ids", lambda: ["1"]), \
-         patch("scripts.verify_user_migration._firestore_row", lambda i: fake_fs[i]), \
+    fake_fs = {"1": _make_row("1", name="firestore-name")}
+    with patch("scripts.verify_user_migration._load_firestore_winners",
+               lambda: fake_fs), \
          patch("scripts.verify_user_migration._get_db", lambda: None):
         rc = verify_run(sample_size=50)
     assert rc == 1
+
+
+def test_dedupe_by_auth_uid_pure() -> None:
+    from scripts.backfill_users_to_postgres import _dedupe_by_auth_uid
+
+    # Two rows share the same auth_uid; the higher-activity one wins.
+    a = _make_row("real", auth_uid="X", total_words=100, total_quizzes=50)
+    b = _make_row("stub", auth_uid="X", total_words=0, total_quizzes=0)
+    c = _make_row("solo", auth_uid="Y", total_words=10)
+    d = _make_row("noauth", auth_uid=None, total_words=5)
+
+    winners, losers = _dedupe_by_auth_uid([b, a, c, d])
+    winner_ids = {w["id"] for w in winners}
+    loser_ids = {row["id"] for row in losers}
+    assert winner_ids == {"real", "solo", "noauth"}
+    assert loser_ids == {"stub"}
+
+
+def test_dedupe_tiebreak_by_created_at() -> None:
+    from scripts.backfill_users_to_postgres import _dedupe_by_auth_uid
+
+    older = _make_row("old", auth_uid="Z",
+                      created_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    newer = _make_row("new", auth_uid="Z",
+                      created_at=datetime(2026, 6, 1, tzinfo=timezone.utc))
+    winners, losers = _dedupe_by_auth_uid([newer, older])
+    assert {w["id"] for w in winners} == {"old"}
+    assert {row["id"] for row in losers} == {"new"}
