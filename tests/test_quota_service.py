@@ -21,33 +21,18 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def _seed_user_and_clean_usage():
-    """Seed a free user (default plan='free', quota=10/day) and
-    truncate ai_usage around each test."""
+def _clean_ai_usage():
+    """Truncate ai_usage around each test so quota counters don't leak."""
     from services.db import get_sync_session
-    from services.db.models import AiUsage, User
+    from services.db.models import AiUsage
 
     def _wipe():
         with get_sync_session() as s, s.begin():
             s.execute(delete(AiUsage))
-            s.execute(delete(User).where(User.id.in_(["u1", "u2"])))
 
     _wipe()
-    with get_sync_session() as s, s.begin():
-        s.add(User(id="u1", name="U1"))
     yield
     _wipe()
-
-
-def _override_user(uid: str) -> None:
-    """Set users.quota_override on uid (write directly, no repo plumbing)."""
-    from sqlalchemy import update as sql_update
-
-    from services.db import get_sync_session
-    from services.db.models import User
-
-    with get_sync_session() as s, s.begin():
-        s.execute(sql_update(User).where(User.id == uid).values(quota_override=2))
 
 
 def _build_app(user_dict: dict, feature: str = "quiz") -> FastAPI:
@@ -86,22 +71,21 @@ def test_free_user_allowed_up_to_cap_then_blocked() -> None:
 
 
 def test_quota_override_beats_plan_default() -> None:
-    """quota_override=2 should block on the 3rd call."""
+    """quota_override=2 should block on the 3rd call regardless of plan."""
     from services.admin import quota_service
 
-    _override_user("u1")
-    quota_service.check_and_increment("u1", "quiz")
-    quota_service.check_and_increment("u1", "quiz")
+    quota_service.check_and_increment("u1", "quiz", quota_override=2)
+    quota_service.check_and_increment("u1", "quiz", quota_override=2)
     with pytest.raises(ApiError) as exc:
-        quota_service.check_and_increment("u1", "quiz")
+        quota_service.check_and_increment("u1", "quiz", quota_override=2)
     assert exc.value.params["plan_quota"] == 2
 
 
-def test_unknown_user_raises_plan_not_found() -> None:
+def test_unknown_plan_raises_plan_not_found() -> None:
     from services.admin import quota_service
 
     with pytest.raises(ApiError) as exc:
-        quota_service.check_and_increment("nope", "quiz")
+        quota_service.check_and_increment("u1", "quiz", plan="nonexistent")
     assert exc.value.code == ERR.quota_plan_not_found.code
 
 

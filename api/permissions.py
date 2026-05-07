@@ -97,6 +97,8 @@ def enforce_ai_quota(feature: str) -> Callable:
         quota_service.check_and_increment(
             user_uid=str(user["id"]),
             feature=feature,
+            plan=user.get("plan", "free"),
+            quota_override=user.get("quota_override"),
         )
         return user
 
