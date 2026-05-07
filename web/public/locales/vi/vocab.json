@@ -54,11 +54,25 @@
   },
   "review": {
     "heading": "Ôn tập Flashcard",
-    "intro": "Ôn lại từ đến hạn bằng câu hỏi trắc nghiệm và điền vào chỗ trống.",
+    "intro": "Chọn cách bạn muốn ôn các từ đến hạn hôm nay.",
+    "exit": "Thoát",
     "cardAria": "Điền từ thích hợp",
     "placeholder": "Ví dụ: abandon",
     "startBtn": "Bắt đầu",
     "startingBtn": "Đang tải…",
+    "modePicker": {
+      "heading": "Chọn chế độ ôn",
+      "flip": "Flip Card",
+      "flipDesc": "Thấy từ, mở nghĩa, tự chấm điểm.",
+      "mcq": "Trắc nghiệm",
+      "mcqDesc": "Chọn đáp án đúng trong bốn lựa chọn."
+    },
+    "flip": {
+      "reveal": "Mở nghĩa",
+      "again": "Học lại",
+      "good": "Ổn",
+      "easy": "Dễ"
+    },
     "correct": "Đúng",
     "incorrect": "Sai",
     "correctTitle": "Đúng rồi!",
@@ -92,5 +106,28 @@
     "similarWords": "Từ liên quan",
     "addedOn": "Đã thêm {date}",
     "nextReview": "Lần ôn tiếp: {when}"
+  },
+  "daily": {
+    "heading": "Từ vựng hôm nay",
+    "loading": "Đang tải…",
+    "pageOf": "Ngày {current}/{total}",
+    "wordRange": "Từ {first}–{last} trên {total}",
+    "openFlip": "Flip Card",
+    "openQuiz": "Điền chỗ trống",
+    "retry": "Thử lại",
+    "flip": {
+      "done": "Xong"
+    },
+    "empty": {
+      "title": "Chưa có từ của hôm nay",
+      "description": "Tạo từ vựng hôm nay từ trang chủ, rồi quay lại đây để luyện.",
+      "cta": "Về từ vựng"
+    }
+  },
+  "pagination": {
+    "nav": "Phân trang",
+    "prev": "Trước",
+    "next": "Tiếp",
+    "pageOf": "{current} / {total}"
   }
 }

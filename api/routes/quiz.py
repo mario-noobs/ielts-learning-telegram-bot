@@ -52,9 +52,10 @@ async def start_quiz(
     """Generate a batch of quiz questions and open a session."""
     count = (body.count if body and body.count else DEFAULT_QUIZ_COUNT)
     types = body.types if body else None
+    word_ids = body.word_ids if body else None
 
     questions = await quiz_service.generate_quiz_batch(
-        telegram_id=user["id"], count=count, types=types
+        telegram_id=user["id"], count=count, types=types, word_ids=word_ids
     )
     if not questions:
         raise HTTPException(

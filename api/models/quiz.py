@@ -14,6 +14,7 @@ class QuizQuestion(BaseModel):
 class QuizStartRequest(BaseModel):
     count: int | None = Field(default=None, ge=1, le=20)
     types: list[str] | None = None
+    word_ids: list[str] | None = None
 
 
 class QuizStartResponse(BaseModel):

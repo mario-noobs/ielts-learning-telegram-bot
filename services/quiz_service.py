@@ -40,21 +40,34 @@ async def generate_quiz_question(telegram_id: int,
 
 
 async def generate_quiz_batch(telegram_id: int, count: int = 5,
-                              types: list[str] = None) -> list[dict] | None:
+                              types: list[str] = None,
+                              word_ids: list[str] = None) -> list[dict] | None:
     """Generate all quiz questions in a single AI call.
 
-    Picks random words from user's vocabulary and generates questions
-    for all of them in one batch request.
+    When word_ids is provided, generate questions for exactly those words
+    (order preserved, capped at count). Otherwise sample randomly from the
+    user's vocabulary.
     """
-    words = firebase_service.get_user_vocabulary(telegram_id, limit=100)
-    if not words or len(words) < count:
+    words = firebase_service.get_user_vocabulary(telegram_id, limit=200)
+    if not words:
         return None
 
-    selected = random.sample(words, count)
+    if word_ids:
+        by_id = {w["id"]: w for w in words}
+        selected = [by_id[wid] for wid in word_ids if wid in by_id][:count]
+        if not selected:
+            return None
+    else:
+        if len(words) < count:
+            return None
+        selected = random.sample(words, count)
 
     if not types:
         types = ["multiple_choice"] * 3 + ["fill_blank"] * 2
         random.shuffle(types)
+
+    if len(types) < len(selected):
+        types = (types * ((len(selected) // len(types)) + 1))[:len(selected)]
 
     # Prepare word data for batch generation
     word_inputs = [

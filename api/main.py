@@ -17,6 +17,7 @@ from api.routes.plan import router as plan_router
 from api.routes.progress import router as progress_router
 from api.routes.quiz import router as quiz_router
 from api.routes.reading import router as reading_router
+from api.routes.review import router as review_router
 from api.routes.topics import router as topics_router
 from api.routes.vocabulary import router as vocabulary_router
 from api.routes.words import router as words_router
@@ -135,6 +136,7 @@ def create_app() -> FastAPI:
     app.include_router(words_router)
     app.include_router(topics_router)
     app.include_router(quiz_router)
+    app.include_router(review_router)
     app.include_router(audio_router)
     app.include_router(writing_router)
     app.include_router(listening_router)

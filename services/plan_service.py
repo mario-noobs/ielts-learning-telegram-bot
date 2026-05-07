@@ -124,7 +124,7 @@ def generate_plan(
             title="10 từ mới hôm nay",
             description="Học từ vựng theo band mục tiêu",
             minutes=6,
-            route="/vocab",
+            route="/daily",
         ))
 
     # Listening — weakest type surfaces first

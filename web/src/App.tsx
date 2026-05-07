@@ -9,6 +9,9 @@ import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
 import WordDetailPage from './pages/WordDetailPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
+import DailyWordsPage from './pages/DailyWordsPage'
+import DailyFlipCardPage from './pages/DailyFlipCardPage'
+import DailyFillBlankPage from './pages/DailyFillBlankPage'
 import WritingPage from './pages/WritingPage'
 import WritingHistoryPage from './pages/WritingHistoryPage'
 import WritingDetailPage from './pages/WritingDetailPage'
@@ -62,6 +65,9 @@ export default function App() {
             <Route path="/vocab" element={<VocabHomePage />} />
             <Route path="/vocab/:id" element={<WordDetailPage />} />
             <Route path="/review" element={<FlashcardReviewPage />} />
+            <Route path="/daily" element={<DailyWordsPage />} />
+            <Route path="/daily/flip" element={<DailyFlipCardPage />} />
+            <Route path="/daily/quiz" element={<DailyFillBlankPage />} />
             <Route path="/write" element={<WritingPage />} />
             <Route path="/write/history" element={<WritingHistoryPage />} />
             <Route path="/write/:id" element={<WritingDetailPage />} />

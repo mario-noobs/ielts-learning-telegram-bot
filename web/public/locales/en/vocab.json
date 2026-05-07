@@ -54,11 +54,25 @@
   },
   "review": {
     "heading": "Flashcard review",
-    "intro": "Review due words with multiple-choice and fill-in-the-blank questions.",
+    "intro": "Pick how you'd like to review today's due words.",
+    "exit": "Exit",
     "cardAria": "Fill in the right word",
     "placeholder": "e.g. abandon",
     "startBtn": "Start",
     "startingBtn": "Loading…",
+    "modePicker": {
+      "heading": "Pick your review mode",
+      "flip": "Flip Card",
+      "flipDesc": "See a word, reveal the meaning, rate yourself.",
+      "mcq": "Multiple Choice",
+      "mcqDesc": "Pick the right answer from four options."
+    },
+    "flip": {
+      "reveal": "Reveal",
+      "again": "Again",
+      "good": "Good",
+      "easy": "Easy"
+    },
     "correct": "Correct",
     "incorrect": "Incorrect",
     "correctTitle": "Correct!",
@@ -92,5 +106,28 @@
     "similarWords": "Similar words",
     "addedOn": "Added on {date}",
     "nextReview": "Next review: {when}"
+  },
+  "daily": {
+    "heading": "Today's vocabulary",
+    "loading": "Loading…",
+    "pageOf": "Daily {current}/{total}",
+    "wordRange": "Words {first}–{last} of {total}",
+    "openFlip": "Flip Cards",
+    "openQuiz": "Fill-in-Blank",
+    "retry": "Try again",
+    "flip": {
+      "done": "Done"
+    },
+    "empty": {
+      "title": "No daily words yet",
+      "description": "Generate today's vocabulary from the dashboard, then come back here to practice.",
+      "cta": "Back to vocabulary"
+    }
+  },
+  "pagination": {
+    "nav": "Pagination",
+    "prev": "Prev",
+    "next": "Next",
+    "pageOf": "{current} / {total}"
   }
 }

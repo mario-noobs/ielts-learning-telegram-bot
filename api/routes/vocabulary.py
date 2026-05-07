@@ -44,6 +44,7 @@ def _to_vocab_word(doc: dict) -> VocabularyWord:
 def _to_daily_word(doc: dict) -> DailyWord:
     return DailyWord(
         word=doc.get("word", ""),
+        word_id=doc.get("word_id", ""),
         definition_en=doc.get("definition_en", doc.get("definition", "")),
         definition_vi=doc.get("definition_vi", ""),
         ipa=doc.get("ipa", ""),
@@ -51,6 +52,28 @@ def _to_daily_word(doc: dict) -> DailyWord:
         example_en=doc.get("example_en", doc.get("example", "")),
         example_vi=doc.get("example_vi", ""),
     )
+
+
+def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
+    """Add each daily word to the user's vocab deck (idempotent via
+    add_word_if_not_exists). Stamps word_id into the daily payload so
+    downstream clients can target the word for quizzes/reviews.
+    """
+    for w in words:
+        doc = {
+            "word": w.get("word", ""),
+            "definition": w.get("definition_en", w.get("definition", "")),
+            "definition_vi": w.get("definition_vi", ""),
+            "ipa": w.get("ipa", ""),
+            "part_of_speech": w.get("part_of_speech", ""),
+            "topic": topic,
+            "example_en": w.get("example_en", w.get("example", "")),
+            "example_vi": w.get("example_vi", ""),
+        }
+        if not doc["word"]:
+            continue
+        word_id, _ = firebase_service.add_word_if_not_exists(user_id, doc)
+        w["word_id"] = word_id
 
 
 @router.get("", response_model=WordListResponse)
@@ -92,10 +115,22 @@ async def generate_daily(
         firebase_service.get_user_daily_words, user["id"], date_str
     )
     if cached:
+        cached_words = cached.get("words", []) or []
+        cached_topic = cached.get("topic", "")
+        # Backfill word_ids for cached entries that predate this feature
+        # (idempotent via add_word_if_not_exists).
+        if cached_words and any(not w.get("word_id") for w in cached_words):
+            await asyncio.to_thread(
+                _persist_daily_to_deck, user["id"], cached_words, cached_topic
+            )
+            await asyncio.to_thread(
+                firebase_service.save_user_daily_words,
+                user["id"], date_str, cached_words, cached_topic,
+            )
         return DailyWordsResponse(
             date=date_str,
-            topic=cached.get("topic", ""),
-            words=[_to_daily_word(w) for w in cached.get("words", [])],
+            topic=cached_topic,
+            words=[_to_daily_word(w) for w in cached_words],
             generated_at=cached.get("generated_at"),
         )
 
@@ -107,6 +142,9 @@ async def generate_daily(
         telegram_id=user["id"], count=count, band=band, topics=topics
     )
 
+    await asyncio.to_thread(
+        _persist_daily_to_deck, user["id"], words, topic
+    )
     await asyncio.to_thread(
         firebase_service.save_user_daily_words, user["id"], date_str, words, topic
     )

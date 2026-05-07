@@ -112,9 +112,13 @@ class TestGenerateDaily:
             {"word": f"w{i}", "definition_en": f"def{i}", "definition_vi": f"vi{i}"}
             for i in range(10)
         ]
+        add_calls = [f"wid{i}" for i in range(10)]
+        add_iter = iter(add_calls)
         with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
                    return_value=None), \
              patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   side_effect=lambda uid, doc: (next(add_iter), True)), \
              patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
                    new=AsyncMock(return_value=(generated, "Education & Learning"))):
             response = client.post("/api/v1/vocabulary/daily", json={})
@@ -124,13 +128,21 @@ class TestGenerateDaily:
         assert body["topic"] == "Education & Learning"
         assert len(body["words"]) == 10
         assert body["words"][0]["word"] == "w0"
+        # word_id is persisted into the response so fill-blank quizzes can
+        # target today's new words.
+        assert body["words"][0]["word_id"] == "wid0"
 
     def test_returns_cached_when_already_generated(self, client):
         ts = datetime(2026, 4, 17, tzinfo=timezone.utc)
         cached = {
             "topic": "Technology & Innovation",
             "generated_at": ts,
-            "words": [{"word": "cached", "definition_en": "d", "definition_vi": "v"}],
+            "words": [{
+                "word": "cached",
+                "word_id": "wid-cached",
+                "definition_en": "d",
+                "definition_vi": "v",
+            }],
         }
         with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
                    return_value=cached), \
@@ -142,7 +154,32 @@ class TestGenerateDaily:
         body = response.json()
         assert body["topic"] == "Technology & Innovation"
         assert body["words"][0]["word"] == "cached"
+        assert body["words"][0]["word_id"] == "wid-cached"
         mock_gen.assert_not_called()
+
+    def test_backfills_word_ids_for_legacy_cached_words(self, client):
+        """Cached entries from before this feature lack word_ids; the
+        endpoint persists them into the user's deck and returns the ids."""
+        ts = datetime(2026, 4, 17, tzinfo=timezone.utc)
+        cached = {
+            "topic": "Health",
+            "generated_at": ts,
+            "words": [
+                {"word": "legacy1", "definition_en": "d1", "definition_vi": "v1"},
+                {"word": "legacy2", "definition_en": "d2", "definition_vi": "v2"},
+            ],
+        }
+        add_iter = iter(["wid-1", "wid-2"])
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=cached), \
+             patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   side_effect=lambda uid, doc: (next(add_iter), True)):
+            response = client.post("/api/v1/vocabulary/daily", json={})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert [w["word_id"] for w in body["words"]] == ["wid-1", "wid-2"]
 
 
 class TestGetDailyByDate:
