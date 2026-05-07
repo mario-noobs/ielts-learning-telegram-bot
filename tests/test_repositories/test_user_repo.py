@@ -178,6 +178,29 @@ def test_link_telegram_to_auth_updates_user(fake_db, frozen_now):
     assert repo.get(42).auth_uid == "auth-42"
 
 
+# ── increment_counters (US-M8.6) ────────────────────────────────────
+
+def test_increment_counters_bumps_specified_fields(fake_db, frozen_now):
+    repo = get_user_repo()
+    repo.create(1, "A")
+    repo.update(1, {"total_words": 3, "total_quizzes": 5, "total_correct": 4})
+
+    repo.increment_counters(1, total_words=2, total_correct=1)
+
+    u = repo.get(1)
+    assert u.total_words == 5
+    assert u.total_quizzes == 5  # untouched
+    assert u.total_correct == 5
+
+
+def test_increment_counters_no_op_with_empty_kwargs(fake_db, frozen_now):
+    repo = get_user_repo()
+    repo.create(1, "A")
+    repo.update(1, {"total_words": 7})
+    repo.increment_counters(1)
+    assert repo.get(1).total_words == 7
+
+
 # ── Protocol conformance ────────────────────────────────────────────
 
 def test_firestore_impl_satisfies_protocol():

@@ -106,6 +106,19 @@ class PostgresUserRepo:
             rows = s.execute(select(User)).scalars().all()
             return [_row_to_doc(r) for r in rows]
 
+    def increment_counters(self, user_id: UserId, **deltas: int) -> None:
+        # Atomic per-column increment; concurrent callers compose without
+        # losing updates (`col = col + N` runs server-side).
+        if not deltas:
+            return
+        values = {
+            field: getattr(User, field) + delta for field, delta in deltas.items()
+        }
+        with get_sync_session() as s, s.begin():
+            s.execute(
+                update(User).where(User.id == str(user_id)).values(**values),
+            )
+
     def update_streak(self, user_id: UserId) -> None:
         # Read + update in the same transaction so concurrent calls don't
         # race on the streak counter.

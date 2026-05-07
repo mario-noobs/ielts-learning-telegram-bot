@@ -185,6 +185,30 @@ def test_link_telegram_to_auth() -> None:
     assert fetched.id == "1"
 
 
+def test_increment_counters_atomic() -> None:
+    """``increment_counters`` adds the deltas server-side; non-listed
+    columns are untouched."""
+    repo = _repo()
+    repo.create(telegram_id=1, name="A")
+    repo.update(1, {"total_words": 3, "total_quizzes": 5, "total_correct": 4})
+
+    repo.increment_counters(1, total_words=2, total_correct=1)
+
+    u = repo.get(1)
+    assert u is not None
+    assert u.total_words == 5
+    assert u.total_quizzes == 5  # untouched
+    assert u.total_correct == 5
+
+
+def test_increment_counters_no_op_with_empty_kwargs() -> None:
+    repo = _repo()
+    repo.create(telegram_id=1, name="A")
+    repo.update(1, {"total_words": 7})
+    repo.increment_counters(1)  # no-op
+    assert _repo().get(1).total_words == 7
+
+
 def test_m11_admin_fields_default_and_round_trip() -> None:
     """role/plan/team_id/etc. (admin schema in M11) round-trip via update."""
     from services.db import get_sync_session
