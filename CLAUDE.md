@@ -52,7 +52,7 @@ Env (`.env`): `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN` (bot only). `firebase_crede
 - `firebase_service.py` — Single Firestore data-access layer with lazy `_db` singleton. Collections: `users` (subcollections `vocabulary`, `quiz_history`, `writing_history`, `daily_words`), `groups` (subcollections `daily_words`, `challenges`).
 - `repositories/` — Newer DTO + protocol-based repository layer (`firestore/` impls). Prefer this for new code over touching `firebase_service` directly.
 - `async_firebase.py` — Async wrappers for hot paths.
-- `feature_flag_service.py` — Firestore-backed flags with 60s in-memory cache. Eval order: missing→False, kill-switch→False, `uid_allowlist`→True, no uid→`enabled`, else `sha256("{flag}:{uid}") % 100 < rollout_pct`. Admin via `scripts/flags.py`. No redeploy to toggle. Planned flags: `design_system_v2`, `postgres_dual_write_users`, `postgres_read_users`, `reading_lab`.
+- `feature_flag_service.py` — Firestore-backed flags with 60s in-memory cache. Eval order: missing→False, kill-switch→False, `uid_allowlist`→True, no uid→`enabled`, else `sha256("{flag}:{uid}") % 100 < rollout_pct`. Admin via `scripts/flags.py`. No redeploy to toggle. Planned flags: `design_system_v2`, `reading_lab`. (Postgres dual-write flags removed — M8 pivoted to a pre-launch one-shot cutover, see ADR-M8-3.)
 - Domain services: `vocab_service`, `quiz_service`, `srs_service` (SM-2), `writing_service`, `listening_service`, `reading_service`, `coaching_service`, `plan_service`, `progress_service`, `weakness_service`, `word_service`, `tts_service`, `leaderboard_service`, `challenge_service`, `scheduler_service`, `rate_limit_service`.
 
 ### Bot (`/bot/`, `main.py`) — maintenance mode

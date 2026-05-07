@@ -84,13 +84,15 @@ Epic: **GH#92** — [milestone board](https://github.com/mario-noobs/ielts-bot/m
 | GH#129 | US-M7.4: Localized AI prompts + translation cache | M | US-M7.1 |
 
 ### M8: Data Platform Migration — Phase 1 (GH#94)
+**Revised 2026-05-07**: Self-hosted Postgres on the existing VPS. User core doc (`users/{uid}`) + `auth_mapping` only — subcollections stay in Firestore. Pre-launch one-shot cutover (no shadow-write). Backups to S3 free tier. ADRs M8-1 / M8-3 / M8-4 amended; M8-2 unchanged. M10 stories (canary/rollout/cutover) are likely redundant under this scope — review needed.
+
 | # | Story | Size | Depends |
 |---|-------|------|---------|
-| GH#130 | US-M8.1: Postgres schema + Alembic baseline | M | US-P.1 |
-| GH#131 | US-M8.2: Postgres repo implementations (dual-write capable) | M | US-M8.1 |
-| GH#132 | US-M8.3: Dual-write flag + per-collection rollout | S | US-M8.2, US-P.3 |
-| GH#133 | US-M8.4: Shadow-read diff job + dashboard | M | US-M8.3 |
-| GH#134 | US-M8.5: Backup pipeline (pg_dump → B2) | S | US-M8.1 |
+| GH#130 | US-M8.1: Self-hosted Postgres + Alembic baseline (users + auth_mapping) | M | — |
+| GH#131 | US-M8.2: Postgres user_repo (authoritative) + one-shot backfill | M | US-M8.1 |
+| ~~GH#132~~ | ~~US-M8.3: Dual-write flag~~ — closed (pre-launch one-shot cutover) | — | — |
+| ~~GH#133~~ | ~~US-M8.4: Shadow-read diff job~~ — closed (verification in M8.2) | — | — |
+| GH#134 | US-M8.5: Backup pipeline (pg_dump → S3 free tier) | S | US-M8.1 |
 
 ### M9: Reading Lab (GH#95)
 | # | Story | Size | Depends |
@@ -101,13 +103,29 @@ Epic: **GH#92** — [milestone board](https://github.com/mario-noobs/ielts-bot/m
 | GH#138 | US-M9.4: Reading Lab frontend | M | US-M9.3, M6 DS |
 | GH#139 | US-M9.5: Integration (Daily Plan routing + Band Map axis) | S | US-M9.4 |
 
-### M10: Data Platform Migration — Phase 2 Cutover (GH#96)
+### M10: Data Platform Migration — Phase 2 Cutover (GH#96) — **Closed 2026-05-07**
+Folded entirely into M8 under the pre-launch one-shot cutover pivot. M10 milestone, epic, ADR-M10-1, QA-M10, and all 4 stories closed. Future post-launch migrations of any other data will need a fresh M-series epic with a real shadow-write strategy.
+
+| # | Story | Status | Absorbed by |
+|---|-------|--------|-------------|
+| ~~GH#140~~ | ~~US-M10.1: Canary read flip (1%)~~ | closed | N/A pre-launch |
+| ~~GH#141~~ | ~~US-M10.2: Graduated rollout 10/50/100%~~ | closed | N/A pre-launch |
+| ~~GH#142~~ | ~~US-M10.3: Retire Firestore writes~~ | closed | US-M8.2 cutover PR |
+| ~~GH#143~~ | ~~US-M10.4: DR drill + runbook~~ | closed | US-M8.5 monthly drill |
+| ~~GH#117~~ | ~~ADR-M10-1: Feature-Flag Cutover Plan~~ | closed | superseded by ADR-M8-3 revised |
+| ~~GH#115~~ | ~~QA-M10: Cutover Rollback Drill & Soak~~ | closed | QA-M8 revised |
+| ~~GH#96~~ | ~~Epic: M10~~ | closed | — |
+
+### M11: Admin Console & RBAC (GH#13)
+Admin console for platform operations: roles (user/team_admin/org_admin/platform_admin), Team and Org entities, plan management (admin-assigned, no payment rail yet), per-user AI quota enforcement, audit log, DAU/MAU dashboard, feature-flag UI. Postgres-backed for new admin tables; Firestore stays source of truth for activity subcollections. Foundation rides on M8.1.
+
 | # | Story | Size | Depends |
 |---|-------|------|---------|
-| GH#140 | US-M10.1: Canary read flip (1%) | S | M8 shadow-diff <0.1% for 30d |
-| GH#141 | US-M10.2: Graduated rollout 10/50/100% | M | US-M10.1 |
-| GH#142 | US-M10.3: Retire Firestore writes + final archive | S | US-M10.2 |
-| GH#143 | US-M10.4: DR drill + runbook | M | US-M10.3 |
+| GH#171 | US-M11.1: Admin schema migration on top of M8.1 (plans/teams/orgs/audit/ai_usage/metrics + repos) | M | US-M8.1 |
+| GH#172 | US-M11.2: RBAC + AI quotas + audit log | L | US-M11.1 |
+| GH#173 | US-M11.3: Admin Console MVP — Users + Plans + Flags UI | L | US-M11.2 |
+| GH#174 | US-M11.4: Teams + Orgs entities (API + UI) | L | US-M11.3 |
+| GH#175 | US-M11.5: Platform Dashboard + Audit Log Viewer | L | US-M11.3 |
 
 ---
 
