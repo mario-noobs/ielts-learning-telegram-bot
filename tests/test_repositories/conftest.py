@@ -317,9 +317,19 @@ class FakeFirestoreClient:
 def fake_db():
     """Patch ``services.repositories.firestore.user_repo._get_db`` and
     the firestore sentinels so repositories write to an in-memory store.
+
+    US-M8.6: ``get_user_repo()`` now returns ``PostgresUserRepo`` by
+    default, but this suite tests the Firestore impls in isolation
+    against the fake client. Seed the user-repo singleton with a
+    ``FirestoreUserRepo()`` so subcollection repos that call
+    ``get_user_repo().increment_counters(...)`` route the counter
+    bumps back into the same fake Firestore client. The Postgres
+    factory is exercised by ``test_postgres_user_repo.py``.
     """
+    from services import repositories as repositories_mod
     from services.repositories import _reset_singletons_for_tests
     from services.repositories.firestore import (
+        FirestoreUserRepo,
         daily_words_repo as daily_words_repo_mod,
     )
     from services.repositories.firestore import (
@@ -336,6 +346,7 @@ def fake_db():
     )
 
     _reset_singletons_for_tests()
+    repositories_mod._user_repo = FirestoreUserRepo()
     client = FakeFirestoreClient()
 
     # Each repo module has its own ``_get_db`` binding (imported from
