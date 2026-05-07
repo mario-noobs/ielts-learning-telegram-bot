@@ -20,7 +20,8 @@ PIP  := $(VENV)/bin/pip
 EMULATOR_ENV := \
 	FIRESTORE_EMULATOR_HOST=localhost:8080 \
 	FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
-	GOOGLE_CLOUD_PROJECT=ielts-bot-dev
+	GOOGLE_CLOUD_PROJECT=ielts-bot-dev \
+	DATABASE_URL=postgresql+asyncpg://ielts:dev@localhost:5432/ielts
 
 # ─── meta ──────────────────────────────────────────────────────────────
 
@@ -70,10 +71,36 @@ emulators-down:  ## Stop Firebase emulators
 	@docker-compose --profile dev stop firebase-emulators
 	@docker-compose --profile dev rm -f firebase-emulators
 
+# ─── postgres ──────────────────────────────────────────────────────────
+
+.PHONY: postgres
+postgres:  ## Start self-hosted Postgres dev container in background
+	@echo "→ Starting Postgres…"
+	@docker-compose --profile dev up -d postgres
+	@echo -n "→ Waiting for Postgres on :5432"
+	@bash -c ' \
+		for i in $$(seq 1 60); do \
+			if docker exec ielts-bot-postgres-1 pg_isready -U ielts -d ielts >/dev/null 2>&1; then \
+				echo " ready."; exit 0; \
+			fi; \
+			echo -n "."; sleep 1; \
+		done; \
+		echo ""; echo "ERROR: Postgres did not come up within 60s"; exit 1 \
+	'
+
+.PHONY: postgres-down
+postgres-down:  ## Stop Postgres dev container
+	@docker-compose --profile dev stop postgres
+	@docker-compose --profile dev rm -f postgres
+
+.PHONY: migrate
+migrate:  ## Apply Alembic migrations to head (DATABASE_URL must be set)
+	@$(EMULATOR_ENV) $(VENV)/bin/alembic upgrade head
+
 # ─── seed ──────────────────────────────────────────────────────────────
 
 .PHONY: seed
-seed:  ## Seed deterministic demo data into the emulators (idempotent)
+seed: migrate  ## Run migrations + seed deterministic demo data (idempotent)
 	@$(EMULATOR_ENV) $(PY) scripts/seed.py
 
 # ─── run ───────────────────────────────────────────────────────────────
@@ -91,17 +118,18 @@ bot:  ## Run Telegram bot (requires a real bot token)
 	@$(EMULATOR_ENV) $(PY) main.py
 
 .PHONY: dev
-dev: install emulators seed  ## One-command dev environment: emulators + api + web
+dev: install postgres emulators seed  ## One-command dev environment: postgres + emulators + api + web
 	@echo ""
 	@echo "╭──────────────────────────────────────────────────────────────╮"
 	@echo "│ Dev environment ready                                        │"
 	@echo "│   Web UI:      http://localhost:5173                         │"
 	@echo "│   API:         http://localhost:8000/api/v1/health           │"
 	@echo "│   Emulator UI: http://localhost:4000                         │"
+	@echo "│   Postgres:    postgresql://ielts:dev@localhost:5432/ielts   │"
 	@echo "│   Login:       demo@ielts.test / demo1234                    │"
 	@echo "╰──────────────────────────────────────────────────────────────╯"
 	@echo ""
-	@echo "Press Ctrl-C to stop API + Web (emulators keep running; use \`make emulators-down\`)."
+	@echo "Press Ctrl-C to stop API + Web (containers keep running; use \`make emulators-down\` and \`make postgres-down\`)."
 	@trap 'kill 0 2>/dev/null' INT TERM EXIT; \
 	( $(EMULATOR_ENV) $(PY) run_api.py ) & \
 	( cd web && npm run dev ) & \
@@ -110,14 +138,15 @@ dev: install emulators seed  ## One-command dev environment: emulators + api + w
 # ─── test / clean ──────────────────────────────────────────────────────
 
 .PHONY: test
-test:  ## Run pytest
-	@$(PY) -m pytest -q
+test:  ## Run pytest (Postgres tests skip unless DATABASE_URL is set)
+	@$(EMULATOR_ENV) $(PY) -m pytest -q
 
 .PHONY: clean
-clean:  ## Remove venv, caches, node_modules, and stop emulators (prompts first)
-	@read -p "This removes venv/, web/node_modules/, __pycache__, .pytest_cache, and stops emulators. Continue? [y/N] " ans; \
+clean:  ## Remove venv, caches, node_modules, and stop dev containers (prompts first)
+	@read -p "This removes venv/, web/node_modules/, __pycache__, .pytest_cache, and stops emulators+postgres. Continue? [y/N] " ans; \
 	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "aborted."; exit 0; fi; \
 	$(MAKE) emulators-down 2>/dev/null || true; \
+	$(MAKE) postgres-down 2>/dev/null || true; \
 	rm -rf $(VENV) .pytest_cache .ruff_cache; \
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +; \
 	rm -rf web/node_modules web/dist; \

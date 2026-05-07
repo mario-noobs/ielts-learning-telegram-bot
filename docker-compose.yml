@@ -42,3 +42,26 @@ services:
       - ./firestore.rules:/home/node/firestore.rules:ro
       - ./seeds:/home/node/seeds
     restart: unless-stopped
+
+  # Local development only: self-hosted Postgres for the user core doc + admin tables.
+  # Start with: `make postgres` or `docker-compose --profile dev up postgres -d`.
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["dev"]
+    environment:
+      POSTGRES_DB: ielts
+      POSTGRES_USER: ielts
+      POSTGRES_PASSWORD: dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ielts -d ielts"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
