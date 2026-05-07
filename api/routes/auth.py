@@ -32,6 +32,14 @@ def _to_profile(user: dict) -> UserProfile:
     if preferred_locale not in ("en", "vi"):
         preferred_locale = None
 
+    plan_expires_at_raw = user.get("plan_expires_at")
+    if hasattr(plan_expires_at_raw, "isoformat"):
+        plan_expires_at = plan_expires_at_raw.isoformat()
+    elif plan_expires_at_raw:
+        plan_expires_at = str(plan_expires_at_raw)
+    else:
+        plan_expires_at = None
+
     return UserProfile(
         id=user["id"],
         name=user.get("name", ""),
@@ -46,6 +54,12 @@ def _to_profile(user: dict) -> UserProfile:
         exam_date=exam_date,
         weekly_goal_minutes=int(user.get("weekly_goal_minutes") or 150),
         preferred_locale=preferred_locale,
+        role=user.get("role") or "user",
+        plan=user.get("plan") or "free",
+        plan_expires_at=plan_expires_at,
+        team_id=user.get("team_id"),
+        org_id=user.get("org_id"),
+        quota_override=user.get("quota_override"),
     )
 
 
