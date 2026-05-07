@@ -75,6 +75,26 @@ The `users` table mirrors `services/repositories/dtos.py:UserDoc` plus admin fie
 
 The `auth_uid` column has a UNIQUE constraint, so `get_user_by_auth_uid` is a single indexed `SELECT * FROM users WHERE auth_uid = $1` — no separate `auth_mapping` table.
 
+## Admin schema (M11.1)
+
+Migration `0002_admin_baseline.py` adds the admin data layer. All tables are Postgres-only (no Firestore mirror).
+
+| Table | Purpose | Notes |
+|---|---|---|
+| `plans` | Subscription tier definitions | text PK; seeded with `free`, `personal_pro`, `team_member`, `org_member`. Carries `daily_ai_quota`, `monthly_ai_quota`, `max_team_seats`, `features` (JSONB list) |
+| `teams` | Team entity | uuid PK (`gen_random_uuid()`), FK `plan_id → plans.id`, `seat_limit` |
+| `team_members` | Team membership | composite PK `(team_id, user_uid)`; ON DELETE CASCADE; CHECK constraint `role IN ('member', 'admin')` |
+| `orgs` | Org entity | uuid PK, FK `plan_id → plans.id` |
+| `org_admins` | Org admin assignment | composite PK; ON DELETE CASCADE |
+| `org_teams` | Org → team links | composite PK; ON DELETE CASCADE on both sides |
+| `audit_log` | Append-only admin action log | bigserial PK; JSONB `before`/`after`; indexes on actor/target/created_at |
+| `ai_usage` | Per-user-per-day-per-feature quota counter | composite PK `(user_uid, date, feature)`; primitive for M11.2's quota enforcement (`INSERT … ON CONFLICT DO UPDATE … RETURNING count`) |
+| `platform_metrics` | Daily snapshot for the dashboard | date PK; JSONB `plan_distribution`; written by the cron in M11.5 |
+
+**FK constraints added on `users`** by the same migration: `users.plan → plans.id`, `users.team_id → teams.id`, `users.org_id → orgs.id`. `users.team_id` and `users.org_id` were converted from `text` to `uuid` so the FKs resolve.
+
+Postgres repos for each admin table live in `services/repositories/postgres/{plan_repo,team_repo,org_repo,audit_repo,ai_usage_repo,metrics_repo}.py`. Lazy-singleton factories live in `services/repositories/__init__.py` (`get_plan_repo`, `get_team_repo`, etc.).
+
 ## Boundary with Firestore
 
 Postgres becomes authoritative for the user core doc only after US-M8.2 ships the cutover PR. Until then, Firestore is the source of truth and Postgres exists for schema validation + M11 development. After cutover, services must call the Postgres user_repo (`services/repositories/postgres/user_repo.py`, M8.2). Subcollections continue to use the existing Firestore repos in `services/repositories/firestore/`.

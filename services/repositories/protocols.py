@@ -24,9 +24,16 @@ from datetime import datetime
 from typing import Optional, Protocol, Union, runtime_checkable
 
 from .dtos import (
+    AiUsageDoc,
+    AuditLogDoc,
     DailyWordsDoc,
+    OrgDoc,
+    PlanDoc,
+    PlatformMetricDoc,
     QuizHistoryEntry,
     QuizStats,
+    TeamDoc,
+    TeamMemberDoc,
     UserDoc,
     VocabularyItem,
     WritingHistoryEntry,
@@ -157,6 +164,136 @@ class DailyWordsRepo(Protocol):
     def get(self, user_id: UserId, date_str: str) -> Optional[DailyWordsDoc]: ...
 
 
+@runtime_checkable
+class PlanRepo(Protocol):
+    """Subscription plan definitions (Postgres-only, M11)."""
+
+    def list_all(self) -> list[PlanDoc]: ...
+
+    def get(self, plan_id: str) -> Optional[PlanDoc]: ...
+
+
+@runtime_checkable
+class TeamRepo(Protocol):
+    """Team entity + members (Postgres-only, M11)."""
+
+    def create(
+        self,
+        name: str,
+        owner_uid: str,
+        plan_id: str,
+        seat_limit: int,
+        created_by: str,
+    ) -> TeamDoc: ...
+
+    def get(self, team_id: str) -> Optional[TeamDoc]: ...
+
+    def update(self, team_id: str, data: dict) -> None: ...
+
+    def delete(self, team_id: str) -> None: ...
+
+    def list_all(self) -> list[TeamDoc]: ...
+
+    def list_for_user(self, user_uid: str) -> list[TeamDoc]: ...
+
+    def add_member(self, team_id: str, user_uid: str, role: str) -> None: ...
+
+    def remove_member(self, team_id: str, user_uid: str) -> None: ...
+
+    def list_members(self, team_id: str) -> list[TeamMemberDoc]: ...
+
+
+@runtime_checkable
+class OrgRepo(Protocol):
+    """Org entity, admins, and team links (Postgres-only, M11)."""
+
+    def create(
+        self,
+        name: str,
+        owner_uid: str,
+        plan_id: str,
+    ) -> OrgDoc: ...
+
+    def get(self, org_id: str) -> Optional[OrgDoc]: ...
+
+    def update(self, org_id: str, data: dict) -> None: ...
+
+    def delete(self, org_id: str) -> None: ...
+
+    def list_all(self) -> list[OrgDoc]: ...
+
+    def add_admin(self, org_id: str, user_uid: str) -> None: ...
+
+    def remove_admin(self, org_id: str, user_uid: str) -> None: ...
+
+    def list_admins(self, org_id: str) -> list[str]: ...
+
+    def link_team(self, org_id: str, team_id: str) -> None: ...
+
+    def unlink_team(self, org_id: str, team_id: str) -> None: ...
+
+    def list_teams(self, org_id: str) -> list[str]: ...
+
+
+@runtime_checkable
+class AuditLogRepo(Protocol):
+    """Append-only admin action log (Postgres-only, M11)."""
+
+    def append(
+        self,
+        event_type: str,
+        actor_uid: str,
+        target_kind: str,
+        target_id: str,
+        before: Optional[dict],
+        after: Optional[dict],
+        request_id: Optional[str],
+    ) -> int: ...
+
+    def list_by_target(
+        self, target_kind: str, target_id: str, limit: int = 50,
+    ) -> list[AuditLogDoc]: ...
+
+    def list_by_actor(self, actor_uid: str, limit: int = 50) -> list[AuditLogDoc]: ...
+
+    def list_recent(self, limit: int = 100) -> list[AuditLogDoc]: ...
+
+
+@runtime_checkable
+class AiUsageRepo(Protocol):
+    """Per-user-per-day-per-feature AI usage counter (Postgres-only, M11)."""
+
+    def increment(
+        self, user_uid: str, feature: str, when: Optional[datetime] = None,
+    ) -> int: ...
+
+    def get_today(self, user_uid: str) -> dict[str, int]: ...
+
+    def get_window(self, user_uid: str, days: int) -> list[AiUsageDoc]: ...
+
+
+@runtime_checkable
+class MetricsRepo(Protocol):
+    """Daily platform metric snapshots (Postgres-only, M11)."""
+
+    def upsert_daily(
+        self,
+        date: datetime,
+        total_users: int,
+        dau: int,
+        signups: int,
+        ai_calls: int,
+        plan_distribution: dict,
+        errors_count: int = 0,
+    ) -> None: ...
+
+    def get_range(
+        self, start: datetime, end: datetime,
+    ) -> list[PlatformMetricDoc]: ...
+
+    def get_latest(self) -> Optional[PlatformMetricDoc]: ...
+
+
 __all__ = [
     "UserId",
     "UserRepo",
@@ -164,4 +301,10 @@ __all__ = [
     "QuizHistoryRepo",
     "WritingHistoryRepo",
     "DailyWordsRepo",
+    "PlanRepo",
+    "TeamRepo",
+    "OrgRepo",
+    "AuditLogRepo",
+    "AiUsageRepo",
+    "MetricsRepo",
 ]
