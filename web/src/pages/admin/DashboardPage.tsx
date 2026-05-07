@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
 import { apiFetch } from '../../lib/api'
 
 interface DauPoint {
@@ -27,15 +27,6 @@ interface CohortRow {
   retained_d7: number
   retained_d30: number
 }
-
-const QUICK_LINKS: { to: string; key: string }[] = [
-  { to: '/admin/users', key: 'users.title' },
-  { to: '/admin/teams', key: 'teams.title' },
-  { to: '/admin/orgs', key: 'orgs.title' },
-  { to: '/admin/plans', key: 'plans.title' },
-  { to: '/admin/flags', key: 'flags.title' },
-  { to: '/admin/audit', key: 'audit.title' },
-]
 
 export default function DashboardPage() {
   const { t } = useTranslation('admin')
@@ -71,52 +62,31 @@ export default function DashboardPage() {
   }, [t])
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{t('dashboard.title')}</h1>
-          <p className="text-muted-fg text-sm">{t('dashboard.subtitle')}</p>
-        </div>
-        <nav className="flex flex-wrap gap-3 text-sm">
-          {QUICK_LINKS.map((l) => (
-            <Link key={l.to} to={l.to} className="text-primary underline">
-              {t(l.key)}
-            </Link>
-          ))}
-        </nav>
-      </div>
+    <>
+      <AdminPageHeader
+        title={t('dashboard.title')}
+        subtitle={t('dashboard.subtitle')}
+      />
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
-      <section className="rounded-xl border border-border bg-surface-raised p-4">
-        <h2 className="text-lg font-semibold mb-3">
-          {t('dashboard.dau.title')}
-        </h2>
+      <AdminCard title={t('dashboard.dau.title')}>
         <DauChart points={dau} />
-      </section>
+      </AdminCard>
 
-      <section className="rounded-xl border border-border bg-surface-raised p-4">
-        <h2 className="text-lg font-semibold mb-3">
-          {t('dashboard.aiUsage.title')}
-        </h2>
+      <AdminCard title={t('dashboard.aiUsage.title')}>
         <AiUsageChart points={ai} />
-      </section>
+      </AdminCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <section className="rounded-xl border border-border bg-surface-raised p-4">
-          <h2 className="text-lg font-semibold mb-3">
-            {t('dashboard.plans.title')}
-          </h2>
+        <AdminCard title={t('dashboard.plans.title')}>
           <PlanBars rows={plans} />
-        </section>
-        <section className="rounded-xl border border-border bg-surface-raised p-4">
-          <h2 className="text-lg font-semibold mb-3">
-            {t('dashboard.cohorts.title')}
-          </h2>
+        </AdminCard>
+        <AdminCard title={t('dashboard.cohorts.title')}>
           <CohortTable rows={cohorts} />
-        </section>
+        </AdminCard>
       </div>
-    </div>
+    </>
   )
 }
 

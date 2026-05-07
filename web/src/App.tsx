@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AdminGate from './components/AdminGate'
+import AdminShell from './components/AdminShell'
 import AppShell from './components/AppShell'
 import LandingPage from './pages/LandingPage'
 import LegalPage from './pages/LegalPage'
@@ -58,6 +59,14 @@ function ProtectedShell() {
   return <AppShell />
 }
 
+function ProtectedAdminShell() {
+  return (
+    <AdminGate>
+      <AdminShell />
+    </AdminGate>
+  )
+}
+
 function RootRoute() {
   const { user, loading } = useAuth()
   if (loading) {
@@ -100,104 +109,87 @@ export default function App() {
             <Route path="/reading/:id" element={<ReadingExercisePage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+          </Route>
+          {/* Admin subtree — its own shell, no consumer chrome (US-M11.6). */}
+          <Route element={<ProtectedAdminShell />}>
             <Route
               path="/admin"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminDashboardPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminDashboardPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/audit"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminAuditLogPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminAuditLogPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/users"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminUsersPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminUsersPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/users/:id"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminUserDetailPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminUserDetailPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/plans"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminPlansPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminPlansPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/flags"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminFlagsPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminFlagsPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/teams"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminTeamsPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminTeamsPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/teams/:id"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminTeamDetailPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminTeamDetailPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/orgs"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminOrgsPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminOrgsPage />
+                </Suspense>
               }
             />
             <Route
               path="/admin/orgs/:id"
               element={
-                <AdminGate>
-                  <Suspense fallback={<AdminFallback />}>
-                    <AdminOrgDetailPage />
-                  </Suspense>
-                </AdminGate>
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminOrgDetailPage />
+                </Suspense>
               }
             />
           </Route>
