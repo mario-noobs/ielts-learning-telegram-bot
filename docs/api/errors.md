@@ -47,3 +47,4 @@ back to `common.unknown_error`.
 | `writing.submission.not_found` | 404 | Writing submission not found. |
 | `writing.scoring.failed` | 502 | Essay scoring service returned invalid data. |
 | `settings.exam_date.invalid` | 400 | exam_date must be YYYY-MM-DD. |
+| `admin.forbidden_role` | 403 | Action requires a higher role. |

@@ -122,6 +122,12 @@ class _Registry:
         "settings.exam_date.invalid", 400, "exam_date must be YYYY-MM-DD.",
     )
 
+    # ─── Admin (US-M11.2) ─────────────────────────────────────────────
+    admin_forbidden_role = ErrorCode(
+        "admin.forbidden_role", 403,
+        "Action requires a higher role.",
+    )
+
 
 ERR = _Registry()
 

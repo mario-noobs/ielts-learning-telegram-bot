@@ -90,6 +90,18 @@ class UserDoc(_FirestoreDTO):
     weekly_goal_minutes: Optional[int] = None
     created_at: Optional[datetime] = None
 
+    # Admin fields. Stored on the row in M8.1; surfaced through the DTO
+    # in M11.2 so service code can read role/plan/team via the typed
+    # repo.get(...) return value.
+    role: str = "user"
+    plan: str = "free"
+    plan_expires_at: Optional[_date] = None
+    team_id: Optional[str] = None
+    org_id: Optional[str] = None
+    quota_override: Optional[int] = None
+    last_active_date: Optional[_date] = None
+    signup_cohort: Optional[str] = None
+
 
 class QuizStats(BaseModel):
     """Aggregate quiz stats derived from the user profile counters."""
