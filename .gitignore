@@ -41,3 +41,6 @@ seeds/firestore-export/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Migration script runtime artifacts
+.backfill_users.cursor
