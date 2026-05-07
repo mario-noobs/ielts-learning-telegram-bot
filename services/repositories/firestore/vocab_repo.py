@@ -19,15 +19,15 @@ def _vocab_col(user_id: UserId):
             .collection("vocabulary"))
 
 
-def _user_ref(user_id: UserId):
-    return _get_db().collection("users").document(str(user_id))
-
-
 class FirestoreVocabRepo:
     """Firestore-backed ``VocabRepo``.
 
     SRS mutations (``update_srs``) touch only the vocab subcollection.
-    Word adds also bump ``total_words`` on the parent user doc.
+    Word adds also bump ``total_words`` on the parent user, via
+    ``UserRepo.increment_counters`` so the counter lands in whichever
+    store is authoritative for the user doc (Postgres post-US-M8.6).
+    The dedupe + write portion stays inside the Firestore transaction;
+    the counter increment runs after the txn commits.
     """
 
     def add_word(self, user_id: UserId, word_data: dict) -> str:
@@ -44,7 +44,8 @@ class FirestoreVocabRepo:
         }
         doc_ref = _vocab_col(user_id).document()
         doc_ref.set(word_doc)
-        _user_ref(user_id).update({"total_words": firestore.Increment(1)})
+        from services.repositories import get_user_repo
+        get_user_repo().increment_counters(user_id, total_words=1)
         return doc_ref.id
 
     def add_word_if_not_exists(
@@ -57,7 +58,6 @@ class FirestoreVocabRepo:
         """
         db = _get_db()
         word = str(word_data.get("word", "")).strip().lower()
-        user_ref = _user_ref(user_id)
         vocab_ref = _vocab_col(user_id)
 
         @firestore.transactional
@@ -81,10 +81,13 @@ class FirestoreVocabRepo:
                 "times_incorrect": 0,
                 "added_at": now,
             })
-            txn.update(user_ref, {"total_words": firestore.Increment(1)})
             return doc_ref.id, True
 
-        return _txn(db.transaction())
+        word_id, created = _txn(db.transaction())
+        if created:
+            from services.repositories import get_user_repo
+            get_user_repo().increment_counters(user_id, total_words=1)
+        return word_id, created
 
     def list_by_user(self, user_id: UserId, limit: int = 50) -> list[VocabularyItem]:
         docs = (_vocab_col(user_id)

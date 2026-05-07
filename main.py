@@ -190,6 +190,7 @@ def main():
 
     # ─── Run bot ──────────────────────────────────────────────
     logger.info("IELTS Bot starting...")
+    logger.info("user_repo_cutover_active=postgres")
     app.run_polling(drop_pending_updates=True)
 
     # Cleanup

@@ -117,6 +117,12 @@ class FirestoreUserRepo:
         docs = _users_col().stream()
         return [UserDoc.from_snapshot(d) for d in docs]
 
+    def increment_counters(self, user_id: UserId, **deltas: int) -> None:
+        if not deltas:
+            return
+        updates = {field: firestore.Increment(delta) for field, delta in deltas.items()}
+        _users_col().document(str(user_id)).update(updates)
+
     def update_streak(self, user_id: UserId) -> None:
         user = self.get(user_id)
         if not user:

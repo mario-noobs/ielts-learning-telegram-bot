@@ -26,9 +26,11 @@ Admin workflow:
 
 Planned flags (not created by this module — documented for the next sprint):
     * `design_system_v2`         — M6, route web to the new design system
-    * `postgres_dual_write_users` — M8, dual-write users to Postgres
-    * `postgres_read_users`       — M10, flip reads to Postgres (canary)
     * `reading_lab`               — M9, gate the Reading Lab feature
+
+US-M8.6 retired the `postgres_dual_write_users` and `postgres_read_users`
+stubs once the cutover landed: Postgres is unconditionally authoritative
+for the user core doc, no flag gates the read/write path.
 
 Thread-safety: reads against `_cache` happen under `_cache_lock`, as do
 writes (first-fill and refresh after expiry). Locking is cheap compared
