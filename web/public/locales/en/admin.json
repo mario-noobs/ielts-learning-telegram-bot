@@ -1,7 +1,46 @@
 {
-  "landing": {
+  "dashboard": {
     "title": "Admin Console",
-    "subtitle": "Manage users, teams, organizations, plans, and feature flags."
+    "subtitle": "Platform health, AI usage, plan mix, and signup retention.",
+    "empty": "No data yet for this window.",
+    "dau": {
+      "title": "Daily / Monthly Active Users (last 30 days)",
+      "legendDau": "DAU",
+      "legendMau": "MAU (rolling 30-day)"
+    },
+    "aiUsage": {
+      "title": "AI usage by feature (last 30 days)"
+    },
+    "plans": {
+      "title": "Plan distribution"
+    },
+    "cohorts": {
+      "title": "Signup cohort retention",
+      "week": "Week",
+      "signups": "Signups",
+      "d7": "Day 7",
+      "d30": "Day 30"
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "backToDashboard": "Back to dashboard",
+    "filters": {
+      "actorUid": "Actor UID",
+      "anyEvent": "Any event",
+      "targetKind": "Target kind",
+      "since": "Since",
+      "until": "Until",
+      "apply": "Apply",
+      "reset": "Reset"
+    },
+    "table": {
+      "when": "When",
+      "event": "Event",
+      "actor": "Actor",
+      "target": "Target"
+    },
+    "empty": "No audit log entries match these filters."
   },
   "users": {
     "title": "Users",
