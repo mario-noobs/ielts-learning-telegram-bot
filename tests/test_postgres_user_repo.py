@@ -202,16 +202,17 @@ def test_m11_admin_fields_default_and_round_trip() -> None:
         assert row.team_id is None
         assert row.quota_override is None
 
+    # team_id is uuid post-M11.1; FK references teams(id), so we can't write
+    # a fake team_id here without first creating a team. Skip team_id writes;
+    # M11.1 has its own coverage in test_postgres_admin_repos.py.
     with get_sync_session() as s, s.begin():
         row = s.get(User, "1")
         row.role = "platform_admin"
         row.plan = "personal_pro"
-        row.team_id = "t-1"
         row.quota_override = 500
 
     with get_sync_session() as s:
         row = s.get(User, "1")
         assert row.role == "platform_admin"
         assert row.plan == "personal_pro"
-        assert row.team_id == "t-1"
         assert row.quota_override == 500

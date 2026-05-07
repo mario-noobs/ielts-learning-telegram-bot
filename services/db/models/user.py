@@ -14,7 +14,7 @@ from sqlalchemy import (
     Integer,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from services.db.base import Base
@@ -48,8 +48,12 @@ class User(Base):
     role: Mapped[str] = mapped_column(Text, nullable=False, default="user")
     plan: Mapped[str] = mapped_column(Text, nullable=False, default="free")
     plan_expires_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    team_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True, index=True)
-    org_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    team_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), nullable=True, index=True,
+    )
+    org_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), nullable=True,
+    )
     quota_override: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     last_active_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
     signup_cohort: Mapped[Optional[str]] = mapped_column(Text, nullable=True, index=True)

@@ -1,11 +1,9 @@
 """Pydantic DTOs for the repositories layer.
 
-These DTOs mirror the **Firestore document shape** for the user-scoped
-collections that will migrate to Postgres in M8 (#130). They are
-intentionally distinct from the API response models under
-``api/models/`` — those are response-shaped (lean, client-facing),
-whereas these carry the full persisted row shape (counters, timestamps,
-SRS state, etc.).
+User-scoped DTOs (UserDoc, VocabularyItem, etc.) mirror the Firestore
+document shape via ``_FirestoreDTO``. Admin DTOs added in M11.1
+(PlanDoc, TeamDoc, OrgDoc, AuditLogDoc, AiUsageDoc, PlatformMetricDoc,
+…) are Postgres-only and inherit from plain ``BaseModel``.
 
 Design rules:
 - Every DTO has an ``id`` field (doc id or primary key).
@@ -22,6 +20,7 @@ Design rules:
 
 from __future__ import annotations
 
+from datetime import date as _date
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -179,6 +178,76 @@ class DailyWordsDoc(_FirestoreDTO):
     generated_at: Optional[datetime] = None
 
 
+# ─── Admin DTOs (M11.1, Postgres-only) ────────────────────────────────
+
+class PlanDoc(BaseModel):
+    id: str
+    name: str
+    daily_ai_quota: int
+    monthly_ai_quota: int
+    max_team_seats: Optional[int] = None
+    features: list[str] = Field(default_factory=list)
+    created_at: Optional[datetime] = None
+
+
+class TeamDoc(BaseModel):
+    id: str
+    name: str
+    owner_uid: str
+    plan_id: str
+    plan_expires_at: Optional[_date] = None
+    seat_limit: int
+    created_by: str
+    created_at: Optional[datetime] = None
+
+
+class TeamMemberDoc(BaseModel):
+    team_id: str
+    user_uid: str
+    role: str
+    joined_at: Optional[datetime] = None
+
+
+class OrgDoc(BaseModel):
+    id: str
+    name: str
+    owner_uid: str
+    plan_id: str
+    plan_expires_at: Optional[_date] = None
+    created_at: Optional[datetime] = None
+
+
+class AuditLogDoc(BaseModel):
+    id: int
+    event_type: str
+    actor_uid: str
+    target_kind: str
+    target_id: str
+    before: Optional[dict[str, Any]] = None
+    after: Optional[dict[str, Any]] = None
+    request_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+class AiUsageDoc(BaseModel):
+    user_uid: str
+    date: _date
+    feature: str
+    count: int = 0
+    last_call_at: Optional[datetime] = None
+
+
+class PlatformMetricDoc(BaseModel):
+    date: _date
+    total_users: int
+    dau: int
+    signups: int
+    ai_calls: int
+    plan_distribution: dict[str, Any] = Field(default_factory=dict)
+    errors_count: int = 0
+    created_at: Optional[datetime] = None
+
+
 # ─── Helpers ─────────────────────────────────────────────────────────
 
 def _utcnow() -> datetime:
@@ -193,4 +262,11 @@ __all__ = [
     "QuizHistoryEntry",
     "WritingHistoryEntry",
     "DailyWordsDoc",
+    "PlanDoc",
+    "TeamDoc",
+    "TeamMemberDoc",
+    "OrgDoc",
+    "AuditLogDoc",
+    "AiUsageDoc",
+    "PlatformMetricDoc",
 ]
