@@ -15,6 +15,7 @@ from api.models.listening import (
     ListeningHistoryResponse,
     ListeningSubmitRequest,
 )
+from api.permissions import enforce_ai_quota
 from services import firebase_service, listening_service, tts_service
 
 router = APIRouter(prefix="/api/v1/listening", tags=["listening"])
@@ -121,7 +122,11 @@ def _to_history_item(doc: dict) -> ListeningHistoryItem:
     )
 
 
-@router.post("/generate", response_model=ListeningExerciseView)
+@router.post(
+    "/generate",
+    response_model=ListeningExerciseView,
+    dependencies=[Depends(enforce_ai_quota("listening"))],
+)
 async def generate_listening(
     body: ListeningGenerateRequest,
     user: dict = Depends(get_current_user),

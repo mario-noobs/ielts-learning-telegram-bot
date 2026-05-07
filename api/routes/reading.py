@@ -29,7 +29,7 @@ from fastapi import APIRouter, Depends, Query
 
 import config
 from api.auth import get_current_user
-from api.errors import ApiError, ERR
+from api.errors import ERR, ApiError
 from api.models.reading import (
     PassageDetail,
     PassageListResponse,
@@ -41,6 +41,7 @@ from api.models.reading import (
     SessionSubmitRequest,
     SessionSubmitResponse,
 )
+from api.permissions import enforce_ai_quota
 from services import firebase_service, rate_limit_service, reading_service
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,12 @@ async def get_passage(
 # ─── Sessions ────────────────────────────────────────────────────────
 
 
-@router.post("/sessions", response_model=ReadingSession, status_code=201)
+@router.post(
+    "/sessions",
+    response_model=ReadingSession,
+    status_code=201,
+    dependencies=[Depends(enforce_ai_quota("reading"))],
+)
 async def start_session(
     body: SessionCreateRequest,
     user: dict = Depends(get_current_user),
