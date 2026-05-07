@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard from '../../components/admin/AdminCard'
+import AdminInput, { AdminField, AdminSelect } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface AdminTeamSummary {
@@ -124,8 +127,8 @@ export default function TeamDetailPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-3xl mx-auto space-y-6">
-      <Link to="/admin/teams" className="text-primary underline text-sm">
+    <>
+      <Link to="/admin/teams" className="text-primary hover:underline text-sm">
         ← {t('teams.detail.back')}
       </Link>
 
@@ -142,72 +145,58 @@ export default function TeamDetailPage() {
       {!team && !error && <p className="text-muted-fg">{t('common.loading')}</p>}
 
       {team && (
-        <form
-          onSubmit={handleSave}
-          className="space-y-4 rounded-xl border border-border bg-surface-raised p-4"
-        >
-          <label className="block">
-            <span className="text-sm font-medium">{t('teams.form.name')}</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium">{t('teams.form.seatLimit')}</span>
-            <input
-              type="number"
-              min={1}
-              max={10000}
-              value={seatLimit}
-              onChange={(e) => setSeatLimit(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium disabled:opacity-50"
-          >
-            {saving ? t('common.loading') : t('users.detail.save')}
-          </button>
-        </form>
+        <AdminCard>
+          <form onSubmit={handleSave} className="space-y-4">
+            <AdminField label={t('teams.form.name')}>
+              <AdminInput
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </AdminField>
+            <AdminField label={t('teams.form.seatLimit')}>
+              <AdminInput
+                type="number"
+                min={1}
+                max={10000}
+                value={seatLimit}
+                onChange={(e) => setSeatLimit(e.target.value)}
+              />
+            </AdminField>
+            <AdminButton type="submit" disabled={saving}>
+              {saving ? t('common.loading') : t('users.detail.save')}
+            </AdminButton>
+          </form>
+        </AdminCard>
       )}
 
-      <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-4">
-        <h2 className="text-lg font-semibold">{t('teams.detail.members')}</h2>
+      <AdminCard title={t('teams.detail.members')}>
         <form
           onSubmit={handleAddMember}
           className="grid grid-cols-1 sm:grid-cols-3 gap-3"
         >
-          <input
+          <AdminInput
             type="text"
             placeholder={t('teams.detail.addMemberUid')}
             value={newUid}
             onChange={(e) => setNewUid(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-surface sm:col-span-2"
+            className="sm:col-span-2"
           />
           <div className="flex gap-2">
-            <select
+            <AdminSelect
               value={newRole}
               onChange={(e) => setNewRole(e.target.value as 'member' | 'admin')}
-              className="px-3 py-2 rounded-lg border border-border bg-surface flex-1"
+              className="flex-1"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {t(`teams.memberRoles.${r}`)}
                 </option>
               ))}
-            </select>
-            <button
-              type="submit"
-              disabled={!newUid.trim()}
-              className="px-3 py-2 rounded-lg bg-primary text-on-primary text-sm disabled:opacity-50"
-            >
+            </AdminSelect>
+            <AdminButton type="submit" disabled={!newUid.trim()}>
               {t('teams.detail.add')}
-            </button>
+            </AdminButton>
           </div>
         </form>
 
@@ -224,20 +213,21 @@ export default function TeamDetailPage() {
                     {t(`teams.memberRoles.${m.role}`)}
                   </td>
                   <td className="py-1.5 text-right">
-                    <button
+                    <AdminButton
                       type="button"
+                      variant="danger"
+                      size="sm"
                       onClick={() => handleRemoveMember(m.user_uid)}
-                      className="text-danger underline text-xs"
                     >
                       {t('teams.detail.remove')}
-                    </button>
+                    </AdminButton>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
-    </div>
+      </AdminCard>
+    </>
   )
 }

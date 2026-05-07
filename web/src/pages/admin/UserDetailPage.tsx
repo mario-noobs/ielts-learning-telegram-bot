@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard from '../../components/admin/AdminCard'
+import AdminInput, { AdminField, AdminSelect } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface AdminUserSummary {
@@ -108,8 +111,8 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-3xl mx-auto space-y-6">
-      <Link to="/admin/users" className="text-primary underline text-sm">
+    <>
+      <Link to="/admin/users" className="text-primary hover:underline text-sm">
         ← {t('users.detail.back')}
       </Link>
 
@@ -122,77 +125,68 @@ export default function UserDetailPage() {
       {!user && !error && <p className="text-muted-fg">{t('common.loading')}</p>}
 
       {user && (
-        <form onSubmit={handleSave} className="space-y-4 rounded-xl border border-border bg-surface-raised p-4">
-          <label className="block">
-            <span className="text-sm font-medium">{t('users.detail.role')}</span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
+        <AdminCard>
+          <form onSubmit={handleSave} className="space-y-4">
+            <AdminField label={t('users.detail.role')}>
+              <AdminSelect
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {t(`roles.${r}`)}
+                  </option>
+                ))}
+              </AdminSelect>
+            </AdminField>
+
+            <AdminField label={t('users.detail.plan')}>
+              <AdminSelect
+                value={plan}
+                onChange={(e) => setPlan(e.target.value)}
+              >
+                {PLANS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </AdminSelect>
+            </AdminField>
+
+            <AdminField label={t('users.detail.planExpiresAt')}>
+              <AdminInput
+                type="date"
+                value={planExpires}
+                onChange={(e) => setPlanExpires(e.target.value)}
+              />
+            </AdminField>
+
+            <AdminField
+              label={t('users.detail.quotaOverride')}
+              hint={t('users.detail.quotaOverrideHint')}
             >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {t(`roles.${r}`)}
-                </option>
-              ))}
-            </select>
-          </label>
+              <AdminInput
+                type="number"
+                min={0}
+                value={quotaOverride}
+                onChange={(e) => setQuotaOverride(e.target.value)}
+              />
+            </AdminField>
 
-          <label className="block">
-            <span className="text-sm font-medium">{t('users.detail.plan')}</span>
-            <select
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            >
-              {PLANS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-medium">{t('users.detail.planExpiresAt')}</span>
-            <input
-              type="date"
-              value={planExpires}
-              onChange={(e) => setPlanExpires(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-medium">{t('users.detail.quotaOverride')}</span>
-            <input
-              type="number"
-              min={0}
-              value={quotaOverride}
-              onChange={(e) => setQuotaOverride(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-            <p className="text-xs text-muted-fg mt-1">
-              {t('users.detail.quotaOverrideHint')}
-            </p>
-          </label>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium disabled:opacity-50"
-          >
-            {saving ? t('common.loading') : t('users.detail.save')}
-          </button>
-          {savedAt !== null && !saving && (
-            <span className="ml-3 text-sm text-success">{t('users.detail.saved')}</span>
-          )}
-        </form>
+            <div className="flex items-center gap-3">
+              <AdminButton type="submit" disabled={saving}>
+                {saving ? t('common.loading') : t('users.detail.save')}
+              </AdminButton>
+              {savedAt !== null && !saving && (
+                <span className="text-sm text-success">
+                  {t('users.detail.saved')}
+                </span>
+              )}
+            </div>
+          </form>
+        </AdminCard>
       )}
 
       {usage && (
-        <div className="rounded-xl border border-border bg-surface-raised p-4">
-          <h2 className="text-lg font-semibold mb-3">{t('users.detail.recentUsage')}</h2>
+        <AdminCard title={t('users.detail.recentUsage')}>
           {usage.points.length === 0 ? (
             <p className="text-muted-fg text-sm">—</p>
           ) : (
@@ -208,8 +202,8 @@ export default function UserDetailPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </AdminCard>
       )}
-    </div>
+    </>
   )
 }

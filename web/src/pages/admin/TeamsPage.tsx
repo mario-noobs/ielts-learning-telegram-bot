@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
+import AdminInput, { AdminSelect } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface AdminTeamSummary {
@@ -67,59 +70,51 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t('teams.title')}</h1>
-      </div>
+    <>
+      <AdminPageHeader title={t('teams.title')} />
 
-      <form
-        onSubmit={handleCreate}
-        className="rounded-xl border border-border bg-surface-raised p-4 grid grid-cols-1 sm:grid-cols-5 gap-3"
-      >
-        <input
-          type="text"
-          placeholder={t('teams.form.name')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface sm:col-span-2"
-        />
-        <input
-          type="text"
-          placeholder={t('teams.form.ownerUid')}
-          value={ownerUid}
-          onChange={(e) => setOwnerUid(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
-        />
-        <select
-          value={planId}
-          onChange={(e) => setPlanId(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
+      <AdminCard>
+        <form
+          onSubmit={handleCreate}
+          className="grid grid-cols-1 sm:grid-cols-5 gap-3"
         >
-          {PLANS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            min={1}
-            max={10000}
-            value={seatLimit}
-            onChange={(e) => setSeatLimit(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-surface w-24"
-            aria-label={t('teams.form.seatLimit')}
+          <AdminInput
+            type="text"
+            placeholder={t('teams.form.name')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="sm:col-span-2"
           />
-          <button
-            type="submit"
-            disabled={creating || !name.trim() || !ownerUid.trim()}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium disabled:opacity-50"
-          >
-            {t('teams.form.create')}
-          </button>
-        </div>
-      </form>
+          <AdminInput
+            type="text"
+            placeholder={t('teams.form.ownerUid')}
+            value={ownerUid}
+            onChange={(e) => setOwnerUid(e.target.value)}
+          />
+          <AdminSelect value={planId} onChange={(e) => setPlanId(e.target.value)}>
+            {PLANS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </AdminSelect>
+          <div className="flex gap-2">
+            <AdminInput
+              type="number"
+              min={1}
+              max={10000}
+              value={seatLimit}
+              onChange={(e) => setSeatLimit(e.target.value)}
+              aria-label={t('teams.form.seatLimit')}
+              className="w-24"
+            />
+            <AdminButton
+              type="submit"
+              disabled={creating || !name.trim() || !ownerUid.trim()}
+            >
+              {t('teams.form.create')}
+            </AdminButton>
+          </div>
+        </form>
+      </AdminCard>
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -153,7 +148,7 @@ export default function TeamsPage() {
                   <td className="px-4 py-2">
                     <Link
                       to={`/admin/teams/${encodeURIComponent(row.id)}`}
-                      className="text-primary underline"
+                      className="text-primary hover:underline text-sm"
                     >
                       {tCommon('actions.edit')}
                     </Link>
@@ -164,6 +159,6 @@ export default function TeamsPage() {
           </table>
         </div>
       )}
-    </div>
+    </>
   )
 }

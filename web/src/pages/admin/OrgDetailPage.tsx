@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard from '../../components/admin/AdminCard'
+import AdminInput, { AdminField } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface AdminOrgSummary {
@@ -125,8 +128,8 @@ export default function OrgDetailPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-3xl mx-auto space-y-6">
-      <Link to="/admin/orgs" className="text-primary underline text-sm">
+    <>
+      <Link to="/admin/orgs" className="text-primary hover:underline text-sm">
         ← {t('orgs.detail.back')}
       </Link>
 
@@ -144,46 +147,34 @@ export default function OrgDetailPage() {
       {!org && !error && <p className="text-muted-fg">{t('common.loading')}</p>}
 
       {org && (
-        <form
-          onSubmit={handleSave}
-          className="space-y-3 rounded-xl border border-border bg-surface-raised p-4"
-        >
-          <label className="block">
-            <span className="text-sm font-medium">{t('orgs.form.name')}</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={saving || name === org.name}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium disabled:opacity-50"
-          >
-            {saving ? t('common.loading') : t('users.detail.save')}
-          </button>
-        </form>
+        <AdminCard>
+          <form onSubmit={handleSave} className="space-y-4">
+            <AdminField label={t('orgs.form.name')}>
+              <AdminInput
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </AdminField>
+            <AdminButton type="submit" disabled={saving || name === org.name}>
+              {saving ? t('common.loading') : t('users.detail.save')}
+            </AdminButton>
+          </form>
+        </AdminCard>
       )}
 
-      <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-4">
-        <h2 className="text-lg font-semibold">{t('orgs.detail.admins')}</h2>
+      <AdminCard title={t('orgs.detail.admins')}>
         <form onSubmit={handleAddAdmin} className="flex gap-2">
-          <input
+          <AdminInput
             type="text"
             placeholder={t('orgs.detail.addAdminUid')}
             value={newAdminUid}
             onChange={(e) => setNewAdminUid(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-surface flex-1"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={!newAdminUid.trim()}
-            className="px-3 py-2 rounded-lg bg-primary text-on-primary text-sm disabled:opacity-50"
-          >
+          <AdminButton type="submit" disabled={!newAdminUid.trim()}>
             {t('orgs.detail.add')}
-          </button>
+          </AdminButton>
         </form>
         {admins && admins.length === 0 && (
           <p className="text-muted-fg text-sm">{t('orgs.detail.noAdmins')}</p>
@@ -196,36 +187,32 @@ export default function OrgDetailPage() {
                 className="flex items-center justify-between border-b border-border py-1.5 last:border-0"
               >
                 <span>{uid}</span>
-                <button
+                <AdminButton
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleRemoveAdmin(uid)}
-                  className="text-danger underline text-xs"
                 >
                   {t('orgs.detail.remove')}
-                </button>
+                </AdminButton>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </AdminCard>
 
-      <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-4">
-        <h2 className="text-lg font-semibold">{t('orgs.detail.teams')}</h2>
+      <AdminCard title={t('orgs.detail.teams')}>
         <form onSubmit={handleLinkTeam} className="flex gap-2">
-          <input
+          <AdminInput
             type="text"
             placeholder={t('orgs.detail.linkTeamId')}
             value={newTeamId}
             onChange={(e) => setNewTeamId(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-surface flex-1"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={!newTeamId.trim()}
-            className="px-3 py-2 rounded-lg bg-primary text-on-primary text-sm disabled:opacity-50"
-          >
+          <AdminButton type="submit" disabled={!newTeamId.trim()}>
             {t('orgs.detail.link')}
-          </button>
+          </AdminButton>
         </form>
         {teams && teams.length === 0 && (
           <p className="text-muted-fg text-sm">{t('orgs.detail.noTeams')}</p>
@@ -239,22 +226,23 @@ export default function OrgDetailPage() {
               >
                 <Link
                   to={`/admin/teams/${encodeURIComponent(tid)}`}
-                  className="text-primary underline"
+                  className="text-primary hover:underline"
                 >
                   {tid}
                 </Link>
-                <button
+                <AdminButton
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleUnlinkTeam(tid)}
-                  className="text-danger underline text-xs"
                 >
                   {t('orgs.detail.unlink')}
-                </button>
+                </AdminButton>
               </li>
             ))}
           </ul>
         )}
-      </div>
-    </div>
+      </AdminCard>
+    </>
   )
 }

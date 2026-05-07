@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
+import AdminInput, { AdminField } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface FlagRow {
@@ -115,96 +118,85 @@ export default function FlagsPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t('flags.title')}</h1>
-        {!draft && (
-          <button
-            type="button"
-            onClick={startCreate}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium"
-          >
-            {t('flags.form.save')}
-          </button>
-        )}
-      </div>
+    <>
+      <AdminPageHeader
+        title={t('flags.title')}
+        actions={
+          !draft ? (
+            <AdminButton type="button" onClick={startCreate}>
+              {t('flags.form.save')}
+            </AdminButton>
+          ) : undefined
+        }
+      />
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
       {draft && (
-        <form
-          onSubmit={save}
-          className="space-y-3 rounded-xl border border-border bg-surface-raised p-4"
-        >
-          <label className="block">
-            <span className="text-sm font-medium">{t('flags.form.name')}</span>
-            <input
-              type="text"
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              disabled={!creating}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface disabled:opacity-60"
-              required
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={draft.enabled}
-              onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
-            />
-            <span className="text-sm font-medium">{t('flags.form.enabled')}</span>
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium">{t('flags.form.rollout')}</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={draft.rollout_pct}
-              onChange={(e) =>
-                setDraft({ ...draft, rollout_pct: Number(e.target.value) })
-              }
-              className="mt-1 block w-full"
-            />
-            <span className="text-xs text-muted-fg tabular-nums">
-              {draft.rollout_pct}%
-            </span>
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium">{t('flags.form.allowlist')}</span>
-            <textarea
-              value={draft.allowlistText}
-              onChange={(e) => setDraft({ ...draft, allowlistText: e.target.value })}
-              rows={4}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface font-mono text-xs"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium">{t('flags.form.description')}</span>
-            <input
-              type="text"
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-          </label>
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium"
-            >
-              {t('flags.form.save')}
-            </button>
-            <button
-              type="button"
-              onClick={cancel}
-              className="px-4 py-2 rounded-lg border border-border"
-            >
-              {tCommon('actions.cancel')}
-            </button>
-          </div>
-        </form>
+        <AdminCard>
+          <form onSubmit={save} className="space-y-4">
+            <AdminField label={t('flags.form.name')}>
+              <AdminInput
+                type="text"
+                value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                disabled={!creating}
+                className="disabled:opacity-60"
+                required
+              />
+            </AdminField>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={draft.enabled}
+                onChange={(e) =>
+                  setDraft({ ...draft, enabled: e.target.checked })
+                }
+              />
+              <span className="text-sm font-medium">{t('flags.form.enabled')}</span>
+            </label>
+            <AdminField label={t('flags.form.rollout')}>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={draft.rollout_pct}
+                onChange={(e) =>
+                  setDraft({ ...draft, rollout_pct: Number(e.target.value) })
+                }
+                className="block w-full"
+              />
+              <span className="text-xs text-muted-fg tabular-nums">
+                {draft.rollout_pct}%
+              </span>
+            </AdminField>
+            <AdminField label={t('flags.form.allowlist')}>
+              <textarea
+                value={draft.allowlistText}
+                onChange={(e) =>
+                  setDraft({ ...draft, allowlistText: e.target.value })
+                }
+                rows={4}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-surface font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </AdminField>
+            <AdminField label={t('flags.form.description')}>
+              <AdminInput
+                type="text"
+                value={draft.description}
+                onChange={(e) =>
+                  setDraft({ ...draft, description: e.target.value })
+                }
+              />
+            </AdminField>
+            <div className="flex items-center gap-2">
+              <AdminButton type="submit">{t('flags.form.save')}</AdminButton>
+              <AdminButton type="button" variant="secondary" onClick={cancel}>
+                {tCommon('actions.cancel')}
+              </AdminButton>
+            </div>
+          </form>
+        </AdminCard>
       )}
 
       {rows === null && !error && (
@@ -250,21 +242,25 @@ export default function FlagsPage() {
                   <td className="px-4 py-2 text-muted-fg">
                     {f.description || '—'}
                   </td>
-                  <td className="px-4 py-2 space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(f)}
-                      className="text-primary underline"
-                    >
-                      {tCommon('actions.edit')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(f.name)}
-                      className="text-danger underline"
-                    >
-                      {tCommon('actions.delete')}
-                    </button>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <AdminButton
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => startEdit(f)}
+                      >
+                        {tCommon('actions.edit')}
+                      </AdminButton>
+                      <AdminButton
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => remove(f.name)}
+                      >
+                        {tCommon('actions.delete')}
+                      </AdminButton>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -272,6 +268,6 @@ export default function FlagsPage() {
           </table>
         </div>
       )}
-    </div>
+    </>
   )
 }

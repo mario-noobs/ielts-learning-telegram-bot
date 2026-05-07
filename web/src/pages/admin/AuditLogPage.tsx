@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
+import AdminInput, { AdminSelect } from '../../components/admin/AdminInput'
 import Pagination from '../../components/Pagination'
 import { apiFetch } from '../../lib/api'
 
@@ -105,67 +108,67 @@ export default function AuditLogPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t('audit.title')}</h1>
-        <Link to="/admin" className="text-primary underline text-sm">
-          ← {t('audit.backToDashboard')}
-        </Link>
-      </div>
+    <>
+      <AdminPageHeader
+        title={t('audit.title')}
+        actions={
+          <Link
+            to="/admin"
+            className="text-primary hover:underline text-sm"
+          >
+            ← {t('audit.backToDashboard')}
+          </Link>
+        }
+      />
 
-      <form
-        onSubmit={applyFilters}
-        className="rounded-xl border border-border bg-surface-raised p-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3"
-      >
-        <input
-          type="text"
-          placeholder={t('audit.filters.actorUid')}
-          value={actorUid}
-          onChange={(e) => setActorUid(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
-        />
-        <select
-          value={eventType}
-          onChange={(e) => setEventType(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
+      <AdminCard>
+        <form
+          onSubmit={applyFilters}
+          className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3"
         >
-          <option value="">{t('audit.filters.anyEvent')}</option>
-          {eventTypes.map((e) => (
-            <option key={e} value={e}>{e}</option>
-          ))}
-        </select>
-        <input
-          type="text"
-          placeholder={t('audit.filters.targetKind')}
-          value={targetKind}
-          onChange={(e) => setTargetKind(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
-        />
-        <input
-          type="date"
-          value={since}
-          onChange={(e) => setSince(e.target.value)}
-          aria-label={t('audit.filters.since')}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
-        />
-        <input
-          type="date"
-          value={until}
-          onChange={(e) => setUntil(e.target.value)}
-          aria-label={t('audit.filters.until')}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
-        />
-        <div className="flex gap-2">
-          <button type="submit"
-                  className="px-3 py-2 rounded-lg bg-primary text-on-primary text-sm flex-1">
-            {t('audit.filters.apply')}
-          </button>
-          <button type="button" onClick={reset}
-                  className="px-3 py-2 rounded-lg border border-border text-sm">
-            {t('audit.filters.reset')}
-          </button>
-        </div>
-      </form>
+          <AdminInput
+            type="text"
+            placeholder={t('audit.filters.actorUid')}
+            value={actorUid}
+            onChange={(e) => setActorUid(e.target.value)}
+          />
+          <AdminSelect
+            value={eventType}
+            onChange={(e) => setEventType(e.target.value)}
+          >
+            <option value="">{t('audit.filters.anyEvent')}</option>
+            {eventTypes.map((e) => (
+              <option key={e} value={e}>{e}</option>
+            ))}
+          </AdminSelect>
+          <AdminInput
+            type="text"
+            placeholder={t('audit.filters.targetKind')}
+            value={targetKind}
+            onChange={(e) => setTargetKind(e.target.value)}
+          />
+          <AdminInput
+            type="date"
+            value={since}
+            onChange={(e) => setSince(e.target.value)}
+            aria-label={t('audit.filters.since')}
+          />
+          <AdminInput
+            type="date"
+            value={until}
+            onChange={(e) => setUntil(e.target.value)}
+            aria-label={t('audit.filters.until')}
+          />
+          <div className="flex gap-2">
+            <AdminButton type="submit" className="flex-1">
+              {t('audit.filters.apply')}
+            </AdminButton>
+            <AdminButton type="button" variant="secondary" onClick={reset}>
+              {t('audit.filters.reset')}
+            </AdminButton>
+          </div>
+        </form>
+      </AdminCard>
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -214,6 +217,6 @@ export default function AuditLogPage() {
           onNext={() => setPage(Math.min(totalPages, page + 1))}
         />
       )}
-    </div>
+    </>
   )
 }

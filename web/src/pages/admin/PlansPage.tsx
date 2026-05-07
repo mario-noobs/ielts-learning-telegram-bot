@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
+import AdminInput, { AdminField } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface PlanRow {
@@ -126,114 +129,96 @@ export default function PlansPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t('plans.title')}</h1>
-        {!creating && !editingId && (
-          <button
-            type="button"
-            onClick={startCreate}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium"
-          >
-            {t('plans.createCta')}
-          </button>
-        )}
-      </div>
+    <>
+      <AdminPageHeader
+        title={t('plans.title')}
+        actions={
+          !creating && !editingId ? (
+            <AdminButton type="button" onClick={startCreate}>
+              {t('plans.createCta')}
+            </AdminButton>
+          ) : undefined
+        }
+      />
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
       {(creating || editingId) && (
-        <form
-          onSubmit={submit}
-          className="space-y-3 rounded-xl border border-border bg-surface-raised p-4"
-        >
-          {creating && (
-            <label className="block">
-              <span className="text-sm font-medium">{t('plans.form.id')}</span>
-              <input
+        <AdminCard>
+          <form onSubmit={submit} className="space-y-4">
+            {creating && (
+              <AdminField label={t('plans.form.id')} hint={t('plans.form.idHint')}>
+                <AdminInput
+                  type="text"
+                  value={form.id}
+                  onChange={(e) => setForm({ ...form, id: e.target.value })}
+                  required
+                />
+              </AdminField>
+            )}
+            <AdminField label={t('plans.form.name')}>
+              <AdminInput
                 type="text"
-                value={form.id}
-                onChange={(e) => setForm({ ...form, id: e.target.value })}
-                className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
               />
-              <p className="text-xs text-muted-fg mt-1">{t('plans.form.idHint')}</p>
-            </label>
-          )}
-          <label className="block">
-            <span className="text-sm font-medium">{t('plans.form.name')}</span>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-              required
-            />
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className="block">
-              <span className="text-sm font-medium">{t('plans.form.dailyQuota')}</span>
-              <input
-                type="number"
-                min={0}
-                value={form.daily_ai_quota}
-                onChange={(e) => setForm({ ...form, daily_ai_quota: Number(e.target.value) })}
-                className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium">{t('plans.form.monthlyQuota')}</span>
-              <input
-                type="number"
-                min={0}
-                value={form.monthly_ai_quota}
-                onChange={(e) => setForm({ ...form, monthly_ai_quota: Number(e.target.value) })}
-                className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium">{t('plans.form.maxSeats')}</span>
-              <input
-                type="number"
-                min={1}
-                value={form.max_team_seats ?? ''}
+            </AdminField>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <AdminField label={t('plans.form.dailyQuota')}>
+                <AdminInput
+                  type="number"
+                  min={0}
+                  value={form.daily_ai_quota}
+                  onChange={(e) =>
+                    setForm({ ...form, daily_ai_quota: Number(e.target.value) })
+                  }
+                />
+              </AdminField>
+              <AdminField label={t('plans.form.monthlyQuota')}>
+                <AdminInput
+                  type="number"
+                  min={0}
+                  value={form.monthly_ai_quota}
+                  onChange={(e) =>
+                    setForm({ ...form, monthly_ai_quota: Number(e.target.value) })
+                  }
+                />
+              </AdminField>
+              <AdminField label={t('plans.form.maxSeats')}>
+                <AdminInput
+                  type="number"
+                  min={1}
+                  value={form.max_team_seats ?? ''}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      max_team_seats:
+                        e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
+                />
+              </AdminField>
+            </div>
+            <AdminField label={t('plans.form.features')}>
+              <AdminInput
+                type="text"
+                value={featuresToText(form.features)}
                 onChange={(e) =>
-                  setForm({
-                    ...form,
-                    max_team_seats: e.target.value === '' ? null : Number(e.target.value),
-                  })
+                  setForm({ ...form, features: textToFeatures(e.target.value) })
                 }
-                className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
               />
-            </label>
-          </div>
-          <label className="block">
-            <span className="text-sm font-medium">{t('plans.form.features')}</span>
-            <input
-              type="text"
-              value={featuresToText(form.features)}
-              onChange={(e) =>
-                setForm({ ...form, features: textToFeatures(e.target.value) })
-              }
-              className="mt-1 block w-full px-3 py-2 rounded-lg border border-border bg-surface"
-            />
-          </label>
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium"
-            >
-              {creating ? t('plans.form.create') : t('plans.form.save')}
-            </button>
-            <button
-              type="button"
-              onClick={cancel}
-              className="px-4 py-2 rounded-lg border border-border"
-            >
-              {t('plans.form.cancel')}
-            </button>
-          </div>
-        </form>
+            </AdminField>
+            <div className="flex items-center gap-2">
+              <AdminButton type="submit">
+                {creating ? t('plans.form.create') : t('plans.form.save')}
+              </AdminButton>
+              <AdminButton type="button" variant="secondary" onClick={cancel}>
+                {t('plans.form.cancel')}
+              </AdminButton>
+            </div>
+          </form>
+        </AdminCard>
       )}
 
       {rows === null && !error && (
@@ -269,21 +254,25 @@ export default function PlansPage() {
                   <td className="px-4 py-2 text-muted-fg">
                     {p.features.join(', ') || '—'}
                   </td>
-                  <td className="px-4 py-2 space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(p)}
-                      className="text-primary underline"
-                    >
-                      {tCommon('actions.edit')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(p.id)}
-                      className="text-danger underline"
-                    >
-                      {tCommon('actions.delete')}
-                    </button>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <AdminButton
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => startEdit(p)}
+                      >
+                        {tCommon('actions.edit')}
+                      </AdminButton>
+                      <AdminButton
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => remove(p.id)}
+                      >
+                        {tCommon('actions.delete')}
+                      </AdminButton>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -291,6 +280,6 @@ export default function PlansPage() {
           </table>
         </div>
       )}
-    </div>
+    </>
   )
 }

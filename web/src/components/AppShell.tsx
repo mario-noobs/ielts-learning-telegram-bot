@@ -12,8 +12,6 @@ interface Tab {
   icon: IconName
   /** Additional routes that should mark this tab as active */
   matches?: string[]
-  /** Hide unless the user's role is one of these (default: visible to all) */
-  requiresRole?: ReadonlyArray<'team_admin' | 'org_admin' | 'platform_admin'>
 }
 
 const TABS: Tab[] = [
@@ -22,12 +20,10 @@ const TABS: Tab[] = [
   { to: '/write', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/listening', '/reading'] },
   { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
   { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
-  {
-    to: '/admin',
-    labelKey: 'nav.tabs.admin',
-    icon: 'ShieldCheck',
-    requiresRole: ['team_admin', 'org_admin', 'platform_admin'],
-  },
+]
+
+const ADMIN_ROLES: readonly string[] = [
+  'team_admin', 'org_admin', 'platform_admin',
 ]
 
 function isTabActive(tab: Tab, pathname: string): boolean {
@@ -43,11 +39,9 @@ export default function AppShell() {
   const profile = useProfile()
   useProfileLocaleSync(!!user)
 
-  const tabs = TABS.filter((tab) => {
-    if (!tab.requiresRole) return true
-    return profile?.role !== undefined && profile.role !== 'user'
-        && tab.requiresRole.includes(profile.role)
-  })
+  const tabs = TABS
+  const showAdminEntry =
+    profile?.role !== undefined && ADMIN_ROLES.includes(profile.role)
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -88,13 +82,28 @@ export default function AppShell() {
               )
             })}
           </ul>
-          <button
-            onClick={logout}
-            className="hidden lg:flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors duration-fast"
-          >
-            <Icon name="LogOut" size="lg" variant="muted" />
-            <span>{t('nav.signOut')}</span>
-          </button>
+          {/* Account-level controls — Admin entry sits directly above
+              Sign Out (US-M11.6), visually separated from learner tabs. */}
+          <div className="border-t border-border pt-2 mt-2 space-y-1">
+            {showAdminEntry && (
+              <NavLink
+                to="/admin"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-primary transition-colors duration-fast"
+              >
+                <Icon name="ShieldCheck" size="lg" variant="muted" />
+                <span className="hidden lg:inline font-medium">
+                  {t('nav.tabs.admin')}
+                </span>
+              </NavLink>
+            )}
+            <button
+              onClick={logout}
+              className="hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors duration-fast"
+            >
+              <Icon name="LogOut" size="lg" variant="muted" />
+              <span>{t('nav.signOut')}</span>
+            </button>
+          </div>
         </nav>
 
         <main id="main" className="flex-1 min-w-0 pb-20 md:pb-0">

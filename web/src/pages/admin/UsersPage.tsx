@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
+import AdminInput, { AdminSelect } from '../../components/admin/AdminInput'
 import Pagination from '../../components/Pagination'
 import { apiFetch } from '../../lib/api'
 
@@ -64,51 +66,48 @@ export default function UsersPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold">{t('users.title')}</h1>
+    <>
+      <AdminPageHeader title={t('users.title')} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <input
-          type="text"
-          placeholder={t('users.filters.search')}
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value)
-            setPage(1)
-          }}
-          className="px-3 py-2 rounded-lg border border-border bg-surface-raised"
-        />
-        <select
-          value={role}
-          onChange={(e) => {
-            setRole(e.target.value)
-            setPage(1)
-          }}
-          className="px-3 py-2 rounded-lg border border-border bg-surface-raised"
-        >
-          <option value="">{t('users.filters.anyRole')}</option>
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {t(`roles.${r}`)}
-            </option>
-          ))}
-        </select>
-        <select
-          value={plan}
-          onChange={(e) => {
-            setPlan(e.target.value)
-            setPage(1)
-          }}
-          className="px-3 py-2 rounded-lg border border-border bg-surface-raised"
-        >
-          <option value="">{t('users.filters.anyPlan')}</option>
-          {PLANS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </div>
+      <AdminCard>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <AdminInput
+            type="text"
+            placeholder={t('users.filters.search')}
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value)
+              setPage(1)
+            }}
+          />
+          <AdminSelect
+            value={role}
+            onChange={(e) => {
+              setRole(e.target.value)
+              setPage(1)
+            }}
+          >
+            <option value="">{t('users.filters.anyRole')}</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {t(`roles.${r}`)}
+              </option>
+            ))}
+          </AdminSelect>
+          <AdminSelect
+            value={plan}
+            onChange={(e) => {
+              setPlan(e.target.value)
+              setPage(1)
+            }}
+          >
+            <option value="">{t('users.filters.anyPlan')}</option>
+            {PLANS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </AdminSelect>
+        </div>
+      </AdminCard>
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -146,7 +145,7 @@ export default function UsersPage() {
                   <td className="px-4 py-2">
                     <Link
                       to={`/admin/users/${encodeURIComponent(u.id)}`}
-                      className="text-primary underline"
+                      className="text-primary hover:underline text-sm"
                     >
                       {tCommon('actions.edit')}
                     </Link>
@@ -166,6 +165,6 @@ export default function UsersPage() {
           onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
         />
       )}
-    </div>
+    </>
   )
 }
