@@ -89,7 +89,7 @@ export default function AdminShell() {
         </nav>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-6 space-y-6">
         <Outlet />
       </main>
     </div>

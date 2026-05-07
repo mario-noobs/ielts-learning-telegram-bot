@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import AdminButton from '../../components/admin/AdminButton'
+import AdminCard, { AdminPageHeader } from '../../components/admin/AdminCard'
+import AdminInput, { AdminSelect } from '../../components/admin/AdminInput'
 import { apiFetch } from '../../lib/api'
 
 interface AdminOrgSummary {
@@ -62,50 +65,46 @@ export default function OrgsPage() {
   }
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t('orgs.title')}</h1>
-      </div>
+    <>
+      <AdminPageHeader title={t('orgs.title')} />
 
-      <form
-        onSubmit={handleCreate}
-        className="rounded-xl border border-border bg-surface-raised p-4 grid grid-cols-1 sm:grid-cols-4 gap-3"
-      >
-        <input
-          type="text"
-          placeholder={t('orgs.form.name')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface sm:col-span-2"
-        />
-        <input
-          type="text"
-          placeholder={t('orgs.form.ownerUid')}
-          value={ownerUid}
-          onChange={(e) => setOwnerUid(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-border bg-surface"
-        />
-        <div className="flex gap-2">
-          <select
-            value={planId}
-            onChange={(e) => setPlanId(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-surface flex-1"
-          >
-            {PLANS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            disabled={creating || !name.trim() || !ownerUid.trim()}
-            className="px-4 py-2 rounded-lg bg-primary text-on-primary font-medium disabled:opacity-50"
-          >
-            {t('orgs.form.create')}
-          </button>
-        </div>
-      </form>
+      <AdminCard>
+        <form
+          onSubmit={handleCreate}
+          className="grid grid-cols-1 sm:grid-cols-4 gap-3"
+        >
+          <AdminInput
+            type="text"
+            placeholder={t('orgs.form.name')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="sm:col-span-2"
+          />
+          <AdminInput
+            type="text"
+            placeholder={t('orgs.form.ownerUid')}
+            value={ownerUid}
+            onChange={(e) => setOwnerUid(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <AdminSelect
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
+              className="flex-1"
+            >
+              {PLANS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </AdminSelect>
+            <AdminButton
+              type="submit"
+              disabled={creating || !name.trim() || !ownerUid.trim()}
+            >
+              {t('orgs.form.create')}
+            </AdminButton>
+          </div>
+        </form>
+      </AdminCard>
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -139,7 +138,7 @@ export default function OrgsPage() {
                   <td className="px-4 py-2">
                     <Link
                       to={`/admin/orgs/${encodeURIComponent(row.id)}`}
-                      className="text-primary underline"
+                      className="text-primary hover:underline text-sm"
                     >
                       {tCommon('actions.edit')}
                     </Link>
@@ -150,6 +149,6 @@ export default function OrgsPage() {
           </table>
         </div>
       )}
-    </div>
+    </>
   )
 }
