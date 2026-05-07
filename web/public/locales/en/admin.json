@@ -1,0 +1,96 @@
+{
+  "landing": {
+    "title": "Admin Console",
+    "subtitle": "Manage users, plans, and feature flags."
+  },
+  "users": {
+    "title": "Users",
+    "filters": {
+      "search": "Search by name or email",
+      "role": "Role",
+      "plan": "Plan",
+      "anyRole": "Any role",
+      "anyPlan": "Any plan"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "plan": "Plan",
+      "lastActive": "Last active",
+      "actions": "Actions"
+    },
+    "detail": {
+      "back": "Back to users",
+      "role": "Role",
+      "plan": "Plan",
+      "planExpiresAt": "Plan expires",
+      "quotaOverride": "Daily AI quota override",
+      "quotaOverrideHint": "Leave empty to inherit the plan default.",
+      "save": "Save changes",
+      "saved": "Saved",
+      "recentUsage": "AI usage (last 30 days)"
+    },
+    "empty": "No users match these filters."
+  },
+  "plans": {
+    "title": "Plans",
+    "createCta": "New plan",
+    "table": {
+      "id": "ID",
+      "name": "Name",
+      "dailyQuota": "Daily AI quota",
+      "monthlyQuota": "Monthly AI quota",
+      "maxSeats": "Max team seats",
+      "features": "Features",
+      "actions": "Actions"
+    },
+    "form": {
+      "id": "Plan ID",
+      "idHint": "Lowercase, no spaces. Cannot change after creation.",
+      "name": "Name",
+      "dailyQuota": "Daily AI quota",
+      "monthlyQuota": "Monthly AI quota",
+      "maxSeats": "Max team seats",
+      "features": "Features (comma-separated)",
+      "create": "Create plan",
+      "save": "Save",
+      "delete": "Delete plan",
+      "cancel": "Cancel"
+    },
+    "deleteBlocked": "Cannot delete: {count} user(s) still on this plan.",
+    "empty": "No plans yet."
+  },
+  "flags": {
+    "title": "Feature flags",
+    "table": {
+      "name": "Flag",
+      "enabled": "Enabled",
+      "rollout": "Rollout %",
+      "allowlist": "Allowlist",
+      "description": "Description",
+      "actions": "Actions"
+    },
+    "form": {
+      "name": "Flag name",
+      "enabled": "Enabled",
+      "rollout": "Rollout %",
+      "allowlist": "UID allowlist (one per line)",
+      "description": "Description",
+      "save": "Save flag",
+      "delete": "Delete flag"
+    },
+    "empty": "No flags configured."
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Could not load. Please try again.",
+    "refresh": "Refresh"
+  },
+  "roles": {
+    "user": "User",
+    "team_admin": "Team admin",
+    "org_admin": "Org admin",
+    "platform_admin": "Platform admin"
+  }
+}

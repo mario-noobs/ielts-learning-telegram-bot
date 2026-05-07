@@ -10,6 +10,7 @@ import config
 from api.errors import ERR, ApiError
 from api.logging_config import configure_logging
 from api.middleware import RequestIDMiddleware
+from api.routes.admin import router as admin_router
 from api.routes.audio import router as audio_router
 from api.routes.auth import router as auth_router
 from api.routes.health import router as health_router
@@ -158,5 +159,6 @@ def create_app() -> FastAPI:
     app.include_router(plan_router)
     app.include_router(progress_router)
     app.include_router(reading_router)
+    app.include_router(admin_router)
 
     return app
