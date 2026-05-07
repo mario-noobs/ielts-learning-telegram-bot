@@ -188,3 +188,34 @@ def test_patch_404s_on_missing_user() -> None:
         r = c.patch("/api/v1/admin/users/nope", json={"role": "team_admin"})
     assert r.status_code == 404
     assert r.json()["error"]["code"] == ERR.admin_target_not_found.code
+
+
+# ─── usage time series ──────────────────────────────────────────────
+
+
+def test_usage_returns_recent_points() -> None:
+    """Increments via the live AiUsageRepo, then reads them via the route."""
+    from services.repositories import get_ai_usage_repo
+
+    _seed("u-target", role="user", plan="free")
+    repo = get_ai_usage_repo()
+    repo.increment(user_uid="u-target", feature="quiz")
+    repo.increment(user_uid="u-target", feature="quiz")
+    repo.increment(user_uid="u-target", feature="writing")
+
+    with _client() as c:
+        r = c.get("/api/v1/admin/users/u-target/usage?days=7")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["user_id"] == "u-target"
+    assert body["days"] == 7
+    by_feature = {p["feature"]: p["count"] for p in body["points"]}
+    assert by_feature == {"quiz": 2, "writing": 1}
+
+
+def test_usage_returns_empty_list_for_user_with_no_activity() -> None:
+    _seed("u-target")
+    with _client() as c:
+        r = c.get("/api/v1/admin/users/u-target/usage")
+    assert r.status_code == 200
+    assert r.json()["points"] == []

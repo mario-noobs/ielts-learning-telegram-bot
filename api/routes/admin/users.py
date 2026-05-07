@@ -17,11 +17,14 @@ from api.models.admin import (
     AdminUsersListResponse,
     AdminUserSummary,
     AdminUserUpdate,
+    AdminUserUsageResponse,
+    AiUsagePoint,
 )
 from api.permissions import require_role
 from services.admin import audit_service
 from services.db import get_sync_session
 from services.db.models import User
+from services.repositories import get_ai_usage_repo
 
 router = APIRouter()
 
@@ -149,3 +152,28 @@ def _jsonify(d: dict) -> dict:
     for k, v in d.items():
         out[k] = v.isoformat() if hasattr(v, "isoformat") else v
     return out
+
+
+@router.get(
+    "/users/{user_id}/usage",
+    response_model=AdminUserUsageResponse,
+    dependencies=[Depends(require_role("platform_admin"))],
+)
+def user_usage(
+    user_id: str,
+    days: int = Query(default=30, ge=1, le=365),
+) -> AdminUserUsageResponse:
+    """Per-feature AI usage rows for the last ``days`` days.
+
+    Powers the recent-usage chart on ``/admin/users/:id`` (M11.3 UI).
+    Empty list when the user has no usage in the window.
+    """
+    rows = get_ai_usage_repo().get_window(user_id, days=days)
+    return AdminUserUsageResponse(
+        user_id=user_id,
+        days=days,
+        points=[
+            AiUsagePoint(date=r.date, feature=r.feature, count=r.count)
+            for r in rows
+        ],
+    )
