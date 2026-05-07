@@ -15,6 +15,16 @@ export default function AdminLandingPage() {
           </Link>
         </li>
         <li>
+          <Link to="/admin/teams" className="text-primary underline">
+            {t('teams.title')}
+          </Link>
+        </li>
+        <li>
+          <Link to="/admin/orgs" className="text-primary underline">
+            {t('orgs.title')}
+          </Link>
+        </li>
+        <li>
           <Link to="/admin/plans" className="text-primary underline">
             {t('plans.title')}
           </Link>

@@ -56,5 +56,15 @@
     "exam_date": {
       "invalid": "Exam date must be in YYYY-MM-DD format."
     }
+  },
+  "team": {
+    "seat_limit_reached": "Team is at its seat limit ({seat_limit}).",
+    "member_already_exists": "User is already a member of this team.",
+    "not_member": "User is not a member of this team."
+  },
+  "admin": {
+    "forbidden_role": "Action requires a higher role.",
+    "target_not_found": "Target does not exist.",
+    "invalid_role_change": "Role change not allowed."
   }
 }
