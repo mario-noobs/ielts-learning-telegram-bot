@@ -134,4 +134,23 @@ Run after every M8.2 user backfill so the new admin columns are populated.
 
 ## Boundary with Firestore
 
-Postgres becomes authoritative for the user core doc only after US-M8.2 ships the cutover PR. Until then, Firestore is the source of truth and Postgres exists for schema validation + M11 development. After cutover, services must call the Postgres user_repo (`services/repositories/postgres/user_repo.py`, M8.2). Subcollections continue to use the existing Firestore repos in `services/repositories/firestore/`.
+US-M8.6 (closes #191) flipped `services/repositories/__init__.py:get_user_repo()` to return `PostgresUserRepo`. Postgres is now authoritative for the user core doc — `id`, `auth_uid`, `email`, `name`, `role`, `plan`, `team_id`, `org_id`, `quota_override`, `last_active_date`, `signup_cohort`, and the aggregate counters `total_words` / `total_quizzes` / `total_correct` / `streak`.
+
+Subcollections continue to live in Firestore (`vocabulary`, `quiz_history`, `writing_history`, `daily_words`, `listening_history`, `reading_sessions`, `daily_plans`, `progress_snapshots`, `progress_recommendations`, `quiz_sessions`). Their repos in `services/repositories/firestore/` write the subcollection doc and then call `get_user_repo().increment_counters(uid, …)` to bump aggregate counters in the authoritative store. Cross-store atomicity is impossible at this seam; the counter increment runs after the Firestore subcollection write commits and the divergence window is bounded by a single RPC.
+
+### Cutover sequence (US-M8.6, ops)
+
+1. Backfill: `python scripts/backfill_users_to_postgres.py` (US-M8.2).
+2. Verify: `python scripts/verify_user_migration.py` — exits 0 on parity.
+3. Merge the cutover PR + deploy.
+4. 24h soak window with `user_repo_cutover_active=postgres` log line confirmed in API + bot startup logs.
+5. Tighten production Firestore security rules so `users/` and `auth_mapping/` collections are read-only (production rules are managed outside the repo's `firestore.rules` emulator file). Deploy via `firebase deploy --only firestore:rules --project <prod>`.
+6. After 30 days with no rollback, delete the `users/` and `auth_mapping/` Firestore collections (US-M8.8).
+
+### Rollback
+
+Revert the cutover PR and redeploy. `get_user_repo()` returns `FirestoreUserRepo` again. All signups since cutover are still readable because the same user `id` exists in both stores from the backfill step. Firestore archive is preserved through the 30-day window, so there's no data loss; only counter writes that fired during the soak window need reconciliation (run the backfill script in reverse).
+
+### Auth mapping retired
+
+Pre-cutover, web auth uid → user_id used the `auth_mapping/{auth_uid}` Firestore collection. Post-cutover, `PostgresUserRepo.get_by_auth_uid` does a single indexed `SELECT` against the UNIQUE `auth_uid` column from US-M8.1. The `auth_mapping/` collection is part of the read-only archive and will be deleted with US-M8.8.

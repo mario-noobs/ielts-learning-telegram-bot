@@ -74,10 +74,19 @@ _metrics_repo: MetricsRepo | None = None
 
 
 def get_user_repo() -> UserRepo:
-    """Return the process-wide ``UserRepo`` singleton."""
+    """Return the process-wide ``UserRepo`` singleton.
+
+    US-M8.6 cutover: returns ``PostgresUserRepo``. Postgres is the
+    authoritative store for the user core doc (`role`, `plan`,
+    `team_id`, `org_id`, counters, …). Firestore ``users/`` and
+    ``auth_mapping/`` collections are a 30-day read-only archive.
+    Subcollections (``vocabulary``, ``quiz_history``,
+    ``writing_history``, ``daily_words``) stay on Firestore.
+    """
     global _user_repo
     if _user_repo is None:
-        _user_repo = FirestoreUserRepo()
+        from .postgres.user_repo import PostgresUserRepo
+        _user_repo = PostgresUserRepo()
     return _user_repo
 
 

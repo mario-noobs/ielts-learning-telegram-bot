@@ -40,6 +40,7 @@ async def lifespan(app: FastAPI):
     # process immediately instead of at first request.
     if config.DATABASE_URL:
         await services_db.init()
+    logger.info("user_repo_cutover_active=postgres")
     try:
         yield
     finally:
