@@ -40,6 +40,14 @@ def _row_to_doc(u: User) -> UserDoc:
         exam_date=u.exam_date,
         weekly_goal_minutes=u.weekly_goal_minutes,
         created_at=u.created_at,
+        role=u.role,
+        plan=u.plan,
+        plan_expires_at=u.plan_expires_at,
+        team_id=u.team_id,
+        org_id=u.org_id,
+        quota_override=u.quota_override,
+        last_active_date=u.last_active_date,
+        signup_cohort=u.signup_cohort,
     )
 
 
