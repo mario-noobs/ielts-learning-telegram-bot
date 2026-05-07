@@ -15,14 +15,17 @@ interface AdminSection {
   matches?: string[]
 }
 
+// Reuse the existing per-section `*.title` keys so the nav labels and the
+// page H1 stay in lockstep. ``shell.dashboardNav`` is the only new key —
+// ``dashboard.title`` is "Admin Console" (the page H1), too long for a tab.
 const SECTIONS: AdminSection[] = [
-  { to: '/admin', labelKey: 'admin.nav.dashboard', icon: 'LayoutDashboard' },
-  { to: '/admin/users', labelKey: 'admin.nav.users', icon: 'User' },
-  { to: '/admin/teams', labelKey: 'admin.nav.teams', icon: 'BookOpen' },
-  { to: '/admin/orgs', labelKey: 'admin.nav.orgs', icon: 'ShieldCheck' },
-  { to: '/admin/plans', labelKey: 'admin.nav.plans', icon: 'TrendingUp' },
-  { to: '/admin/flags', labelKey: 'admin.nav.flags', icon: 'PenLine' },
-  { to: '/admin/audit', labelKey: 'admin.nav.audit', icon: 'LogOut' },
+  { to: '/admin', labelKey: 'shell.dashboardNav', icon: 'LayoutDashboard' },
+  { to: '/admin/users', labelKey: 'users.title', icon: 'User' },
+  { to: '/admin/teams', labelKey: 'teams.title', icon: 'BookOpen' },
+  { to: '/admin/orgs', labelKey: 'orgs.title', icon: 'ShieldCheck' },
+  { to: '/admin/plans', labelKey: 'plans.title', icon: 'TrendingUp' },
+  { to: '/admin/flags', labelKey: 'flags.title', icon: 'PenLine' },
+  { to: '/admin/audit', labelKey: 'audit.title', icon: 'LogOut' },
 ]
 
 function isSectionActive(section: AdminSection, pathname: string): boolean {
