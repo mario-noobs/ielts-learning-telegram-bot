@@ -36,8 +36,6 @@ import structlog
 from api.logging_config import request_id_ctx
 from services.repositories import get_audit_log_repo
 
-logger = structlog.get_logger("audit")
-
 
 def log_event(
     *,
@@ -67,7 +65,10 @@ def log_event(
         request_id=request_id,
     )
 
-    logger.info(
+    # Fetch the logger inline (mirrors services/ai_service.py:28) so
+    # ``structlog.testing.capture_logs`` in tests sees emissions even
+    # after the app's cache_logger_on_first_use kicks in elsewhere.
+    structlog.get_logger("audit").info(
         "admin.audit",
         audit_log_id=log_id,
         event_type=event_type,
