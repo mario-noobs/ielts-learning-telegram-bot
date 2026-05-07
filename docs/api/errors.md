@@ -48,3 +48,5 @@ back to `common.unknown_error`.
 | `writing.scoring.failed` | 502 | Essay scoring service returned invalid data. |
 | `settings.exam_date.invalid` | 400 | exam_date must be YYYY-MM-DD. |
 | `admin.forbidden_role` | 403 | Action requires a higher role. |
+| `quota.daily_exceeded` | 429 | Daily AI usage cap reached for this plan. |
+| `quota.plan_not_found` | 404 | User's plan is not registered in the plans table. |
