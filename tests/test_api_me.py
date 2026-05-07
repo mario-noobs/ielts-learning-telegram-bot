@@ -1,4 +1,4 @@
-"""Integration tests for PATCH /api/v1/me (US-4.3)."""
+"""Integration tests for GET / PATCH /api/v1/me (US-4.3, US-M11.3 fix)."""
 
 from unittest.mock import patch
 
@@ -28,6 +28,47 @@ def client():
     app = create_app()
     app.dependency_overrides[get_current_user] = lambda: dict(FAKE_USER)
     return TestClient(app)
+
+
+class TestGetMeAdminFields:
+    """The /me response must surface the M11.1 admin fields so the web
+    app's useProfile() hook can gate the /admin route subtree."""
+
+    def test_defaults_when_user_doc_lacks_admin_fields(self, client):
+        """Pre-M11 Firestore docs have no role/plan keys; defaults apply."""
+        r = client.get("/api/v1/me")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["role"] == "user"
+        assert body["plan"] == "free"
+        assert body["plan_expires_at"] is None
+        assert body["team_id"] is None
+        assert body["org_id"] is None
+        assert body["quota_override"] is None
+
+    def test_propagates_admin_fields_from_user_dict(self):
+        """role / plan / quota_override on the user dict reach the response."""
+        app = create_app()
+        admin_user = {
+            **FAKE_USER,
+            "role": "platform_admin",
+            "plan": "personal_pro",
+            "plan_expires_at": "2027-01-01",
+            "team_id": "team-uuid-1",
+            "org_id": "org-uuid-2",
+            "quota_override": 500,
+        }
+        app.dependency_overrides[get_current_user] = lambda: dict(admin_user)
+        with TestClient(app) as c:
+            r = c.get("/api/v1/me")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["role"] == "platform_admin"
+        assert body["plan"] == "personal_pro"
+        assert body["plan_expires_at"] == "2027-01-01"
+        assert body["team_id"] == "team-uuid-1"
+        assert body["org_id"] == "org-uuid-2"
+        assert body["quota_override"] == 500
 
 
 class TestPatchMe:

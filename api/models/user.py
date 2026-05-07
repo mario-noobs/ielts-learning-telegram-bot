@@ -30,6 +30,17 @@ class UserProfile(BaseModel):
     weekly_goal_minutes: int = 150
     preferred_locale: Locale | None = None
 
+    # Admin fields. Surfaced through /api/v1/me so the web app's
+    # useProfile() hook can gate /admin routes and the AppShell's
+    # admin nav entry. Defaults match the M11.1 schema defaults so
+    # pre-cutover Firestore docs that lack these keys still validate.
+    role: str = "user"
+    plan: str = "free"
+    plan_expires_at: str | None = None
+    team_id: str | None = None
+    org_id: str | None = None
+    quota_override: int | None = None
+
 
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=60)
