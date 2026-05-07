@@ -95,6 +95,43 @@ Migration `0002_admin_baseline.py` adds the admin data layer. All tables are Pos
 
 Postgres repos for each admin table live in `services/repositories/postgres/{plan_repo,team_repo,org_repo,audit_repo,ai_usage_repo,metrics_repo}.py`. Lazy-singleton factories live in `services/repositories/__init__.py` (`get_plan_repo`, `get_team_repo`, etc.).
 
+## Admin CLI (M11.2)
+
+`scripts/admin.py` is the chicken-and-egg first-admin bootstrap. The `/admin/*` UI gates on `role == 'platform_admin'` but no user has that role until the CLI sets it.
+
+```bash
+# Find the auth_uid of the human you want as the first admin.
+psql postgresql://ielts:dev@localhost:5432/ielts \
+  -c "SELECT id, name, email, auth_uid FROM users WHERE email = 'them@example.com'"
+
+# Grant
+python scripts/admin.py grant-admin --uid <auth_uid>
+
+# Confirm
+python scripts/admin.py list-admins
+```
+
+Subcommands:
+
+- `grant-admin --uid <auth_uid>` — set `role = 'platform_admin'`
+- `revoke-admin --uid <auth_uid>` — set `role = 'user'`
+- `set-plan --uid <auth_uid> --plan <id> [--expires YYYY-MM-DD]` — assign a plan + optional expiry. FK rejects unknown plan ids.
+- `list-admins` — print every user with `role != 'user'` as JSON
+
+Every mutation writes one `audit_log` row (`actor_uid='cli:<os-user>'`).
+
+## Admin field backfill (M11.2)
+
+`scripts/backfill_admin_fields.py` populates `last_active_date` + `signup_cohort` for rows where they're NULL — these are the inputs to the M11.5 dashboard's DAU/MAU + cohort retention.
+
+```bash
+python scripts/backfill_admin_fields.py
+```
+
+Idempotent. Computes `last_active_date := COALESCE(last_active::date, created_at::date)` and `signup_cohort := to_char(created_at, 'YYYY-MM')` server-side. Re-running on a clean table reports 0 rows updated.
+
+Run after every M8.2 user backfill so the new admin columns are populated.
+
 ## Boundary with Firestore
 
 Postgres becomes authoritative for the user core doc only after US-M8.2 ships the cutover PR. Until then, Firestore is the source of truth and Postgres exists for schema validation + M11 development. After cutover, services must call the Postgres user_repo (`services/repositories/postgres/user_repo.py`, M8.2). Subcollections continue to use the existing Firestore repos in `services/repositories/firestore/`.
