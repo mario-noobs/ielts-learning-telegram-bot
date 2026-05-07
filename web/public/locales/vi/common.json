@@ -44,7 +44,8 @@
       "learn": "Học",
       "practice": "Luyện",
       "progress": "Tiến độ",
-      "profile": "Tôi"
+      "profile": "Tôi",
+      "admin": "Quản trị"
     }
   },
   "auth": {

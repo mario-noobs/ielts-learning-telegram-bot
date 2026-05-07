@@ -1,5 +1,7 @@
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import AdminGate from './components/AdminGate'
 import AppShell from './components/AppShell'
 import LandingPage from './pages/LandingPage'
 import LegalPage from './pages/LegalPage'
@@ -22,6 +24,21 @@ import ReadingHomePage from './pages/ReadingHomePage'
 import ReadingExercisePage from './pages/ReadingExercisePage'
 import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
+
+// Admin subtree — lazy-loaded so end-user bundles don't carry it.
+const AdminLandingPage = lazy(() => import('./pages/admin/AdminLandingPage'))
+const AdminUsersPage = lazy(() => import('./pages/admin/UsersPage'))
+const AdminUserDetailPage = lazy(() => import('./pages/admin/UserDetailPage'))
+const AdminPlansPage = lazy(() => import('./pages/admin/PlansPage'))
+const AdminFlagsPage = lazy(() => import('./pages/admin/FlagsPage'))
+
+function AdminFallback() {
+  return (
+    <div className="flex items-center justify-center h-[60vh] text-muted-fg">
+      Loading…
+    </div>
+  )
+}
 
 function ProtectedShell() {
   const { user, loading } = useAuth()
@@ -78,6 +95,56 @@ export default function App() {
             <Route path="/reading/:id" element={<ReadingExercisePage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminLandingPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminUsersPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/users/:id"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminUserDetailPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/plans"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminPlansPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin/flags"
+              element={
+                <AdminGate>
+                  <Suspense fallback={<AdminFallback />}>
+                    <AdminFlagsPage />
+                  </Suspense>
+                </AdminGate>
+              }
+            />
           </Route>
         </Routes>
       </AuthProvider>

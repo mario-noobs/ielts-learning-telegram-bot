@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useProfile } from '../contexts/AuthContext'
 import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
@@ -12,6 +12,8 @@ interface Tab {
   icon: IconName
   /** Additional routes that should mark this tab as active */
   matches?: string[]
+  /** Hide unless the user's role is one of these (default: visible to all) */
+  requiresRole?: ReadonlyArray<'team_admin' | 'org_admin' | 'platform_admin'>
 }
 
 const TABS: Tab[] = [
@@ -20,6 +22,12 @@ const TABS: Tab[] = [
   { to: '/write', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/listening', '/reading'] },
   { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
   { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
+  {
+    to: '/admin',
+    labelKey: 'nav.tabs.admin',
+    icon: 'ShieldCheck',
+    requiresRole: ['team_admin', 'org_admin', 'platform_admin'],
+  },
 ]
 
 function isTabActive(tab: Tab, pathname: string): boolean {
@@ -32,7 +40,14 @@ export default function AppShell() {
   const { t } = useTranslation('common')
   const { pathname } = useLocation()
   const { user, logout } = useAuth()
+  const profile = useProfile()
   useProfileLocaleSync(!!user)
+
+  const tabs = TABS.filter((tab) => {
+    if (!tab.requiresRole) return true
+    return profile?.role !== undefined && profile.role !== 'user'
+        && tab.requiresRole.includes(profile.role)
+  })
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -53,7 +68,7 @@ export default function AppShell() {
             <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
           </div>
           <ul className="flex-1 space-y-1">
-            {TABS.map((tab) => {
+            {tabs.map((tab) => {
               const active = isTabActive(tab, pathname)
               return (
                 <li key={tab.to}>
@@ -98,7 +113,7 @@ export default function AppShell() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <ul className="flex">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const active = isTabActive(tab, pathname)
             return (
               <li key={tab.to} className="flex-1">

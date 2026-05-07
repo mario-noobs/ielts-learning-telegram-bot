@@ -1,0 +1,96 @@
+{
+  "landing": {
+    "title": "Bảng quản trị",
+    "subtitle": "Quản lý người dùng, gói và feature flags."
+  },
+  "users": {
+    "title": "Người dùng",
+    "filters": {
+      "search": "Tìm theo tên hoặc email",
+      "role": "Vai trò",
+      "plan": "Gói",
+      "anyRole": "Tất cả vai trò",
+      "anyPlan": "Tất cả gói"
+    },
+    "table": {
+      "name": "Tên",
+      "email": "Email",
+      "role": "Vai trò",
+      "plan": "Gói",
+      "lastActive": "Hoạt động gần nhất",
+      "actions": "Thao tác"
+    },
+    "detail": {
+      "back": "Quay lại danh sách",
+      "role": "Vai trò",
+      "plan": "Gói",
+      "planExpiresAt": "Hết hạn gói",
+      "quotaOverride": "Hạn mức AI hàng ngày",
+      "quotaOverrideHint": "Bỏ trống để dùng mặc định của gói.",
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu",
+      "recentUsage": "Sử dụng AI (30 ngày gần nhất)"
+    },
+    "empty": "Không có người dùng nào khớp với bộ lọc."
+  },
+  "plans": {
+    "title": "Gói",
+    "createCta": "Tạo gói mới",
+    "table": {
+      "id": "ID",
+      "name": "Tên",
+      "dailyQuota": "Hạn mức AI/ngày",
+      "monthlyQuota": "Hạn mức AI/tháng",
+      "maxSeats": "Tối đa thành viên",
+      "features": "Tính năng",
+      "actions": "Thao tác"
+    },
+    "form": {
+      "id": "ID gói",
+      "idHint": "Chữ thường, không khoảng trắng. Không thể đổi sau khi tạo.",
+      "name": "Tên",
+      "dailyQuota": "Hạn mức AI/ngày",
+      "monthlyQuota": "Hạn mức AI/tháng",
+      "maxSeats": "Tối đa thành viên",
+      "features": "Tính năng (cách nhau bởi dấu phẩy)",
+      "create": "Tạo gói",
+      "save": "Lưu",
+      "delete": "Xoá gói",
+      "cancel": "Huỷ"
+    },
+    "deleteBlocked": "Không thể xoá: vẫn còn {count} người dùng trên gói này.",
+    "empty": "Chưa có gói nào."
+  },
+  "flags": {
+    "title": "Feature flags",
+    "table": {
+      "name": "Flag",
+      "enabled": "Bật",
+      "rollout": "Triển khai %",
+      "allowlist": "Allowlist",
+      "description": "Mô tả",
+      "actions": "Thao tác"
+    },
+    "form": {
+      "name": "Tên flag",
+      "enabled": "Bật",
+      "rollout": "Triển khai %",
+      "allowlist": "Allowlist UID (mỗi dòng một UID)",
+      "description": "Mô tả",
+      "save": "Lưu flag",
+      "delete": "Xoá flag"
+    },
+    "empty": "Chưa có flag nào."
+  },
+  "common": {
+    "loading": "Đang tải…",
+    "error": "Không thể tải. Vui lòng thử lại.",
+    "refresh": "Tải lại"
+  },
+  "roles": {
+    "user": "Người dùng",
+    "team_admin": "Quản trị nhóm",
+    "org_admin": "Quản trị tổ chức",
+    "platform_admin": "Quản trị nền tảng"
+  }
+}

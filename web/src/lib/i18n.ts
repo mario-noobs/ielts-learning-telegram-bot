@@ -13,6 +13,7 @@ export const DEFAULT_LOCALE: SupportedLocale = 'en'
 // bundle it needs (US-M7.1 AC2). Add a namespace here AND create
 // matching public/locales/{lng}/{ns}.json files before using it.
 export const NAMESPACES = [
+  'admin',
   'common',
   'dashboard',
   'errors',

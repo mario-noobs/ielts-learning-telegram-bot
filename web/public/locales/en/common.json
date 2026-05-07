@@ -44,7 +44,8 @@
       "learn": "Learn",
       "practice": "Practice",
       "progress": "Progress",
-      "profile": "Me"
+      "profile": "Me",
+      "admin": "Admin"
     }
   },
   "auth": {
