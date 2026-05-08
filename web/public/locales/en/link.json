@@ -1,0 +1,78 @@
+{
+  "redeem": {
+    "title": "Linking your Telegram",
+    "loading": "Verifying link…",
+    "signInRequired": {
+      "title": "Sign in to finish linking",
+      "description": "Sign in with Google to attach this Telegram account to your web profile.",
+      "cta": "Sign in with Google"
+    },
+    "success": {
+      "linked": {
+        "title": "All set!",
+        "description": "Your Telegram account is now linked to this web profile.",
+        "cta": "Go to dashboard"
+      },
+      "merged": {
+        "title": "Linked and merged",
+        "description": "We merged {vocab, plural, one {# vocabulary card} other {# vocabulary cards}} and {quiz, plural, one {# quiz answer} other {# quiz answers}} from your web account into your Telegram profile.",
+        "cta": "Go to dashboard"
+      },
+      "alreadyLinked": {
+        "title": "Already linked",
+        "description": "This account is already linked to your Telegram. Nothing to do.",
+        "cta": "Go to dashboard"
+      }
+    },
+    "error": {
+      "expired": {
+        "title": "Link expired",
+        "description": "Ask the bot for a new link with /link. Tokens expire after 15 minutes.",
+        "cta": "Open the bot"
+      },
+      "alreadyUsed": {
+        "title": "Link already used",
+        "description": "This link has been redeemed. Generate a new one from the bot.",
+        "cta": "Open the bot"
+      },
+      "invalid": {
+        "title": "Link invalid",
+        "description": "We couldn't verify this link. Try generating a new one from the bot.",
+        "cta": "Open the bot"
+      },
+      "missingToken": {
+        "title": "Missing token",
+        "description": "This page needs a link token. Run /link in the bot to get one.",
+        "cta": "Open the bot"
+      }
+    }
+  },
+  "settings": {
+    "heading": "Connect your Telegram",
+    "notLinked": {
+      "stepsTitle": "How it works",
+      "step1": "Tap the button below to open the bot in Telegram.",
+      "step2": "Send /start to the bot.",
+      "step3": "We'll auto-link your Telegram account to this profile.",
+      "openBotCta": "Open Telegram bot",
+      "creatingToken": "Generating link…",
+      "errorTitle": "Couldn't generate the link",
+      "errorRetry": "Try again"
+    },
+    "linked": {
+      "title": "Connected to Telegram",
+      "description": "Your Telegram and web accounts are linked. Progress syncs automatically.",
+      "unlinkCta": "Unlink Telegram",
+      "unlinkConfirmTitle": "Unlink Telegram?",
+      "unlinkConfirmBody": "Your Telegram-side data stays. Re-linking later will absorb any new web activity into the same identity.",
+      "unlinkConfirm": "Unlink",
+      "unlinkCancel": "Cancel",
+      "unlinkErrorTitle": "Couldn't unlink"
+    }
+  },
+  "group": {
+    "title": "Want daily prompts in a group?",
+    "subtitle": "Join the IELTS Telegram community for daily challenges and peer answers.",
+    "cta": "Join the group"
+  }
+}

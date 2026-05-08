@@ -1,0 +1,78 @@
+{
+  "redeem": {
+    "title": "Đang liên kết Telegram",
+    "loading": "Đang xác thực link…",
+    "signInRequired": {
+      "title": "Đăng nhập để hoàn tất liên kết",
+      "description": "Đăng nhập bằng Google để gắn tài khoản Telegram này vào hồ sơ web của bạn.",
+      "cta": "Đăng nhập bằng Google"
+    },
+    "success": {
+      "linked": {
+        "title": "Xong!",
+        "description": "Tài khoản Telegram của bạn đã được liên kết với hồ sơ web này.",
+        "cta": "Vào dashboard"
+      },
+      "merged": {
+        "title": "Đã liên kết và hợp nhất",
+        "description": "Đã gộp {vocab, plural, one {# từ vựng} other {# từ vựng}} và {quiz, plural, one {# câu trả lời quiz} other {# câu trả lời quiz}} từ tài khoản web sang hồ sơ Telegram của bạn.",
+        "cta": "Vào dashboard"
+      },
+      "alreadyLinked": {
+        "title": "Đã liên kết rồi",
+        "description": "Tài khoản này đã liên kết với Telegram. Không cần làm gì thêm.",
+        "cta": "Vào dashboard"
+      }
+    },
+    "error": {
+      "expired": {
+        "title": "Link hết hạn",
+        "description": "Quay lại bot và gõ /link để lấy link mới. Token chỉ có hiệu lực 15 phút.",
+        "cta": "Mở bot"
+      },
+      "alreadyUsed": {
+        "title": "Link đã được dùng",
+        "description": "Link này đã được dùng rồi. Tạo link mới từ bot.",
+        "cta": "Mở bot"
+      },
+      "invalid": {
+        "title": "Link không hợp lệ",
+        "description": "Không xác thực được link này. Hãy tạo link mới từ bot.",
+        "cta": "Mở bot"
+      },
+      "missingToken": {
+        "title": "Thiếu token",
+        "description": "Trang này cần token. Gõ /link trong bot để lấy.",
+        "cta": "Mở bot"
+      }
+    }
+  },
+  "settings": {
+    "heading": "Kết nối Telegram",
+    "notLinked": {
+      "stepsTitle": "Cách thức hoạt động",
+      "step1": "Bấm nút bên dưới để mở bot trong Telegram.",
+      "step2": "Gửi lệnh /start cho bot.",
+      "step3": "Chúng tôi sẽ tự liên kết Telegram với hồ sơ web này.",
+      "openBotCta": "Mở bot Telegram",
+      "creatingToken": "Đang tạo link…",
+      "errorTitle": "Không tạo được link",
+      "errorRetry": "Thử lại"
+    },
+    "linked": {
+      "title": "Đã kết nối với Telegram",
+      "description": "Tài khoản Telegram và web đã liên kết. Tiến độ đồng bộ tự động.",
+      "unlinkCta": "Huỷ liên kết Telegram",
+      "unlinkConfirmTitle": "Huỷ liên kết Telegram?",
+      "unlinkConfirmBody": "Dữ liệu phía Telegram được giữ nguyên. Liên kết lại sau này sẽ gộp hoạt động web mới vào cùng một danh tính.",
+      "unlinkConfirm": "Huỷ liên kết",
+      "unlinkCancel": "Bỏ qua",
+      "unlinkErrorTitle": "Không huỷ liên kết được"
+    }
+  },
+  "group": {
+    "title": "Muốn nhận bài hàng ngày trong group?",
+    "subtitle": "Tham gia nhóm Telegram IELTS để làm thử thách hàng ngày và xem bài của các bạn khác.",
+    "cta": "Tham gia nhóm"
+  }
+}

@@ -18,6 +18,7 @@ export const NAMESPACES = [
   'dashboard',
   'errors',
   'landing',
+  'link',
   'listening',
   'plan',
   'progress',
