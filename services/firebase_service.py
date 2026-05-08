@@ -736,6 +736,243 @@ def link_telegram_to_auth(telegram_id: int, auth_uid: str):
     get_user_repo().link_telegram_to_auth(telegram_id, auth_uid)
 
 
+# ─── Identity merge / unlink (US-M12.1) ───────────────────────────
+
+DEFAULT_TARGET_BAND = 7.0
+
+
+def _max_role(*roles: str) -> str:
+    """Return the role with the highest privilege per
+    ``api.permissions.ROLE_LEVELS``. Unknown roles fall to ``'user'``."""
+    from api.permissions import ROLE_LEVELS
+    best = "user"
+    for r in roles:
+        if ROLE_LEVELS.get(r, 0) > ROLE_LEVELS.get(best, 0):
+            best = r
+    return best
+
+
+def _build_merged_fields(web: dict, tg: dict) -> dict:
+    """Merge field rules per US-M12.1. The result is the patch applied
+    to the surviving Telegram row. ``total_words`` is the **summed**
+    counter; the orchestrator overrides it from the deduped vocab count
+    after Firestore copy.
+    """
+    def pick_non_empty(a, b):
+        if a not in (None, ""):
+            return a
+        return b
+
+    def union_topics(a: list, b: list) -> list:
+        seen, out = set(), []
+        for topic in (a or []) + (b or []):
+            t = (topic or "").strip()
+            if t and t not in seen:
+                seen.add(t)
+                out.append(t)
+        return out[:5]
+
+    def cohort_from_created(created):
+        if hasattr(created, "strftime"):
+            return created.strftime("%Y-%m")
+        return None
+
+    merged_created_at = min(
+        d for d in (web.get("created_at"), tg.get("created_at")) if d is not None
+    ) if web.get("created_at") or tg.get("created_at") else None
+
+    merged_last_active = max(
+        d for d in (web.get("last_active"), tg.get("last_active")) if d is not None
+    ) if web.get("last_active") or tg.get("last_active") else None
+
+    web_target_band = web.get("target_band") or DEFAULT_TARGET_BAND
+    tg_target_band = tg.get("target_band") or DEFAULT_TARGET_BAND
+    target_band = (
+        web_target_band if tg_target_band == DEFAULT_TARGET_BAND else tg_target_band
+    )
+
+    plan_field = (
+        web.get("plan") if (web.get("plan") and web.get("plan") != "free")
+        else tg.get("plan", "free")
+    )
+    plan_expires_at = (
+        web.get("plan_expires_at") if (web.get("plan") and web.get("plan") != "free")
+        else tg.get("plan_expires_at")
+    )
+
+    return {
+        "auth_uid": web.get("auth_uid"),
+        "email": pick_non_empty(web.get("email"), tg.get("email")) or "",
+        "name": pick_non_empty(web.get("name"), tg.get("name")) or "",
+        "username": pick_non_empty(tg.get("username"), web.get("username")) or "",
+        "target_band": target_band,
+        "topics": union_topics(web.get("topics", []), tg.get("topics", [])),
+        "streak": max(int(web.get("streak") or 0), int(tg.get("streak") or 0)),
+        "last_active": merged_last_active,
+        "created_at": merged_created_at,
+        "total_words": int(web.get("total_words") or 0)
+                        + int(tg.get("total_words") or 0),
+        "total_quizzes": int(web.get("total_quizzes") or 0)
+                          + int(tg.get("total_quizzes") or 0),
+        "total_correct": int(web.get("total_correct") or 0)
+                          + int(tg.get("total_correct") or 0),
+        "challenge_wins": int(web.get("challenge_wins") or 0)
+                           + int(tg.get("challenge_wins") or 0),
+        "role": _max_role(web.get("role", "user"), tg.get("role", "user")),
+        "plan": plan_field,
+        "plan_expires_at": plan_expires_at,
+        "team_id": web.get("team_id") or tg.get("team_id"),
+        "org_id": web.get("org_id") or tg.get("org_id"),
+        "quota_override": (
+            web.get("quota_override")
+            if web.get("quota_override") is not None
+            else tg.get("quota_override")
+        ),
+        "signup_cohort": cohort_from_created(merged_created_at),
+        "last_active_date": (
+            merged_last_active.date().isoformat()
+            if hasattr(merged_last_active, "date") else None
+        ),
+    }
+
+
+def merge_web_into_telegram(web_id: str, telegram_id: int) -> dict:
+    """Merge ``web_id`` row into ``telegram_id`` row atomically.
+
+    Order (US-M12.1):
+      1. Read both Postgres rows (snapshot for the field merge).
+      2. Copy in-scope Firestore subcollections from
+         ``users/{web_id}/...`` into ``users/{telegram_id}/...`` per
+         the dedupe/append rules.
+      3. Recompute ``total_words`` from the deduped target vocab so
+         the counter doesn't double-count.
+      4. Postgres ``merge_into``: UPDATE target + DELETE source in one txn.
+      5. Best-effort delete source Firestore subcollections.
+      6. Audit + structlog.
+
+    Returns the counts dict from ``copy_subcollections`` (vocab_merged,
+    quiz_merged, ...) so the API can echo merge stats back to the web UI.
+    """
+    import structlog
+
+    from services.admin import audit_service
+
+    repo = get_user_repo()
+    fs_repo = _firestore_user_repo_instance()
+
+    web_row = repo.get(web_id)
+    tg_row = repo.get(telegram_id)
+    if web_row is None or tg_row is None:
+        raise ValueError(
+            f"merge_web_into_telegram: missing row(s) "
+            f"web={web_id!r} tg={telegram_id!r} "
+            f"(web_exists={web_row is not None}, tg_exists={tg_row is not None})",
+        )
+
+    web_dict = web_row.model_dump()
+    tg_dict = tg_row.model_dump()
+
+    # 1. Build merged field dict (counters summed; total_words rewritten in step 3).
+    merged = _build_merged_fields(web_dict, tg_dict)
+
+    # 2. Copy Firestore subcollections (vocab dedupe + others).
+    counts = fs_repo.copy_subcollections(str(web_id), str(telegram_id))
+
+    # 3. After dedupe, total_words = sum - vocab_dropped.
+    merged["total_words"] = (
+        int(web_dict.get("total_words") or 0)
+        + int(tg_dict.get("total_words") or 0)
+        - int(counts.get("vocab_dropped", 0))
+    )
+
+    # 4. Atomic Postgres merge.
+    repo.merge_into(str(web_id), str(telegram_id), merged=merged)
+
+    # 5. Best-effort cleanup: delete source Firestore subcollection docs.
+    try:
+        _delete_source_subcollections(str(web_id))
+    except Exception as exc:  # noqa: BLE001 — best-effort
+        structlog.get_logger("identity").warning(
+            "merge.source_cleanup_failed", source_id=str(web_id), error=str(exc),
+        )
+
+    # 6. Audit + structlog.
+    audit_before = {k: web_dict.get(k) for k in (
+        "id", "auth_uid", "email", "role", "plan", "total_words",
+        "total_quizzes", "total_correct",
+    )}
+    audit_after = {k: merged.get(k) for k in (
+        "auth_uid", "email", "role", "plan", "total_words",
+        "total_quizzes", "total_correct",
+    )}
+    audit_after["id"] = str(telegram_id)
+    audit_service.log_event(
+        actor_uid="system:merge",
+        event_type="user.merged",
+        target_kind="user",
+        target_id=str(telegram_id),
+        before=audit_before,
+        after=audit_after,
+    )
+    structlog.get_logger("identity").info(
+        "user.merged",
+        user_id=str(telegram_id),
+        source_id=str(web_id),
+        **counts,
+    )
+    return counts
+
+
+def _firestore_user_repo_instance():
+    """Return a ``FirestoreUserRepo`` for subcollection ops regardless of
+    which impl ``get_user_repo()`` returns. After US-M8.6 the factory
+    yields ``PostgresUserRepo``, but Firestore subcollections still need
+    Firestore-side helpers (`copy_subcollections`).
+    """
+    from services.repositories.firestore.user_repo import FirestoreUserRepo
+    return FirestoreUserRepo()
+
+
+def _delete_source_subcollections(source_id: str) -> None:
+    """Best-effort delete of all docs under ``users/{source_id}/<sub>``
+    for the 4 in-scope subcollections. Does NOT delete the
+    ``users/{source_id}`` root doc — that's handled by Postgres
+    ``merge_into`` deleting the row."""
+    db = _get_db()
+    root = db.collection("users").document(source_id)
+    for sub in ("vocabulary", "quiz_history", "writing_history", "daily_words"):
+        for doc in root.collection(sub).stream():
+            doc.reference.delete()
+
+
+def unlink_telegram(telegram_id: int, *, surface: str) -> bool:
+    """Clear the ``auth_uid`` linkage on the Telegram-side user row.
+
+    ``surface`` is ``"web"`` or ``"bot"`` for audit attribution.
+    Returns ``True`` on a real unlink (audit row written),
+    ``False`` on a no-op (already unlinked or row missing).
+    """
+    import structlog
+
+    from services.admin import audit_service
+
+    previous = get_user_repo().unlink_auth(telegram_id)
+    if previous is None:
+        return False
+    audit_service.log_event(
+        actor_uid=f"self:{surface}",
+        event_type="user.unlinked",
+        target_kind="user",
+        target_id=str(telegram_id),
+        before={"auth_uid": previous},
+        after={"auth_uid": None},
+    )
+    structlog.get_logger("identity").info(
+        "user.unlinked", user_id=str(telegram_id), surface=surface,
+    )
+    return True
+
+
 # ─── Link Code Operations (US-1.7) ────────────────────────────
 # Not migrated — short-lived auth tokens, not core user data.
 
