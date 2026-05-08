@@ -973,7 +973,211 @@ def unlink_telegram(telegram_id: int, *, surface: str) -> bool:
     return True
 
 
-# ─── Link Code Operations (US-1.7) ────────────────────────────
+# ─── Link tokens (US-M12.2) ───────────────────────────────────────
+
+LINK_TOKEN_TTL_SECONDS = 15 * 60
+
+
+def create_link_token_for_telegram(telegram_id: int) -> dict:
+    """Mint a single-use ``tg_to_web`` token + return the web deep-link URL.
+
+    Used by the bot ``/link`` command (replaces the 6-digit code flow).
+    """
+    from services.repositories import get_link_token_repo
+    doc = get_link_token_repo().create(
+        direction="tg_to_web",
+        telegram_id=telegram_id,
+        ttl_seconds=LINK_TOKEN_TTL_SECONDS,
+    )
+    return {
+        "token": doc.token,
+        "url": f"{config.WEB_BASE_URL.rstrip('/')}/link?token={doc.token}",
+        "expires_at": doc.expires_at,
+    }
+
+
+def create_link_token_for_auth(auth_uid: str) -> dict:
+    """Mint a single-use ``web_to_tg`` token + return the bot deep-link URL.
+
+    Used by the web "Link Telegram" CTA (US-M12.3 wires the UI).
+    """
+    from services.repositories import get_link_token_repo
+    if not config.BOT_USERNAME:
+        raise RuntimeError(
+            "BOT_USERNAME is not configured; cannot mint web→TG deep-links",
+        )
+    doc = get_link_token_repo().create(
+        direction="web_to_tg",
+        auth_uid=auth_uid,
+        ttl_seconds=LINK_TOKEN_TTL_SECONDS,
+    )
+    return {
+        "token": doc.token,
+        "bot_deep_link": f"https://t.me/{config.BOT_USERNAME}?start=link_{doc.token}",
+        "expires_at": doc.expires_at,
+    }
+
+
+def _classify_link_token_failure(token: str) -> str:
+    """Return one of ``"invalid"``, ``"expired"``, ``"already_used"``
+    when the token cannot be redeemed. The route uses this to pick a
+    specific error code instead of a generic one.
+    """
+    from datetime import datetime as _dt, timezone as _tz
+
+    from services.repositories import get_link_token_repo
+    doc = get_link_token_repo().get(token)
+    if doc is None:
+        return "invalid"
+    if doc.redeemed_at is not None:
+        return "already_used"
+    if doc.expires_at and doc.expires_at < _dt.now(_tz.utc):
+        return "expired"
+    return "invalid"
+
+
+def redeem_link_token_web(
+    token: str,
+    auth_uid: str,
+    email: str = "",
+    name: str = "",
+) -> dict:
+    """Redeem a ``tg_to_web`` token from the web side.
+
+    Returns a dict with ``status`` plus sub-case data:
+
+    - ``{"status": "linked", "telegram_id": int}`` — sub-case A: brand-new
+      web identity; ``auth_uid`` stamped onto the Telegram row.
+    - ``{"status": "merged", "telegram_id": int, "counts": {...}}`` —
+      sub-case B: merged ``web_xxx`` into the Telegram row via
+      ``merge_web_into_telegram``.
+    - ``{"status": "already_linked", "telegram_id": int}`` — sub-case C.
+    - ``{"status": "<failure>"}`` for token validation failures
+      (``invalid`` / ``expired`` / ``already_used`` / ``wrong_direction``
+      / ``conflict`` / ``telegram_user_missing``).
+    """
+    from services.repositories import get_link_token_repo
+
+    redeemed = get_link_token_repo().redeem(token, redeemed_by=auth_uid)
+    if redeemed is None:
+        return {"status": _classify_link_token_failure(token)}
+    if redeemed.direction != "tg_to_web":
+        return {"status": "wrong_direction"}
+
+    telegram_id = redeemed.telegram_id
+    if telegram_id is None:
+        return {"status": "invalid"}  # malformed token — direction mismatch
+
+    existing = get_user_by_auth_uid(auth_uid)
+    tg_user = get_user(int(telegram_id))
+    if not tg_user:
+        return {"status": "telegram_user_missing"}
+
+    if existing:
+        existing_id = str(existing.get("id"))
+        if existing_id == str(telegram_id):
+            return {
+                "status": "already_linked",
+                "telegram_id": int(telegram_id),
+            }
+        if existing_id.startswith("web_"):
+            counts = merge_web_into_telegram(existing_id, int(telegram_id))
+            return {
+                "status": "merged",
+                "telegram_id": int(telegram_id),
+                "counts": counts,
+            }
+        return {"status": "conflict"}
+
+    # Sub-case A: stamp auth_uid + (optional) email/name fill-in.
+    if tg_user.get("auth_uid") and tg_user["auth_uid"] != auth_uid:
+        return {"status": "conflict"}
+    link_telegram_to_auth(int(telegram_id), auth_uid)
+    updates: dict = {}
+    if email and not tg_user.get("email"):
+        updates["email"] = email
+    if name and not tg_user.get("name"):
+        updates["name"] = name
+    if updates:
+        update_user(int(telegram_id), updates)
+    return {"status": "linked", "telegram_id": int(telegram_id)}
+
+
+def redeem_link_token_bot(token: str, telegram_id: int) -> dict:
+    """Redeem a ``web_to_tg`` token from the bot side.
+
+    Three sub-cases:
+
+    - **A — TG user new:** create a Telegram row from the web row's
+      ``target_band``/``topics`` (the user already configured them on
+      web) and merge the web_xxx into it via
+      ``merge_web_into_telegram``.
+    - **B — TG user exists, auth_uid=NULL:** if the auth_uid has a
+      ``web_xxx`` row, merge it; otherwise stamp ``auth_uid`` directly.
+    - **C — already linked:** no-op.
+
+    Mirrors the result shape of ``redeem_link_token_web``.
+    """
+    from services.repositories import get_link_token_repo
+
+    redeemed = get_link_token_repo().redeem(token, redeemed_by=str(telegram_id))
+    if redeemed is None:
+        return {"status": _classify_link_token_failure(token)}
+    if redeemed.direction != "web_to_tg":
+        return {"status": "wrong_direction"}
+
+    auth_uid = redeemed.auth_uid
+    if not auth_uid:
+        return {"status": "invalid"}
+
+    web_user = get_user_by_auth_uid(auth_uid)
+    tg_user = get_user(telegram_id)
+
+    # Sub-case A — TG row doesn't exist yet.
+    if tg_user is None:
+        if web_user is None:
+            return {"status": "telegram_user_missing"}
+        # Create the Telegram row from the web row's onboarding choices.
+        target_band = float(web_user.get("target_band") or 7.0)
+        topics = list(web_user.get("topics") or [])
+        name = web_user.get("name") or ""
+        create_user(
+            telegram_id=telegram_id,
+            name=name,
+            username="",
+            target_band=target_band,
+            topics=topics,
+        )
+        if str(web_user.get("id", "")).startswith("web_"):
+            counts = merge_web_into_telegram(str(web_user["id"]), telegram_id)
+            return {
+                "status": "merged",
+                "telegram_id": telegram_id,
+                "counts": counts,
+            }
+        # web row isn't web_xxx (defensive — shouldn't happen): stamp.
+        link_telegram_to_auth(telegram_id, auth_uid)
+        return {"status": "linked", "telegram_id": telegram_id}
+
+    # Sub-case C — already linked.
+    if tg_user.get("auth_uid") == auth_uid:
+        return {"status": "already_linked", "telegram_id": telegram_id}
+    if tg_user.get("auth_uid"):
+        return {"status": "conflict"}
+
+    # Sub-case B — TG row exists, auth_uid is NULL.
+    if web_user and str(web_user.get("id", "")).startswith("web_"):
+        counts = merge_web_into_telegram(str(web_user["id"]), telegram_id)
+        return {
+            "status": "merged",
+            "telegram_id": telegram_id,
+            "counts": counts,
+        }
+    link_telegram_to_auth(telegram_id, auth_uid)
+    return {"status": "linked", "telegram_id": telegram_id}
+
+
+# ─── Link Code Operations (US-1.7, deprecated by US-M12.2) ────────────────
 # Not migrated — short-lived auth tokens, not core user data.
 
 LINK_CODE_TTL_SECONDS = 5 * 60

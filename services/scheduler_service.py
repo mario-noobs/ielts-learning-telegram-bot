@@ -348,6 +348,42 @@ def setup_metrics_schedule():
     logger.info("Platform metrics aggregation scheduled at 00:30 ICT")
 
 
+def cleanup_link_tokens_hourly() -> None:
+    """Hourly cleanup of expired US-M12.2 link_tokens rows.
+
+    Deletes tokens whose ``expires_at`` is older than 24h ago. Keeps a
+    debug window so an operator can trace a recent failed link attempt.
+    """
+    try:
+        from services.repositories import get_link_token_repo
+        deleted = get_link_token_repo().cleanup_expired(
+            older_than_seconds=24 * 3600,
+        )
+        if deleted:
+            logger.info("link_tokens cleanup deleted=%d", deleted)
+    except Exception:  # noqa: BLE001 — swallow so the cron doesn't crash
+        logger.exception("link_tokens cleanup failed")
+
+
+def setup_link_token_cleanup_schedule():
+    """Register the hourly link_tokens cleanup cron (US-M12.2)."""
+    scheduler = get_scheduler()
+    job_id = "cleanup_link_tokens_hourly"
+
+    existing = scheduler.get_job(job_id)
+    if existing:
+        existing.remove()
+
+    scheduler.add_job(
+        cleanup_link_tokens_hourly,
+        "interval",
+        hours=1,
+        id=job_id,
+        replace_existing=True,
+    )
+    logger.info("link_tokens cleanup scheduled hourly")
+
+
 def setup_greeting_schedule(bot):
     """Set up the daily greeting job at 07:00 Vietnam time."""
     scheduler = get_scheduler()

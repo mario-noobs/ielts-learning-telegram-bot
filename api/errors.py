@@ -113,6 +113,18 @@ class _Registry:
         "auth.link.web_only_account", 409,
         "This account is web-only and has no Telegram link to remove.",
     )
+    auth_link_token_invalid = ErrorCode(
+        "auth.link.token_invalid", 404,
+        "Link token not found.",
+    )
+    auth_link_token_expired = ErrorCode(
+        "auth.link.token_expired", 410,
+        "Link token has expired. Generate a new one.",
+    )
+    auth_link_token_already_used = ErrorCode(
+        "auth.link.token_already_used", 410,
+        "Link token has already been used.",
+    )
 
     # ─── Writing (US-2.1) ─────────────────────────────────────────────
     writing_too_short = ErrorCode(

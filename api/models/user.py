@@ -52,3 +52,43 @@ class UserUpdate(BaseModel):
     )
     weekly_goal_minutes: int | None = Field(default=None, ge=30, le=2000)
     preferred_locale: Locale | None = None
+
+
+# ─── US-M12.2 token deep-link models ─────────────────────────────────
+
+class LinkTokenRedeemRequest(BaseModel):
+    """Body for ``POST /api/v1/link/redeem``."""
+
+    token: str
+
+
+class LinkStartResponse(BaseModel):
+    """Response for ``POST /api/v1/link/start`` — web→TG deep-link."""
+
+    token: str
+    bot_deep_link: str
+    expires_at: str
+
+
+class LinkRedeemMergeCounts(BaseModel):
+    """Subcollection-merge stats echoed back to the web UI for sub-case B."""
+
+    vocab_merged: int = 0
+    vocab_dropped: int = 0
+    quiz_merged: int = 0
+    writing_merged: int = 0
+    daily_merged: int = 0
+    daily_skipped: int = 0
+
+
+class LinkRedeemResponse(BaseModel):
+    """Response for ``POST /api/v1/link/redeem``.
+
+    ``status`` is ``"linked"`` (sub-case A), ``"merged"`` (B), or
+    ``"already_linked"`` (C). ``counts`` is non-null only when
+    ``status == "merged"``.
+    """
+
+    status: Literal["linked", "merged", "already_linked"]
+    profile: UserProfile
+    counts: LinkRedeemMergeCounts | None = None
