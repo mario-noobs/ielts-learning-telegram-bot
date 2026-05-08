@@ -15,6 +15,7 @@ from api.routes.audio import router as audio_router
 from api.routes.auth import router as auth_router
 from api.routes.health import router as health_router
 from api.routes.listening import router as listening_router
+from api.routes.me import router as me_router
 from api.routes.plan import router as plan_router
 from api.routes.progress import router as progress_router
 from api.routes.quiz import router as quiz_router
@@ -160,6 +161,7 @@ def create_app() -> FastAPI:
     app.include_router(plan_router)
     app.include_router(progress_router)
     app.include_router(reading_router)
+    app.include_router(me_router)
     app.include_router(admin_router)
 
     return app

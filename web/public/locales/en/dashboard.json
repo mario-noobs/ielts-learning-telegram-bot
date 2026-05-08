@@ -68,5 +68,18 @@
       "bandDelta30d": "Band change (30 days)"
     },
     "beta": "Beta"
+  },
+  "aiUsage": {
+    "title": "AI usage today",
+    "usedOfQuota": "{used} of {plan_quota}",
+    "barAriaLabel": "{used} of {plan_quota} AI requests used today, {pct}%",
+    "breakdownToggle": "Per feature",
+    "resetIn": "Resets in {remaining}",
+    "upgrade": "Upgrade →",
+    "empty": "No AI calls yet today",
+    "error": "Couldn't load AI usage. Try refreshing.",
+    "saturated": {
+      "title": "Daily limit reached"
+    }
   }
 }

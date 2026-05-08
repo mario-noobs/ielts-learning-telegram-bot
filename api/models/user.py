@@ -42,6 +42,23 @@ class UserProfile(BaseModel):
     quota_override: int | None = None
 
 
+class AiUsageFeaturePoint(BaseModel):
+    """One feature's count in today's per-user usage breakdown."""
+
+    feature: str
+    count: int
+
+
+class MeAiUsage(BaseModel):
+    """Response model for ``GET /api/v1/me/ai-usage`` (US-M13.1)."""
+
+    plan: str
+    quota_daily: int
+    used_today: int
+    by_feature: list[AiUsageFeaturePoint]
+    reset_at: str  # ISO timestamp at next UTC midnight
+
+
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=60)
     target_band: float | None = Field(default=None, ge=4.0, le=9.0)
