@@ -32,7 +32,18 @@ from api.errors import ERR, ApiError
 from services.repositories import get_ai_usage_repo, get_plan_repo
 
 
-def _plan_quota(plan: str) -> int:
+def effective_daily_cap(plan: str, quota_override: Optional[int]) -> int:
+    """Resolve the daily AI cap for a user (US-M13.2).
+
+    Override wins over the plan default. Unknown plan raises
+    ``ApiError(ERR.quota_plan_not_found)`` — same contract the previous
+    private ``_plan_quota`` helper used.
+
+    Single source of truth used by both ``check_and_increment`` (this
+    module) and the M13.1 ``/api/v1/me/ai-usage`` read endpoint.
+    """
+    if quota_override is not None:
+        return int(quota_override)
     plan_doc = get_plan_repo().get(plan)
     if plan_doc is None:
         raise ApiError(ERR.quota_plan_not_found, plan=plan)
@@ -50,7 +61,7 @@ def check_and_increment(
 
     Returns the day total (sum across features) post-increment.
     """
-    cap = int(quota_override) if quota_override is not None else _plan_quota(plan)
+    cap = effective_daily_cap(plan, quota_override)
 
     usage_repo = get_ai_usage_repo()
     usage_repo.increment(user_uid=user_uid, feature=feature)
@@ -68,4 +79,4 @@ def check_and_increment(
     return day_total
 
 
-__all__ = ["check_and_increment"]
+__all__ = ["check_and_increment", "effective_daily_cap"]

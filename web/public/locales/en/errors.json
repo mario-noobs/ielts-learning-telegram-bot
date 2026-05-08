@@ -66,5 +66,8 @@
     "forbidden_role": "Action requires a higher role.",
     "target_not_found": "Target does not exist.",
     "invalid_role_change": "Role change not allowed."
+  },
+  "quota": {
+    "daily_exceeded": "You've used {used} of {plan_quota} AI calls today on this plan. Resets at midnight UTC."
   }
 }

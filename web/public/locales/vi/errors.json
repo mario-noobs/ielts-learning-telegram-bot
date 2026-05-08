@@ -66,5 +66,8 @@
     "forbidden_role": "Hành động yêu cầu quyền cao hơn.",
     "target_not_found": "Đối tượng không tồn tại.",
     "invalid_role_change": "Không được phép thay đổi vai trò này."
+  },
+  "quota": {
+    "daily_exceeded": "Bạn đã dùng {used} / {plan_quota} lượt AI hôm nay trên gói này. Đặt lại lúc 00:00 UTC."
   }
 }
