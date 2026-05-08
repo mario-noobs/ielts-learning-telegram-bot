@@ -7,7 +7,16 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from api.auth import get_current_user, security
 from api.errors import ApiError, ERR
-from api.models.user import LinkCodeRequest, UserCreate, UserProfile, UserUpdate
+from api.models.user import (
+    LinkCodeRequest,
+    LinkRedeemMergeCounts,
+    LinkRedeemResponse,
+    LinkStartResponse,
+    LinkTokenRedeemRequest,
+    UserCreate,
+    UserProfile,
+    UserUpdate,
+)
 from services import firebase_service
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
@@ -135,9 +144,18 @@ async def create_user(
 @router.post("/users/link", response_model=UserProfile)
 async def link_telegram(
     body: LinkCodeRequest,
+    response: Response,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> UserProfile:
-    """Redeem a single-use link code to map a Telegram account to the Google sign-in."""
+    """Redeem a single-use 6-digit link code (legacy, US-1.7).
+
+    Deprecated by US-M12.2's token-based ``POST /api/v1/link/redeem``;
+    kept for 30 days post-launch with a Sunset header so the web app
+    can warn users on stale clients.
+    """
+    response.headers["Sunset"] = "Sun, 07 Jun 2026 00:00:00 GMT"
+    response.headers["Deprecation"] = "true"
+    response.headers["Link"] = '</api/v1/link/redeem>; rel="successor-version"'
     firebase_service._get_db()
 
     try:
@@ -243,3 +261,108 @@ async def unlink_me(user: dict = Depends(get_current_user)) -> Response:
         firebase_service.unlink_telegram, telegram_id, surface="web",
     )
     return Response(status_code=204)
+
+
+# ─── US-M12.2 token deep-link endpoints ──────────────────────────────
+
+
+def _redeem_status_to_error(status: str) -> ApiError:
+    """Translate orchestrator status strings to ApiError codes."""
+    if status == "expired":
+        return ApiError(ERR.auth_link_token_expired)
+    if status == "already_used":
+        return ApiError(ERR.auth_link_token_already_used)
+    if status == "conflict":
+        return ApiError(ERR.auth_link_conflict)
+    if status == "telegram_user_missing":
+        return ApiError(ERR.auth_user_not_registered)
+    # invalid / wrong_direction / unknown
+    return ApiError(ERR.auth_link_token_invalid)
+
+
+@router.post("/link/start", response_model=LinkStartResponse)
+async def link_start(
+    user: dict = Depends(get_current_user),
+) -> LinkStartResponse:
+    """Mint a single-use ``web_to_tg`` token + return a bot deep-link.
+
+    The web "Link Telegram" CTA (US-M12.3) calls this endpoint, then opens
+    the returned URL — Telegram routes the user into the bot with the
+    token payload, and the bot redeems via ``/start link_<token>``.
+    """
+    user_id = str(user["id"])
+    if not user_id.startswith("web_") and user.get("auth_uid"):
+        # Already a Telegram-linked row; the user can simply open the bot
+        # directly. We still mint a token in case they want to attach a
+        # second Google identity to a different Telegram account, but
+        # this route is intentionally conservative — return 409 to make
+        # the UX explicit.
+        raise ApiError(ERR.auth_link_conflict)
+    auth_uid = user.get("auth_uid")
+    if not auth_uid:
+        # Defensive: a row hydrated by /me must have an auth_uid (the
+        # token used to fetch it carried it). If we got here without one
+        # something upstream is broken.
+        raise ApiError(ERR.auth_invalid_token)
+    result = await asyncio.to_thread(
+        firebase_service.create_link_token_for_auth, auth_uid,
+    )
+    return LinkStartResponse(
+        token=result["token"],
+        bot_deep_link=result["bot_deep_link"],
+        expires_at=result["expires_at"].isoformat(),
+    )
+
+
+@router.post("/link/redeem", response_model=LinkRedeemResponse)
+async def link_redeem(
+    body: LinkTokenRedeemRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> LinkRedeemResponse:
+    """Redeem a ``tg_to_web`` token from the web side.
+
+    Verifies the Firebase ID token to learn ``auth_uid`` + email + name,
+    then delegates to the orchestrator. Sub-cases:
+
+    - **A — linked**: brand-new web identity; ``auth_uid`` stamped on the
+      Telegram row.
+    - **B — merged**: ``web_xxx`` row absorbed into the Telegram row via
+      ``merge_web_into_telegram``; ``counts`` echoes the subcollection
+      merge stats so the web UI can show "We merged X words and Y quizzes".
+    - **C — already_linked**: idempotent.
+    """
+    firebase_service._get_db()
+
+    try:
+        decoded = firebase_admin.auth.verify_id_token(credentials.credentials)
+        auth_uid = decoded["uid"]
+        email = decoded.get("email", "") or ""
+        name = decoded.get("name", "") or ""
+    except Exception:
+        raise ApiError(ERR.auth_invalid_token)
+
+    result = await asyncio.to_thread(
+        firebase_service.redeem_link_token_web,
+        body.token,
+        auth_uid,
+        email,
+        name,
+    )
+    status = result.get("status")
+    if status not in ("linked", "merged", "already_linked"):
+        raise _redeem_status_to_error(status or "invalid")
+
+    telegram_id = result["telegram_id"]
+    profile_dict = await asyncio.to_thread(firebase_service.get_user, int(telegram_id))
+    if not profile_dict:
+        raise ApiError(ERR.auth_user_not_registered)
+
+    counts = None
+    if status == "merged" and result.get("counts"):
+        counts = LinkRedeemMergeCounts(**result["counts"])
+
+    return LinkRedeemResponse(
+        status=status,
+        profile=_to_profile(profile_dict),
+        counts=counts,
+    )

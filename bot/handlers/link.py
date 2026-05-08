@@ -1,5 +1,12 @@
+"""Bot ``/link`` command — return a 1-click web URL (US-M12.2).
+
+Replaces the 6-digit code paste flow. Bot mints a token via
+``create_link_token_for_telegram`` and replies with the deep-link URL
+``${WEB_BASE_URL}/link?token=<token>``. Web side handles redemption
+through ``POST /api/v1/link/redeem``.
+"""
+
 import logging
-import secrets
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -7,14 +14,6 @@ from telegram.ext import ContextTypes
 from services import firebase_service
 
 logger = logging.getLogger(__name__)
-
-
-def _generate_code() -> str:
-    for _ in range(10):
-        code = f"{secrets.randbelow(900000) + 100000}"
-        if not firebase_service.get_link_code(code):
-            return code
-    raise RuntimeError("Could not allocate unique link code")
 
 
 async def link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -33,15 +32,17 @@ async def link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        code = _generate_code()
+        result = firebase_service.create_link_token_for_telegram(user.id)
     except Exception:
-        logger.exception("Failed to allocate link code")
-        await message.reply_text("Không tạo được mã lúc này, thử lại sau.")
+        logger.exception("Failed to mint link token for tg user %s", user.id)
+        await message.reply_text("Không tạo được link lúc này, thử lại sau.")
         return
 
-    firebase_service.create_link_code(code, user.id)
     await message.reply_text(
-        f"Mã liên kết của bạn:\n\n<code>{code}</code>\n\n"
-        "Nhập mã này vào trang web trong 5 phút để đồng bộ từ vựng.",
-        parse_mode="HTML",
+        "🔗 Liên kết web cho bạn\n\n"
+        "Nhấn link bên dưới để mở web và liên kết tự động "
+        "(hết hạn sau 15 phút):\n\n"
+        f"{result['url']}\n\n"
+        "Hoặc copy paste vào trình duyệt nếu link không tự mở.",
+        disable_web_page_preview=False,
     )

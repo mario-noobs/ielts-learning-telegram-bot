@@ -25,6 +25,7 @@ from .dtos import (
     AiUsageDoc,
     AuditLogDoc,
     DailyWordsDoc,
+    LinkTokenDoc,
     OrgDoc,
     PlanDoc,
     PlatformMetricDoc,
@@ -47,6 +48,7 @@ from .protocols import (
     AiUsageRepo,
     AuditLogRepo,
     DailyWordsRepo,
+    LinkTokenRepo,
     MetricsRepo,
     OrgRepo,
     PlanRepo,
@@ -71,6 +73,7 @@ _org_repo: OrgRepo | None = None
 _audit_log_repo: AuditLogRepo | None = None
 _ai_usage_repo: AiUsageRepo | None = None
 _metrics_repo: MetricsRepo | None = None
+_link_token_repo: LinkTokenRepo | None = None
 
 
 def get_user_repo() -> UserRepo:
@@ -176,12 +179,23 @@ def get_metrics_repo() -> MetricsRepo:
     return _metrics_repo
 
 
+def get_link_token_repo() -> LinkTokenRepo:
+    """Return the process-wide ``LinkTokenRepo`` singleton (Postgres-backed)."""
+    global _link_token_repo
+    if _link_token_repo is None:
+        from services.repositories.postgres.link_token_repo import (
+            PostgresLinkTokenRepo,
+        )
+        _link_token_repo = PostgresLinkTokenRepo()
+    return _link_token_repo
+
+
 def _reset_singletons_for_tests() -> None:
     """Test-only hook to clear cached repos. Don't call from app code."""
     global _user_repo, _vocab_repo, _quiz_history_repo
     global _writing_history_repo, _daily_words_repo
     global _plan_repo, _team_repo, _org_repo, _audit_log_repo
-    global _ai_usage_repo, _metrics_repo
+    global _ai_usage_repo, _metrics_repo, _link_token_repo
     _user_repo = None
     _vocab_repo = None
     _quiz_history_repo = None
@@ -193,6 +207,7 @@ def _reset_singletons_for_tests() -> None:
     _audit_log_repo = None
     _ai_usage_repo = None
     _metrics_repo = None
+    _link_token_repo = None
 
 
 __all__ = [
@@ -209,6 +224,7 @@ __all__ = [
     "AuditLogRepo",
     "AiUsageRepo",
     "MetricsRepo",
+    "LinkTokenRepo",
     # DTOs
     "UserDoc",
     "QuizStats",
@@ -223,6 +239,7 @@ __all__ = [
     "AuditLogDoc",
     "AiUsageDoc",
     "PlatformMetricDoc",
+    "LinkTokenDoc",
     # Firestore impls
     "FirestoreUserRepo",
     "FirestoreVocabRepo",
@@ -241,4 +258,5 @@ __all__ = [
     "get_audit_log_repo",
     "get_ai_usage_repo",
     "get_metrics_repo",
+    "get_link_token_repo",
 ]

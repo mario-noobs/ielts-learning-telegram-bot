@@ -52,6 +52,7 @@ from bot.handlers.writing import share_callback, translate_command, write_comman
 from services.scheduler_service import (
     restore_group_schedules,
     setup_greeting_schedule,
+    setup_link_token_cleanup_schedule,
     start_scheduler,
     stop_scheduler,
 )
@@ -189,6 +190,7 @@ def main():
     start_scheduler()
     restore_group_schedules(app.bot)
     setup_greeting_schedule(app.bot)
+    setup_link_token_cleanup_schedule()
 
     # ─── Run bot ──────────────────────────────────────────────
     logger.info("IELTS Bot starting...")

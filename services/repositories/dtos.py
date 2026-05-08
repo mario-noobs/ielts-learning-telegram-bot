@@ -257,6 +257,25 @@ class PlatformMetricDoc(BaseModel):
     ai_calls: int
     plan_distribution: dict[str, Any] = Field(default_factory=dict)
     errors_count: int = 0
+
+
+class LinkTokenDoc(BaseModel):  # noqa: D101 (docstring below)
+    """Single-use deep-link token (US-M12.2).
+
+    ``direction`` is one of ``"tg_to_web"`` or ``"web_to_tg"``. The
+    matching origin id (``telegram_id`` for tg_to_web, ``auth_uid`` for
+    web_to_tg) is non-NULL on a fresh token; the other side is NULL until
+    redemption populates ``redeemed_by``.
+    """
+
+    token: str
+    direction: str
+    telegram_id: Optional[int] = None
+    auth_uid: Optional[str] = None
+    created_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    redeemed_at: Optional[datetime] = None
+    redeemed_by: Optional[str] = None
     created_at: Optional[datetime] = None
 
 

@@ -32,6 +32,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args and context.args[0].startswith("challenge_"):
         return await _handle_challenge_deeplink(update, context)
 
+    # Deep-link: web→TG link token (US-M12.2). The web app sent the user
+    # here via `https://t.me/<bot>?start=link_<token>`; we redeem the
+    # token and short-circuit onboarding because the user already chose
+    # band + topics on web.
+    if context.args and context.args[0].startswith("link_"):
+        return await _handle_link_deeplink(update, context)
+
     # Check if user already exists
     existing = firebase_service.get_user(user.id)
     if existing:
@@ -233,6 +240,65 @@ async def _handle_challenge_deeplink(update: Update, context: ContextTypes.DEFAU
 
     from bot.handlers.challenge import start_challenge_dm
     await start_challenge_dm(update, context, group_id, date_str)
+    return ConversationHandler.END
+
+
+async def _handle_link_deeplink(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Redeem a US-M12.2 ``link_<token>`` payload from `/start`.
+
+    Three sub-cases (per ``firebase_service.redeem_link_token_bot``):
+    - status='linked' — user new on Telegram side; row created from web
+      profile + auth_uid stamped.
+    - status='merged' — TG row pre-existed; merged web_xxx into it.
+    - status='already_linked' — no-op.
+    """
+    user = update.effective_user
+    if not user:
+        return ConversationHandler.END
+    payload = context.args[0]  # "link_<token>"
+    token = payload[len("link_"):]
+    if not token:
+        await update.message.reply_text("Link không hợp lệ.")
+        return ConversationHandler.END
+
+    try:
+        result = firebase_service.redeem_link_token_bot(token, user.id)
+    except Exception:
+        logger.exception("link redeem failed for tg user %s", user.id)
+        await update.message.reply_text(
+            "Không liên kết được lúc này, thử lại sau.",
+        )
+        return ConversationHandler.END
+
+    status = result.get("status")
+    if status in ("linked", "merged"):
+        await update.message.reply_text(
+            "✅ Đã liên kết tài khoản web với Telegram của bạn.\n"
+            "Mọi tiến độ học giờ đồng bộ giữa 2 bên.",
+        )
+    elif status == "already_linked":
+        await update.message.reply_text("Bạn đã liên kết rồi.")
+    elif status == "expired":
+        await update.message.reply_text(
+            "Link đã hết hạn. Vào lại trang web để tạo link mới.",
+        )
+    elif status == "already_used":
+        await update.message.reply_text(
+            "Link đã được dùng rồi. Vào lại trang web để tạo link mới.",
+        )
+    elif status == "conflict":
+        await update.message.reply_text(
+            "Tài khoản Telegram này đã liên kết với một tài khoản web khác. "
+            "Dùng /unlink trước nếu bạn muốn đổi.",
+        )
+    elif status == "telegram_user_missing":
+        await update.message.reply_text(
+            "Không tìm thấy tài khoản web tương ứng. Thử tạo link mới từ web.",
+        )
+    else:  # invalid / wrong_direction / unknown
+        await update.message.reply_text(
+            "Link không hợp lệ. Vào lại trang web để tạo link mới.",
+        )
     return ConversationHandler.END
 
 
