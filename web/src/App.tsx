@@ -25,6 +25,8 @@ import ReadingHomePage from './pages/ReadingHomePage'
 import ReadingExercisePage from './pages/ReadingExercisePage'
 import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
+import LinkRedeemPage from './pages/LinkRedeemPage'
+import LinkTelegramPage from './pages/settings/LinkTelegramPage'
 
 // Admin subtree — lazy-loaded so end-user bundles don't carry it.
 const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
@@ -89,6 +91,9 @@ export default function App() {
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/pricing" element={<PricingPage />} />
+          {/* US-M12.3: public so the bot's deep-link works pre-auth;
+              the page itself prompts Google sign-in when needed. */}
+          <Route path="/link" element={<LinkRedeemPage />} />
           <Route path="/" element={<RootRoute />}>
             <Route index element={<DashboardPage />} />
           </Route>
@@ -109,6 +114,7 @@ export default function App() {
             <Route path="/reading/:id" element={<ReadingExercisePage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/link-telegram" element={<LinkTelegramPage />} />
           </Route>
           {/* Admin subtree — its own shell, no consumer chrome (US-M11.6). */}
           <Route element={<ProtectedAdminShell />}>
