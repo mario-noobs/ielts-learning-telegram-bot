@@ -199,5 +199,63 @@ class PostgresUserRepo:
                 .values(auth_uid=auth_uid),
             )
 
+    # ── Identity merge / unlink (US-M12.1) ────────────────────────────
+
+    def merge_into(
+        self,
+        source_id: str,
+        target_id: str,
+        *,
+        merged: dict,
+    ) -> None:
+        """Apply merged fields to ``target_id`` and delete ``source_id``.
+
+        Single transaction with `SELECT ... FOR UPDATE` on both rows so a
+        concurrent `/link` or update can't race. The caller (`firebase_service.
+        merge_web_into_telegram`) builds ``merged`` from the field rules
+        documented in US-M12.1 — this method just applies it.
+
+        Caller must ensure ``source_id`` and ``target_id`` are valid; this
+        raises if either row is gone by the time the lock is acquired.
+        """
+        with get_sync_session() as s, s.begin():
+            source = s.execute(
+                select(User).where(User.id == source_id).with_for_update(),
+            ).scalar_one_or_none()
+            target = s.execute(
+                select(User).where(User.id == target_id).with_for_update(),
+            ).scalar_one_or_none()
+            if source is None or target is None:
+                raise ValueError(
+                    f"merge_into: missing row(s) source={source_id!r} "
+                    f"target={target_id!r} (source_exists={source is not None}, "
+                    f"target_exists={target is not None})",
+                )
+            # Delete source first so its `auth_uid` is freed before we
+            # write the same value onto target. Without this the UNIQUE
+            # constraint on `users.auth_uid` would reject the UPDATE.
+            s.delete(source)
+            s.flush()
+            for field, value in merged.items():
+                setattr(target, field, value)
+
+    def unlink_auth(self, user_id: UserId) -> Optional[str]:
+        """Clear ``auth_uid`` on ``user_id``. Returns the previous value
+        on a real unlink, ``None`` on a no-op (already cleared or row missing).
+
+        Idempotent — re-running on a row that's already unlinked is a no-op
+        and returns None. Caller (`firebase_service.unlink_telegram`) uses
+        the return value to decide whether to write an audit row.
+        """
+        with get_sync_session() as s, s.begin():
+            row = s.execute(
+                select(User).where(User.id == str(user_id)).with_for_update(),
+            ).scalar_one_or_none()
+            if row is None or row.auth_uid is None:
+                return None
+            previous = row.auth_uid
+            row.auth_uid = None
+            return previous
+
 
 __all__ = ["PostgresUserRepo"]

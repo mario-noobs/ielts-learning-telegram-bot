@@ -205,5 +205,109 @@ class FirestoreUserRepo:
         _auth_mapping_col().document(auth_uid).set({"user_id": str(telegram_id)})
         self.update(telegram_id, {"auth_uid": auth_uid})
 
+    # ── Identity merge subcollection copy (US-M12.1) ──────────────────
+
+    def copy_subcollections(
+        self,
+        source_id: str,
+        target_id: str,
+    ) -> dict[str, int]:
+        """Copy in-scope subcollection docs from ``source_id`` to ``target_id``.
+
+        Per US-M12.1 business rules:
+        - vocabulary: dedupe by lowercased word, keep entry with greater
+          ``srs_reps`` (further-along SRS state); tie-break to target
+        - quiz_history: append-only union, no dedupe
+        - writing_history: append-only union, no dedupe
+        - daily_words: keyed by date_str; on conflict, target (Telegram) wins
+
+        Returns counts dict for structlog/audit:
+        ``{"vocab_merged", "vocab_dropped", "quiz_merged",
+        "writing_merged", "daily_merged", "daily_skipped"}``.
+
+        OOS subcollections (listening_history, reading_sessions,
+        daily_plans, progress_snapshots, progress_recommendations,
+        quiz_sessions) are intentionally not copied — see docs/postgres.md.
+        """
+        db = _get_db()
+        source_root = db.collection("users").document(source_id)
+        target_root = db.collection("users").document(target_id)
+        counts = {
+            "vocab_merged": 0,
+            "vocab_dropped": 0,
+            "quiz_merged": 0,
+            "writing_merged": 0,
+            "daily_merged": 0,
+            "daily_skipped": 0,
+        }
+
+        # ── vocabulary: dedupe by lowercased word ─────────────────────
+        target_vocab = list(target_root.collection("vocabulary").stream())
+        target_by_word: dict[str, tuple[str, dict]] = {}
+        for doc in target_vocab:
+            data = doc.to_dict() or {}
+            word = str(data.get("word", "")).strip().lower()
+            if word:
+                target_by_word[word] = (doc.id, data)
+        for doc in source_root.collection("vocabulary").stream():
+            data = doc.to_dict() or {}
+            word = str(data.get("word", "")).strip().lower()
+            if not word:
+                continue
+            if word in target_by_word:
+                target_doc_id, target_data = target_by_word[word]
+                source_reps = int(data.get("srs_reps") or 0)
+                target_reps = int(target_data.get("srs_reps") or 0)
+                if source_reps > target_reps:
+                    target_root.collection("vocabulary").document(target_doc_id).set(
+                        data,
+                    )
+                    counts["vocab_merged"] += 1
+                else:
+                    counts["vocab_dropped"] += 1
+            else:
+                target_root.collection("vocabulary").document(doc.id).set(data)
+                target_by_word[word] = (doc.id, data)
+                counts["vocab_merged"] += 1
+
+        # ── quiz_history: append-only union ───────────────────────────
+        for doc in source_root.collection("quiz_history").stream():
+            target_root.collection("quiz_history").document(doc.id).set(
+                doc.to_dict() or {},
+            )
+            counts["quiz_merged"] += 1
+
+        # ── writing_history: append-only union ────────────────────────
+        for doc in source_root.collection("writing_history").stream():
+            target_root.collection("writing_history").document(doc.id).set(
+                doc.to_dict() or {},
+            )
+            counts["writing_merged"] += 1
+
+        # ── daily_words: target wins on date conflict ─────────────────
+        for doc in source_root.collection("daily_words").stream():
+            existing = target_root.collection("daily_words").document(doc.id).get()
+            if existing.exists:
+                counts["daily_skipped"] += 1
+                continue
+            target_root.collection("daily_words").document(doc.id).set(
+                doc.to_dict() or {},
+            )
+            counts["daily_merged"] += 1
+
+        return counts
+
+    def vocabulary_count(self, user_id: UserId) -> int:
+        """Count vocabulary docs at ``users/{user_id}/vocabulary``.
+
+        Used by the merge orchestrator to recompute ``total_words`` after
+        dedupe so the counter doesn't drift from the actual subcollection
+        size.
+        """
+        return sum(
+            1 for _ in _users_col().document(str(user_id))
+            .collection("vocabulary").stream()
+        )
+
 
 __all__ = ["FirestoreUserRepo", "_get_db"]
