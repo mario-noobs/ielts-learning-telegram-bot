@@ -112,8 +112,9 @@ class TestLinkEndpoint:
             )
         assert res.status_code == 409
 
-    def test_web_placeholder_is_repointed(self, client, valid_token):
-        """Google users auto-registered as web_* should be repointed, not blocked."""
+    def test_web_placeholder_triggers_merge(self, client, valid_token):
+        """Google users with a pre-existing web_xxx placeholder should hit
+        the US-M12.1 merge path, not the bare link UPDATE."""
         placeholder = {"id": "web_abc", "target_band": 7.0, "topics": []}
         telegram_user = {
             "id": "777", "name": "Telegram User", "email": None,
@@ -125,7 +126,8 @@ class TestLinkEndpoint:
                    return_value=placeholder), \
              patch("api.routes.auth.firebase_service.get_user",
                    return_value=telegram_user), \
-             patch("api.routes.auth.firebase_service.link_telegram_to_auth"), \
+             patch("api.routes.auth.firebase_service.merge_web_into_telegram") as mock_merge, \
+             patch("api.routes.auth.firebase_service.link_telegram_to_auth") as mock_link, \
              patch("api.routes.auth.firebase_service.update_user"), \
              patch("api.routes.auth.firebase_service.delete_link_code"):
             res = client.post(
@@ -134,6 +136,8 @@ class TestLinkEndpoint:
                 headers={"Authorization": "Bearer valid-token"},
             )
         assert res.status_code == 200
+        mock_merge.assert_called_once_with("web_abc", 777)
+        mock_link.assert_not_called()
 
     def test_telegram_user_already_linked_elsewhere_returns_409(self, client, valid_token):
         telegram_user = {
