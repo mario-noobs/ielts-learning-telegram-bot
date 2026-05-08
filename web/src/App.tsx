@@ -27,6 +27,7 @@ import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
 import LinkRedeemPage from './pages/LinkRedeemPage'
 import LinkTelegramPage from './pages/settings/LinkTelegramPage'
+import UsagePage from './pages/settings/UsagePage'
 
 // Admin subtree — lazy-loaded so end-user bundles don't carry it.
 const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/link-telegram" element={<LinkTelegramPage />} />
+            <Route path="/settings/usage" element={<UsagePage />} />
           </Route>
           {/* Admin subtree — its own shell, no consumer chrome (US-M11.6). */}
           <Route element={<ProtectedAdminShell />}>
