@@ -27,6 +27,7 @@ from .dtos import (
     AiUsageDoc,
     AuditLogDoc,
     DailyWordsDoc,
+    LinkTokenDoc,
     OrgDoc,
     PlanDoc,
     PlatformMetricDoc,
@@ -296,6 +297,31 @@ class MetricsRepo(Protocol):
     def get_latest(self) -> Optional[PlatformMetricDoc]: ...
 
 
+@runtime_checkable
+class LinkTokenRepo(Protocol):
+    """Single-use deep-link token (US-M12.2).
+
+    Tokens carry a direction (``'tg_to_web'`` or ``'web_to_tg'``) and an
+    origin identity. They expire (``expires_at``) and are single-use
+    (``redeemed_at IS NULL`` until ``redeem`` flips it).
+    """
+
+    def create(
+        self,
+        *,
+        direction: str,
+        telegram_id: Optional[int] = None,
+        auth_uid: Optional[str] = None,
+        ttl_seconds: int = 15 * 60,
+    ) -> LinkTokenDoc: ...
+
+    def get(self, token: str) -> Optional[LinkTokenDoc]: ...
+
+    def redeem(self, token: str, redeemed_by: str) -> Optional[LinkTokenDoc]: ...
+
+    def cleanup_expired(self, *, older_than_seconds: int = 24 * 3600) -> int: ...
+
+
 __all__ = [
     "UserId",
     "UserRepo",
@@ -309,4 +335,5 @@ __all__ = [
     "AuditLogRepo",
     "AiUsageRepo",
     "MetricsRepo",
+    "LinkTokenRepo",
 ]

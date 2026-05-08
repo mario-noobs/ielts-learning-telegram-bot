@@ -8,6 +8,13 @@ load_dotenv()
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Public-facing bot username (no @, e.g. "ielts_bot"). Required for the
+# US-M12.2 web→TG deep-link `https://t.me/<BOT_USERNAME>?start=link_<token>`.
+BOT_USERNAME = os.getenv("BOT_USERNAME")
+# Public web origin used by the US-M12.2 TG→web deep-link
+# `${WEB_BASE_URL}/link?token=<token>`. Defaults to the local dev origin
+# so emulator + dev-server flows work without extra config.
+WEB_BASE_URL = os.getenv("WEB_BASE_URL", "http://localhost:5173")
 
 # Google Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
