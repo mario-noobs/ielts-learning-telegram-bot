@@ -1058,11 +1058,21 @@ def redeem_link_token_web(
     """
     from services.repositories import get_link_token_repo
 
-    redeemed = get_link_token_repo().redeem(token, redeemed_by=auth_uid)
+    repo = get_link_token_repo()
+    # Validate direction BEFORE redeeming so a wrong-direction submission
+    # doesn't atomically consume an otherwise-valid token. The peek can
+    # race with another caller, but `redeem` itself stays atomic — so
+    # the worst case is a redeem-after-peek that legitimately succeeds
+    # for the right caller. Wrong direction never wastes a token.
+    peek = repo.get(token)
+    if peek is None:
+        return {"status": "invalid"}
+    if peek.direction != "tg_to_web":
+        return {"status": "wrong_direction"}
+
+    redeemed = repo.redeem(token, redeemed_by=auth_uid)
     if redeemed is None:
         return {"status": _classify_link_token_failure(token)}
-    if redeemed.direction != "tg_to_web":
-        return {"status": "wrong_direction"}
 
     telegram_id = redeemed.telegram_id
     if telegram_id is None:
@@ -1120,11 +1130,16 @@ def redeem_link_token_bot(token: str, telegram_id: int) -> dict:
     """
     from services.repositories import get_link_token_repo
 
-    redeemed = get_link_token_repo().redeem(token, redeemed_by=str(telegram_id))
+    repo = get_link_token_repo()
+    peek = repo.get(token)
+    if peek is None:
+        return {"status": "invalid"}
+    if peek.direction != "web_to_tg":
+        return {"status": "wrong_direction"}
+
+    redeemed = repo.redeem(token, redeemed_by=str(telegram_id))
     if redeemed is None:
         return {"status": _classify_link_token_failure(token)}
-    if redeemed.direction != "web_to_tg":
-        return {"status": "wrong_direction"}
 
     auth_uid = redeemed.auth_uid
     if not auth_uid:
