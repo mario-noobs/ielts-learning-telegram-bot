@@ -16,6 +16,7 @@ from bot.handlers.challenge import (
 )
 from bot.handlers.leaderboard import leaderboard_command
 from bot.handlers.link import link_command
+from bot.handlers.unlink import unlink_command
 from bot.handlers.progress import progress_command
 from bot.handlers.quiz import quiz_answer_callback, quiz_command, quiz_text_answer
 from bot.handlers.review import review_answer_callback, review_command, review_text_answer
@@ -103,6 +104,7 @@ def main():
     app.add_handler(CommandHandler("progress", progress_command))
     app.add_handler(CommandHandler("settings", settings_command))
     app.add_handler(CommandHandler("link", link_command))
+    app.add_handler(CommandHandler("unlink", unlink_command))
     app.add_handler(CommandHandler("groupsettings", groupsettings_command))
 
     # ─── Callback query handlers ──────────────────────────────

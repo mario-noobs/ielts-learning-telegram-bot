@@ -154,3 +154,74 @@ Revert the cutover PR and redeploy. `get_user_repo()` returns `FirestoreUserRepo
 ### Auth mapping retired
 
 Pre-cutover, web auth uid → user_id used the `auth_mapping/{auth_uid}` Firestore collection. Post-cutover, `PostgresUserRepo.get_by_auth_uid` does a single indexed `SELECT` against the UNIQUE `auth_uid` column from US-M8.1. The `auth_mapping/` collection is part of the read-only archive and will be deleted with US-M8.8.
+
+## Identity merge (US-M12.1)
+
+Until US-M12.1 the `/link` flow for a web-first user (already had `web_xxx` row) was unreachable: the bare `UPDATE users SET auth_uid=$1 WHERE id=$telegram_id` was rejected by the UNIQUE `auth_uid` constraint added in US-M8.1. US-M12.1 detects the web-first case and runs an atomic merge instead.
+
+### Precondition
+
+Merge fires when **both** are true:
+1. `existing = get_user_by_auth_uid(auth_uid)` returns a row with `id` starting `web_`.
+2. `telegram_user = get_user(telegram_id)` returns a row with `auth_uid IS NULL`.
+
+Otherwise the route falls back to the US-M8.6 `link_telegram_to_auth` UPDATE.
+
+### Field merge rules (Postgres `users` row)
+
+Inside one `s.begin()` block with `SELECT … FOR UPDATE` on both rows. The surviving row is the Telegram row (`id=str(telegram_id)`); the `web_xxx` row is `DELETE`d at the end so the UNIQUE `auth_uid` constraint is satisfied.
+
+| Field | Rule |
+|---|---|
+| `auth_uid` | from `web_xxx` |
+| `email`, `name`, `username` | non-empty wins; tie-break to `web_xxx` (Google profile) |
+| `target_band` | `web_xxx`'s if Telegram is at default 7.0; else keep Telegram's |
+| `topics` | union, deduped, max 5 |
+| `streak` | `MAX(web, tg)` |
+| `last_active` | `GREATEST(web, tg)` |
+| `created_at` | `LEAST(web, tg)` — preserve oldest signup for cohort math |
+| `total_words` | sum, then **rewritten** as target vocab subcollection size after dedupe |
+| `total_quizzes`, `total_correct`, `challenge_wins` | summed |
+| `role` | max-privilege via `api/permissions.py:ROLE_LEVELS` |
+| `plan` + `plan_expires_at` | `web_xxx`'s if non-`free`, else Telegram's |
+| `team_id`, `org_id`, `quota_override` | non-null wins |
+| `signup_cohort`, `last_active_date` | recomputed from merged `created_at` / `last_active` |
+
+### Subcollection merge (Firestore)
+
+In-scope (4 collections):
+
+| Subcollection | Rule |
+|---|---|
+| `vocabulary` | dedupe by lowercased `word`; on duplicate keep entry with greater `srs_reps`; tie-break to Telegram |
+| `quiz_history` | append-only union (each entry is a distinct attempt) |
+| `writing_history` | append-only union |
+| `daily_words` | keyed by `date_str`; on conflict, **Telegram doc wins** (bot is the originator) |
+
+Out-of-scope (intentionally **not migrated**): `listening_history`, `reading_sessions`, `daily_plans`, `progress_snapshots`, `progress_recommendations`, `quiz_sessions`. Either ephemeral, regenerable, or cache.
+
+### Order + atomicity
+
+1. Read both Postgres rows (snapshot for the merge dict).
+2. Stream the 4 in-scope Firestore subcollections from `users/{web_xxx}/<sub>` into `users/{telegram_id}/<sub>` per the table above.
+3. Recompute `total_words` from the deduped target vocab (avoids double-count from summed counters).
+4. Postgres txn: `UPDATE target` + `DELETE source`. Commit.
+5. Best-effort delete of `users/{web_xxx}/<sub>` docs. Failure logged, not raised.
+6. Audit row `event_type='user.merged'` + structlog `user.merged` event with counts.
+
+Step 2 failure → no Postgres mutation → 500 `auth.link.merge_failed`, both rows still exist.
+
+Step 4 failure after step 2 succeeded → subcollection docs are now in both stores. **Idempotent retry** — re-running produces the same end state because vocab dedupe is keyed on the word and quiz/writing/daily_words `set(...)` overwrites are no-ops.
+
+## Identity unlink (US-M12.1)
+
+The inverse of link. Detaches Firebase Auth from a Telegram account without destroying any data.
+
+- **Web** — `DELETE /api/v1/users/link`. Auth: Firebase ID token. Rejects `web_xxx` rows with 409 `auth.link.web_only_account`; otherwise clears `auth_uid`.
+- **Bot** — `/unlink` command, private DM only. Same op.
+
+Postgres operation: `SELECT … FOR UPDATE` on the row, capture previous `auth_uid`, set it to `NULL`. Idempotent — already-unlinked rows are a no-op and write no audit row.
+
+**Subcollections, counters, plan/role/team_id/org_id stay on the Telegram row.** A subsequent web sign-in with the same Google account creates a fresh empty `web_xxx` via the dashboard auto-create. Re-link via `/link` runs the merge path and absorbs the empty `web_xxx` back into the Telegram row.
+
+Audit: `event_type='user.unlinked'`, `actor_uid='self:web'` or `'self:bot'`.

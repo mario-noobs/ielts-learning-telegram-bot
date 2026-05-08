@@ -105,6 +105,14 @@ class _Registry:
         "auth.link.conflict", 409,
         "This Google account is already linked to a different user.",
     )
+    auth_link_merge_failed = ErrorCode(
+        "auth.link.merge_failed", 500,
+        "Identity merge failed during link. Try again in a moment.",
+    )
+    auth_link_web_only_account = ErrorCode(
+        "auth.link.web_only_account", 409,
+        "This account is web-only and has no Telegram link to remove.",
+    )
 
     # ─── Writing (US-2.1) ─────────────────────────────────────────────
     writing_too_short = ErrorCode(
