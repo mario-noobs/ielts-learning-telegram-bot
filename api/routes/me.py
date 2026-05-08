@@ -1,9 +1,13 @@
-"""Per-user metadata routes (US-M13.1).
+"""Per-user metadata routes (US-M13.1, US-M13.4).
 
-Currently exposes ``GET /api/v1/me/ai-usage`` — the read endpoint that
-backs the consumer dashboard's "AI usage today" widget. Read-only,
-does NOT increment the counter (the counter is owned by
-``services.admin.quota_service.check_and_increment``).
+Exposes:
+  - ``GET /api/v1/me/ai-usage`` — today snapshot, backs the consumer
+    dashboard's "AI usage today" widget.
+  - ``GET /api/v1/me/ai-usage/history?days=N`` — 30-day (max 90) per-day
+    per-feature counts, backs the ``/settings/usage`` page.
+
+Both are read-only, do NOT increment the counter (the counter is owned
+by ``services.admin.quota_service.check_and_increment``).
 """
 
 from __future__ import annotations
@@ -11,10 +15,10 @@ from __future__ import annotations
 from datetime import date as _date
 from datetime import datetime, time, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from api.auth import get_current_user
-from api.models.user import AiUsageFeaturePoint, MeAiUsage
+from api.models.user import AiUsageFeaturePoint, AiUsageHistoryPoint, MeAiUsage
 from services.admin import quota_service
 from services.repositories import get_ai_usage_repo
 
@@ -45,3 +49,26 @@ def get_my_ai_usage(user: dict = Depends(get_current_user)) -> MeAiUsage:
         ],
         reset_at=_next_utc_midnight(),
     )
+
+
+@router.get("/ai-usage/history", response_model=list[AiUsageHistoryPoint])
+def get_my_ai_usage_history(
+    days: int = Query(default=30, ge=1, le=90),
+    user: dict = Depends(get_current_user),
+) -> list[AiUsageHistoryPoint]:
+    """Per-user (date, feature, count) rows for the last ``days`` days.
+
+    ``days`` is clamped to 1..90 by FastAPI's ``Query`` validator (out-of-
+    range → 422). Default is 30 to match the chart on
+    ``/settings/usage``. Reuses ``AiUsageRepo.get_window`` so the existing
+    admin metric and this endpoint share the same window semantics.
+    """
+    docs = get_ai_usage_repo().get_window(str(user["id"]), days)
+    return [
+        AiUsageHistoryPoint(
+            date=d.date.isoformat(),
+            feature=d.feature,
+            count=d.count,
+        )
+        for d in docs
+    ]
