@@ -24,6 +24,7 @@ export const NAMESPACES = [
   'progress',
   'reading',
   'settings',
+  'usage',
   'vocab',
   'writing',
 ] as const

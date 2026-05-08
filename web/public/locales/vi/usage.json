@@ -1,0 +1,24 @@
+{
+  "page": {
+    "title": "Sử dụng AI",
+    "subtitle": "Mức sử dụng AI hôm nay trên tài khoản này, kèm lịch sử 30 ngày.",
+    "today": "Hôm nay",
+    "last30Days": "30 ngày gần nhất",
+    "vsLast7Up": "↑ {pct}% so với 7 ngày trước",
+    "vsLast7Down": "↓ {pct}% so với 7 ngày trước",
+    "vsLast7Flat": "Không đổi so với 7 ngày trước",
+    "override": {
+      "notice": "Tài khoản của bạn có hạn mức tuỳ chỉnh là {cap}/ngày."
+    },
+    "history": {
+      "title": "Lịch sử theo ngày",
+      "empty": "Không có lượt AI nào trong 30 ngày qua.",
+      "col": {
+        "date": "Ngày",
+        "total": "Tổng",
+        "pctCap": "% hạn mức"
+      }
+    },
+    "settingsLink": "Lịch sử dùng AI"
+  }
+}

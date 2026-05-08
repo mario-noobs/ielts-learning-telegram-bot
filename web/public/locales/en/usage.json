@@ -1,0 +1,24 @@
+{
+  "page": {
+    "title": "AI usage",
+    "subtitle": "Your daily AI usage on this account, plus a 30-day history.",
+    "today": "Today",
+    "last30Days": "Last 30 days",
+    "vsLast7Up": "↑ {pct}% vs prev 7d",
+    "vsLast7Down": "↓ {pct}% vs prev 7d",
+    "vsLast7Flat": "Flat vs prev 7d",
+    "override": {
+      "notice": "Your account has a custom limit of {cap}/day."
+    },
+    "history": {
+      "title": "Daily history",
+      "empty": "No AI calls in the last 30 days.",
+      "col": {
+        "date": "Date",
+        "total": "Total",
+        "pctCap": "% of cap"
+      }
+    },
+    "settingsLink": "AI usage history"
+  }
+}

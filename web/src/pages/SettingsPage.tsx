@@ -235,6 +235,21 @@ export default function SettingsPage() {
           <span aria-hidden className="text-muted-fg">→</span>
         </div>
       </Link>
+
+      <Link
+        to="/settings/usage"
+        className="block bg-surface-raised rounded-xl border border-border p-4 hover:bg-surface"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-fg">{t('usage:page.settingsLink')}</p>
+            <p className="text-xs text-muted-fg mt-1">
+              {t('usage:page.subtitle')}
+            </p>
+          </div>
+          <span aria-hidden className="text-muted-fg">→</span>
+        </div>
+      </Link>
     </div>
   )
 }

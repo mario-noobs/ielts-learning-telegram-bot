@@ -59,6 +59,18 @@ class MeAiUsage(BaseModel):
     reset_at: str  # ISO timestamp at next UTC midnight
 
 
+class AiUsageHistoryPoint(BaseModel):
+    """One (date, feature, count) row in the per-user history (US-M13.4).
+
+    Used by ``GET /api/v1/me/ai-usage/history?days=N`` to back the
+    ``/settings/usage`` page's 30-day chart and history table.
+    """
+
+    date: str  # ISO date (YYYY-MM-DD)
+    feature: str
+    count: int
+
+
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=60)
     target_band: float | None = Field(default=None, ge=4.0, le=9.0)
