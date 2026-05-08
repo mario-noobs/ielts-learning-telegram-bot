@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { ThemePref, useTheme } from '../lib/theme'
@@ -219,6 +220,21 @@ export default function SettingsPage() {
           </p>
         </div>
       )}
+
+      <Link
+        to="/settings/link-telegram"
+        className="block bg-surface-raised rounded-xl border border-border p-4 hover:bg-surface"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-fg">{t('link:settings.heading')}</p>
+            <p className="text-xs text-muted-fg mt-1">
+              {t('link:settings.linked.description')}
+            </p>
+          </div>
+          <span aria-hidden className="text-muted-fg">→</span>
+        </div>
+      </Link>
     </div>
   )
 }
