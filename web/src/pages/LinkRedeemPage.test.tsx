@@ -130,7 +130,7 @@ describe('<LinkRedeemPage>', () => {
     })
     const { ApiError } = await import('../lib/apiError')
     redeemMock.mockRejectedValue(new ApiError({
-      code: 'auth.link.token_expired', http_status: 410,
+      code: 'auth.link.token_expired', http_status: 410, params: {},
     }))
     renderAt('?token=abc123')
     await waitFor(() => {
