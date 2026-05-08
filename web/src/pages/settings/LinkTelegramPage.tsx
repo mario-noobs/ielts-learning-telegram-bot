@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import GroupJoinCTA from '../../components/GroupJoinCTA'
 import { useAuth } from '../../contexts/AuthContext'
@@ -21,11 +21,32 @@ import { startLink, unlinkTelegram } from '../../lib/link'
  */
 export default function LinkTelegramPage() {
   const { t } = useTranslation('link')
-  const { profile, refreshProfile } = useAuth()
+  const navigate = useNavigate()
+  const { user, loading, profile, refreshProfile } = useAuth()
 
+  if (loading) {
+    return null
+  }
   if (!profile) {
-    // Auth still loading — keep it minimal; ProtectedShell elsewhere
-    // already handles the unsigned-in case.
+    // Post-unlink: the row's auth_uid was just cleared, so /me 404s
+    // until the dashboard auto-create runs. Redirect there so the
+    // user lands on a working page instead of a blank screen.
+    if (user) {
+      return (
+        <main className="max-w-md mx-auto px-4 py-12 text-center">
+          <p className="text-sm text-muted-fg">
+            {t('settings.heading')}…
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            {t('redeem.success.linked.cta')}
+          </button>
+        </main>
+      )
+    }
     return null
   }
 
@@ -39,7 +60,20 @@ export default function LinkTelegramPage() {
       </div>
       <h1 className="text-2xl font-semibold text-fg">{t('settings.heading')}</h1>
       <div className="mt-6">
-        {isLinked ? <LinkedState onChanged={refreshProfile} /> : <NotLinkedState />}
+        {isLinked ? (
+          <LinkedState
+            onChanged={async () => {
+              await refreshProfile()
+              // Post-unlink the row has no auth_uid, so /me 404s and
+              // the profile is null. Dashboard's auto-create rebuilds
+              // a fresh web_xxx — bounce there so the user sees a
+              // working page instead of this one going blank.
+              navigate('/')
+            }}
+          />
+        ) : (
+          <NotLinkedState />
+        )}
       </div>
       <div className="mt-6">
         <GroupJoinCTA />

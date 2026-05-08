@@ -114,7 +114,14 @@ async def create_user(
     body: UserCreate,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> UserProfile:
-    """Register a new web user using the Firebase Auth token."""
+    """Register a new web user using the Firebase Auth token.
+
+    Idempotent: if a row already exists for this Firebase ``auth_uid``
+    (typical after unlink → reload, or React StrictMode firing the
+    Dashboard auto-create effect twice), return the existing profile
+    rather than raising 409. Same effect either way; the client doesn't
+    need to special-case "already there".
+    """
     firebase_service._get_db()  # Ensure Firebase Admin is initialized
 
     try:
@@ -124,10 +131,9 @@ async def create_user(
     except Exception:
         raise ApiError(ERR.auth_invalid_token)
 
-    # Check if user already exists for this auth UID
     existing = await asyncio.to_thread(firebase_service.get_user_by_auth_uid, auth_uid)
     if existing:
-        raise ApiError(ERR.auth_user_exists)
+        return _to_profile(existing)
 
     user = await asyncio.to_thread(
         firebase_service.create_web_user,
