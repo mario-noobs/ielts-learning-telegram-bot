@@ -21,36 +21,61 @@ from ..protocols import UserId
 _db = None
 
 
+def _resolve_credential():
+    """Return a ``credentials.Certificate`` from the base64 env var or
+    the on-disk path, or ``None`` if neither is available.
+
+    Surfaces both the FIREBASE_CREDENTIALS_JSON (containerized deploys)
+    and the FIREBASE_CREDENTIALS_PATH file (local dev) without raising
+    when the file is missing — callers decide what to do with ``None``.
+    """
+    import os
+
+    json_b64 = getattr(config, "FIREBASE_CREDENTIALS_JSON", None)
+    if json_b64:
+        cred_dict = json.loads(base64.b64decode(json_b64))
+        return credentials.Certificate(cred_dict)
+    path = getattr(config, "FIREBASE_CREDENTIALS_PATH", None)
+    if path and os.path.exists(path):
+        return credentials.Certificate(path)
+    return None
+
+
 def _get_db():
     """Lazy-init the Firestore client.
 
-    This mirrors the pre-existing ``services.firebase_service._get_db``
-    pattern — one app, one client, shared across every repo.
+    One app, one client, shared across every repo (mirrors the
+    ``services.firebase_service._get_db`` pattern).
 
     Emulator mode: when ``FIRESTORE_EMULATOR_HOST`` /
-    ``FIREBASE_AUTH_EMULATOR_HOST`` are set in the environment,
-    firebase-admin auto-routes all traffic to the local emulator and
-    we skip real service-account credentials. Just initialize the app
-    with an explicit projectId so collection paths resolve correctly.
+    ``FIREBASE_AUTH_EMULATOR_HOST`` are set, ``firestore.client()``
+    routes traffic to the local emulator regardless of which credential
+    we passed at init time. We still try to load real credentials —
+    ``firebase_admin.initialize_app`` requires *some* credential or it
+    falls through to ``google.auth.default()`` (Application Default
+    Credentials), which raises ``DefaultCredentialsError`` when ADC is
+    not configured (CI, fresh dev, or a setup that mixes
+    ``make bot`` emulator env vars with real Firebase usage).
     """
     global _db
     if _db is None:
-        if getattr(config, "USE_FIREBASE_EMULATOR", False):
-            if not firebase_admin._apps:
-                firebase_admin.initialize_app(
-                    options={"projectId": config.FIREBASE_EMULATOR_PROJECT_ID},
-                )
-            _db = firestore.client()
-            return _db
-
-        json_b64 = getattr(config, "FIREBASE_CREDENTIALS_JSON", None)
-        if json_b64:
-            cred_dict = json.loads(base64.b64decode(json_b64))
-            cred = credentials.Certificate(cred_dict)
-        else:
-            cred = credentials.Certificate(config.FIREBASE_CREDENTIALS_PATH)
         if not firebase_admin._apps:
-            firebase_admin.initialize_app(cred)
+            cred = _resolve_credential()
+            if getattr(config, "USE_FIREBASE_EMULATOR", False):
+                opts = {"projectId": config.FIREBASE_EMULATOR_PROJECT_ID}
+                if cred is not None:
+                    firebase_admin.initialize_app(cred, options=opts)
+                else:
+                    firebase_admin.initialize_app(options=opts)
+            else:
+                if cred is None:
+                    raise RuntimeError(
+                        "Firebase credentials not found. Set "
+                        "FIREBASE_CREDENTIALS_JSON (base64) or place a "
+                        "service-account JSON at "
+                        f"{getattr(config, 'FIREBASE_CREDENTIALS_PATH', '<unset>')!r}.",
+                    )
+                firebase_admin.initialize_app(cred)
         _db = firestore.client()
     return _db
 

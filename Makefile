@@ -114,8 +114,12 @@ web:  ## Run Vite dev server
 	@cd web && npm run dev
 
 .PHONY: bot
-bot:  ## Run Telegram bot (requires a real bot token)
+bot:  ## Run Telegram bot against local emulators (requires `make emulators` running)
 	@$(EMULATOR_ENV) $(PY) main.py
+
+.PHONY: bot-real
+bot-real:  ## Run Telegram bot against real Firebase + Postgres (uses .env, no emulator vars)
+	@$(PY) main.py
 
 .PHONY: dev
 dev: install postgres emulators seed  ## One-command dev environment: postgres + emulators + api + web
