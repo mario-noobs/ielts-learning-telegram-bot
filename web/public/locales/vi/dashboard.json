@@ -80,6 +80,20 @@
     "error": "Không tải được mức sử dụng AI. Hãy tải lại.",
     "saturated": {
       "title": "Đã đạt hạn mức ngày"
+    },
+    "banner": {
+      "warn80": {
+        "title": "Bạn sắp hết lượt AI hôm nay",
+        "body": "Đã dùng {used}/{plan_quota}. Đặt lại sau {remaining}.",
+        "cta": "Nâng cấp Pro"
+      }
+    },
+    "modal": {
+      "title": "Đã hết lượt AI hôm nay",
+      "body": "Bạn đã dùng hết {plan_quota} lượt AI trên gói {plan}.",
+      "primary": "Nâng cấp Pro",
+      "primaryPaid": "Liên hệ admin",
+      "secondary": "Đã hiểu"
     }
   }
 }

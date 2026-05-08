@@ -4,6 +4,7 @@ import { useAuth, useProfile } from '../contexts/AuthContext'
 import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
+import QuotaExceededModal from './QuotaExceededModal'
 import UpgradeBanner from './UpgradeBanner'
 
 interface Tab {
@@ -112,6 +113,7 @@ export default function AppShell() {
           </div>
           <UpgradeBanner />
           <Outlet />
+          <QuotaExceededModal />
         </main>
       </div>
 

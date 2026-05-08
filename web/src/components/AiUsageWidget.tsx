@@ -2,20 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon from './Icon'
-import { apiFetch } from '../lib/api'
-
-interface FeaturePoint {
-  feature: string
-  count: number
-}
-
-interface MeAiUsage {
-  plan: string
-  quota_daily: number
-  used_today: number
-  by_feature: FeaturePoint[]
-  reset_at: string
-}
+import { useMyAiUsage } from '../lib/useMyAiUsage'
 
 const PAID_PLANS = new Set(['personal_pro', 'team_member', 'org_member'])
 
@@ -43,24 +30,10 @@ function formatRelativeReset(resetAt: string): string {
  */
 export default function AiUsageWidget() {
   const { t } = useTranslation('dashboard')
-  const [data, setData] = useState<MeAiUsage | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { data, error: fetchError } = useMyAiUsage()
   const [showFeatures, setShowFeatures] = useState(false)
   const [, forceTick] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    apiFetch<MeAiUsage>('/api/v1/me/ai-usage')
-      .then((d) => {
-        if (!cancelled) setData(d)
-      })
-      .catch(() => {
-        if (!cancelled) setError(t('aiUsage.error'))
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [t])
+  const error = fetchError ? t('aiUsage.error') : null
 
   // Re-render every 60s so the relative reset countdown updates.
   useEffect(() => {
