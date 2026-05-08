@@ -353,6 +353,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/translate <text> - Translate EN/VI\n"
         "/mywords - Your vocabulary\n"
         "/progress - Your stats\n"
+        "/usage - Today's AI quota\n"
         "/settings - Personal preferences\n"
         "/help - This message"
     )
