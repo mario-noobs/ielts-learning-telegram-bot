@@ -263,10 +263,18 @@ async def _handle_link_deeplink(update: Update, context: ContextTypes.DEFAULT_TY
 
     try:
         result = firebase_service.redeem_link_token_bot(token, user.id)
-    except Exception:
-        logger.exception("link redeem failed for tg user %s", user.id)
+    except Exception as exc:  # noqa: BLE001 — surface the exception text
+        logger.exception(
+            "link redeem failed tg_user=%s token=%s exc_type=%s",
+            user.id, token, type(exc).__name__,
+        )
+        # Surface the exception type to the user so they can paste it into
+        # an issue without scrolling the bot's stderr. The full trace stays
+        # in the structlog stream above for ops.
         await update.message.reply_text(
-            "Không liên kết được lúc này, thử lại sau.",
+            "Không liên kết được lúc này, thử lại sau.\n"
+            f"<i>Mã lỗi: {type(exc).__name__}</i>",
+            parse_mode="HTML",
         )
         return ConversationHandler.END
 
