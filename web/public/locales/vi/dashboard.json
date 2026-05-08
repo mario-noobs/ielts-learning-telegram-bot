@@ -68,5 +68,18 @@
       "bandDelta30d": "Đổi band 30 ngày"
     },
     "beta": "Beta"
+  },
+  "aiUsage": {
+    "title": "Sử dụng AI hôm nay",
+    "usedOfQuota": "{used} / {plan_quota}",
+    "barAriaLabel": "Đã dùng {used} / {plan_quota} lượt AI hôm nay, {pct}%",
+    "breakdownToggle": "Theo tính năng",
+    "resetIn": "Đặt lại sau {remaining}",
+    "upgrade": "Nâng cấp →",
+    "empty": "Chưa dùng AI hôm nay",
+    "error": "Không tải được mức sử dụng AI. Hãy tải lại.",
+    "saturated": {
+      "title": "Đã đạt hạn mức ngày"
+    }
   }
 }

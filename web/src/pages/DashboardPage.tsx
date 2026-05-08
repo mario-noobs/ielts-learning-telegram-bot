@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { apiFetch } from '../lib/api'
 import { DailyPlan } from '../lib/plan'
 import type { ProgressResponse } from '../lib/progress'
+import AiUsageWidget from '../components/AiUsageWidget'
 import EmptyState from '../components/EmptyState'
 import ErrorBanner from '../components/ErrorBanner'
 import Icon from '../components/Icon'
@@ -204,8 +205,9 @@ export default function DashboardPage() {
             <ReadinessStrip progress={progress} />
 
             {/* Profile panel stacks between readiness and recent on <lg per AC7 */}
-            <div className="lg:hidden">
+            <div className="lg:hidden space-y-6">
               <ProfilePanel profile={profile} progress={progress} />
+              <AiUsageWidget />
             </div>
 
             <RecentContent />
@@ -216,8 +218,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Right column — desktop only */}
-          <div className="hidden lg:block">
+          <div className="hidden lg:flex lg:flex-col lg:gap-4">
             <ProfilePanel profile={profile} progress={progress} />
+            <AiUsageWidget />
           </div>
         </div>
       )}
