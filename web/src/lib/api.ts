@@ -30,7 +30,15 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   })
   if (!res.ok) {
     const raw = await res.json().catch(() => null)
-    throw parseApiError(raw, res.status)
+    const err = parseApiError(raw, res.status)
+    // US-M13.3: surface quota saturation globally so any mounted
+    // <QuotaExceededModal> can subscribe via a window event listener.
+    if (err.code === 'quota.daily_exceeded' && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('quota:exceeded', { detail: err.params }),
+      )
+    }
+    throw err
   }
   return res.json()
 }

@@ -80,6 +80,20 @@
     "error": "Couldn't load AI usage. Try refreshing.",
     "saturated": {
       "title": "Daily limit reached"
+    },
+    "banner": {
+      "warn80": {
+        "title": "You're close to today's AI limit",
+        "body": "{used}/{plan_quota} used. Resets in {remaining}.",
+        "cta": "Upgrade to Pro"
+      }
+    },
+    "modal": {
+      "title": "Daily AI limit reached",
+      "body": "You've used all {plan_quota} AI requests on the {plan} plan.",
+      "primary": "Upgrade to Pro",
+      "primaryPaid": "Contact admin",
+      "secondary": "Got it"
     }
   }
 }
