@@ -26,6 +26,7 @@ or Postgres (the M8.2 cutover is still in flight).
 
 from __future__ import annotations
 
+from datetime import datetime, time, timedelta, timezone
 from typing import Optional
 
 from api.errors import ERR, ApiError
@@ -79,4 +80,38 @@ def check_and_increment(
     return day_total
 
 
-__all__ = ["check_and_increment", "effective_daily_cap"]
+def get_usage_snapshot(
+    user_uid: str,
+    plan: str,
+    quota_override: Optional[int],
+) -> dict:
+    """Read-only snapshot of today's AI usage for one user (US-M13.5).
+
+    Returns ``{plan, used, cap, by_feature, reset_at}`` where:
+    - ``cap`` = ``effective_daily_cap(plan, quota_override)``
+    - ``by_feature`` = ``ai_usage_repo.get_today(user_uid)`` (raw counts)
+    - ``used`` = ``min(sum(by_feature.values()), cap)`` (clamped per the
+      M12 plan: handles the increment-then-read race and admin override-
+      lowering, both of which can transiently leave raw used > cap)
+    - ``reset_at`` = ISO timestamp at the next UTC midnight
+
+    Used by the bot ``/usage`` command. Sync; bot wraps in
+    ``asyncio.to_thread`` (precedent: ``services.ai_service.generate``).
+    """
+    cap = effective_daily_cap(plan, quota_override)
+    by_feature = get_ai_usage_repo().get_today(user_uid)
+    raw_used = sum(by_feature.values())
+    today = datetime.now(timezone.utc).date()
+    reset_at = datetime.combine(
+        today + timedelta(days=1), time.min, tzinfo=timezone.utc,
+    ).isoformat()
+    return {
+        "plan": plan,
+        "used": min(raw_used, cap),
+        "cap": cap,
+        "by_feature": by_feature,
+        "reset_at": reset_at,
+    }
+
+
+__all__ = ["check_and_increment", "effective_daily_cap", "get_usage_snapshot"]

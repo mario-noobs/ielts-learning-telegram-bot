@@ -39,6 +39,7 @@ from bot.handlers.settings import (
     settings_command,
 )
 from bot.handlers.start import get_start_handler, help_command
+from bot.handlers.usage import usage_command
 from bot.handlers.vocabulary import (
     audio_command,
     daily_command,
@@ -106,6 +107,7 @@ def main():
     app.add_handler(CommandHandler("settings", settings_command))
     app.add_handler(CommandHandler("link", link_command))
     app.add_handler(CommandHandler("unlink", unlink_command))
+    app.add_handler(CommandHandler("usage", usage_command))
     app.add_handler(CommandHandler("groupsettings", groupsettings_command))
 
     # ─── Callback query handlers ──────────────────────────────
