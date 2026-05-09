@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon, { IconName } from '../components/Icon'
+import TelegramIcon from '../components/icons/Telegram'
 import PlanBadge from '../components/PlanBadge'
 import { apiFetch } from '../lib/api'
 import { ThemePref, useTheme } from '../lib/theme'
@@ -891,7 +892,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon name="ShieldCheck" size="md" variant="primary" />
+                    <TelegramIcon size={20} />
                   </span>
                   <div className="flex-1">
                     <p className="font-medium text-fg">{t('link:settings.heading')}</p>

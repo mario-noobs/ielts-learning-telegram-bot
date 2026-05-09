@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
+import TelegramIcon from '../../components/icons/Telegram'
 import { useProfile } from '../../contexts/AuthContext'
 import { apiFetch } from '../../lib/api'
 
@@ -90,6 +91,7 @@ export default function GroupsPage() {
                 to="/settings/link-telegram"
                 className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary-hover"
               >
+                <TelegramIcon size={16} />
                 {t('groups.empty.cta')}
               </Link>
             </>

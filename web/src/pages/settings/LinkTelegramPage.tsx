@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import GroupJoinCTA from '../../components/GroupJoinCTA'
 import Icon from '../../components/Icon'
+import TelegramIcon from '../../components/icons/Telegram'
 import { useAuth } from '../../contexts/AuthContext'
 import { ApiError } from '../../lib/apiError'
 import { startLink, unlinkTelegram } from '../../lib/link'
@@ -119,8 +120,9 @@ function NotLinkedState() {
         type="button"
         onClick={open}
         disabled={busy}
-        className="mt-5 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-5 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
+        <TelegramIcon size={16} />
         {busy
           ? t('settings.notLinked.creatingToken')
           : t('settings.notLinked.openBotCta')}
