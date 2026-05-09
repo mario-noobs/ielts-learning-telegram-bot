@@ -196,6 +196,16 @@ class _Registry:
         "Only the group owner can edit settings.",
     )
 
+    # ─── Vocab manual override (US-#231) ──────────────────────────────
+    vocab_word_not_found = ErrorCode(
+        "vocab.word_not_found", 404,
+        "Word not found in your vocabulary.",
+    )
+    vocab_override_rate_limited = ErrorCode(
+        "vocab.override_rate_limited", 429,
+        "Too many manual mastery changes today. Try again tomorrow.",
+    )
+
 
 ERR = _Registry()
 

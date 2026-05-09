@@ -83,6 +83,7 @@ class TopicSummary(BaseModel):
     id: str
     name: str
     word_count: int = 0
+    mastered_count: int = 0
     subtopics: list[str] = []
 
 

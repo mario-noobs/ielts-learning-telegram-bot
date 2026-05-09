@@ -91,7 +91,9 @@ def update_streak(telegram_id: int):
 # ─── Vocabulary Operations (delegated to VocabRepo) ────────────────
 
 def add_word_to_user(telegram_id: int, word_data: dict) -> str:
-    return get_vocab_repo().add_word(telegram_id, word_data)
+    word_id = get_vocab_repo().add_word(telegram_id, word_data)
+    invalidate_topic_mastery_cache(telegram_id)
+    return word_id
 
 
 def add_word_if_not_exists(telegram_id, word_data: dict) -> tuple[str, bool]:
@@ -101,7 +103,10 @@ def add_word_if_not_exists(telegram_id, word_data: dict) -> tuple[str, bool]:
     exists — in that case word_id is the existing doc's id and total_words is
     not incremented.
     """
-    return get_vocab_repo().add_word_if_not_exists(telegram_id, word_data)
+    word_id, created = get_vocab_repo().add_word_if_not_exists(telegram_id, word_data)
+    if created:
+        invalidate_topic_mastery_cache(telegram_id)
+    return word_id, created
 
 
 def get_user_vocabulary(telegram_id: int, limit: int = 50) -> list[dict]:
@@ -116,20 +121,56 @@ def get_user_word_list(telegram_id: int) -> list[str]:
 
 
 def get_user_vocabulary_page(telegram_id, limit: int = 20,
-                              after_added_at: Optional[datetime] = None) -> list[dict]:
+                              after_added_at: Optional[datetime] = None,
+                              topic: Optional[str] = None) -> list[dict]:
     """Cursor-paginated vocabulary fetch ordered by added_at DESC.
 
     Cursor is the `added_at` timestamp of the last item from the previous page.
+    Optional `topic` narrows results to one topic slug.
     """
     return [
         v.model_dump()
-        for v in get_vocab_repo().list_page(telegram_id, limit, after_added_at)
+        for v in get_vocab_repo().list_page(
+            telegram_id, limit, after_added_at, topic,
+        )
     ]
 
 
 def count_words_by_topic(telegram_id) -> dict[str, int]:
     """Return {topic_id: count} across the user's full vocabulary."""
     return get_vocab_repo().count_by_topic(telegram_id)
+
+
+# US-#231 — Firestore quota mitigation. The aggregate iterates every
+# vocab doc, which on a hot page (/learn/vocab) blew through the 50K
+# read/day Firestore free-tier ceiling after a few dozen reloads. A
+# short in-memory cache absorbs reload bursts; we invalidate on word
+# add / strength override so the numbers don't drift far behind.
+import time as _time
+
+_TOPIC_MASTERY_CACHE_TTL_S = 60
+_topic_mastery_cache: dict[str, tuple[float, dict[str, dict[str, int]]]] = {}
+
+
+def count_words_by_topic_with_mastery(telegram_id) -> dict[str, dict[str, int]]:
+    """Per-topic ``{total, mastered}`` for /learn/vocab home cards (US-#231).
+
+    Cached per-user with 60s TTL. Without the cache a single page reload
+    spawned ``len(vocab)`` Firestore reads, hammering free-tier quota.
+    """
+    key = str(telegram_id)
+    cached = _topic_mastery_cache.get(key)
+    now = _time.monotonic()
+    if cached is not None and (now - cached[0]) < _TOPIC_MASTERY_CACHE_TTL_S:
+        return cached[1]
+    result = get_vocab_repo().count_by_topic_with_mastery(telegram_id)
+    _topic_mastery_cache[key] = (now, result)
+    return result
+
+
+def invalidate_topic_mastery_cache(telegram_id) -> None:
+    """Drop the cached aggregate so the next read recomputes."""
+    _topic_mastery_cache.pop(str(telegram_id), None)
 
 
 # ─── Quiz Sessions (Web) ──────────────────────────────────────────
@@ -173,6 +214,9 @@ def get_due_words(telegram_id: int, limit: int = 10) -> list[dict]:
 
 def update_word_srs(telegram_id: int, word_id: str, data: dict):
     get_vocab_repo().update_srs(telegram_id, word_id, data)
+    # SRS interval changes can shift a word into/out of "Mastered"
+    # (interval > 30), so the cached topic aggregate is stale.
+    invalidate_topic_mastery_cache(telegram_id)
 
 
 def get_word_by_id(telegram_id: int, word_id: str) -> Optional[dict]:

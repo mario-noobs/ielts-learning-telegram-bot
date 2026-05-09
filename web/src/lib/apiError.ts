@@ -26,19 +26,30 @@ export class ApiError extends Error {
   }
 
   /** Resolve the code against the `errors` bundle in the active locale.
-   *  Unknown codes fall back to `errors:common.unknown_error` and log a
-   *  warning so missing keys surface in dev (AC3).
+   *  Fallback chain when the key isn't registered:
+   *    1. `params.message` if the server included prose alongside the
+   *       code (legacy HTTPException bridge + the Firestore-quota
+   *       handler both ship one)
+   *    2. `errors:common.unknown_error` (last-resort prose, always
+   *       loaded via the eager-load in i18n.ts)
+   *
+   *  Logs a warning in dev when a code isn't registered so missing
+   *  keys surface during development.
    */
   localize(): string {
     const key = this.code
-    if (!i18n.exists(key, { ns: 'errors' })) {
-      if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.warn(`[apiError] missing errors.${key}; falling back to common.unknown_error`)
-      }
-      return i18n.t('common.unknown_error', { ns: 'errors' })
+    if (i18n.exists(key, { ns: 'errors' })) {
+      return i18n.t(key, { ns: 'errors', ...this.params })
     }
-    return i18n.t(key, { ns: 'errors', ...this.params })
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn(`[apiError] missing errors.${key}; falling back`)
+    }
+    const msg = this.params.message
+    if (typeof msg === 'string' && msg.trim()) {
+      return msg
+    }
+    return i18n.t('common.unknown_error', { ns: 'errors' })
   }
 }
 

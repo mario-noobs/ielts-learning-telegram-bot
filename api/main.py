@@ -136,6 +136,35 @@ def create_app() -> FastAPI:
             },
         )
 
+    # Firestore returns ResourceExhausted when the project hits the
+    # free-tier daily read/write quota. Without this handler the gRPC
+    # exception bubbles into the generic 500 handler and the user sees
+    # a blank "Service error". Surface as 503 with a clear code so the
+    # frontend can show "Try again later" instead.
+    try:
+        from google.api_core.exceptions import ResourceExhausted
+
+        @app.exception_handler(ResourceExhausted)
+        async def firestore_quota_handler(
+            request: Request, exc: ResourceExhausted,
+        ) -> JSONResponse:
+            logger.warning("Firestore quota exceeded: %s", exc)
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": {
+                        "code": ERR.upstream.code,
+                        "params": {
+                            "message": "Service temporarily unavailable. Please try again in a few minutes.",
+                            "reason": "firestore_quota",
+                        },
+                        "http_status": 503,
+                    }
+                },
+            )
+    except ImportError:  # pragma: no cover — google-api-core always present
+        pass
+
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled exception: %s", exc)

@@ -38,6 +38,37 @@
     "clearTopic": "Clear topic: {name}",
     "countOfTotal": "{filtered} of {total} words"
   },
+  "byTopic": {
+    "heading": "Vocabulary",
+    "headingPill": "by topic",
+    "subtitle": "Tap a topic to drill into its words. Topics with the most work to do show first.",
+    "clearFilter": "Clear filter",
+    "progress": {
+      "label": "Mastered",
+      "aria": "{pct}% of words mastered"
+    },
+    "card": {
+      "masteryLine": "{mastered}/{total} mastered ({pct}%)"
+    },
+    "topicSection": {
+      "count": "{count, plural, one {# word} other {# words}}"
+    },
+    "topicPage": {
+      "back": "All topics",
+      "subtitle": "{count, plural, one {# word in this topic} other {# words in this topic}}"
+    },
+    "row": {
+      "changeMastery": "Change mastery — currently {current}",
+      "changeMasteryConfirm": "Set mastery to:"
+    },
+    "empty": {
+      "filtered": {
+        "title": "No words at \"{strength}\" level",
+        "description": "Try a different mastery filter or clear the filter to see all topics.",
+        "cta": "Clear filter"
+      }
+    }
+  },
   "loadMore": "Load more",
   "loadingMore": "Loading…",
   "empty": {

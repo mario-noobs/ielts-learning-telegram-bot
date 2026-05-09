@@ -38,6 +38,37 @@
     "clearTopic": "Bỏ lọc: {name}",
     "countOfTotal": "{filtered} / {total} từ"
   },
+  "byTopic": {
+    "heading": "Từ vựng",
+    "headingPill": "theo chủ đề",
+    "subtitle": "Bấm vào 1 chủ đề để xem chi tiết từ vựng. Chủ đề ít thuộc nhất hiện trước.",
+    "clearFilter": "Bỏ lọc",
+    "progress": {
+      "label": "Đã thuộc",
+      "aria": "Đã thuộc {pct}% tổng số từ"
+    },
+    "card": {
+      "masteryLine": "{mastered}/{total} đã thuộc ({pct}%)"
+    },
+    "topicSection": {
+      "count": "{count} từ"
+    },
+    "topicPage": {
+      "back": "Tất cả chủ đề",
+      "subtitle": "{count} từ trong chủ đề này"
+    },
+    "row": {
+      "changeMastery": "Đổi mức độ thuộc — hiện tại {current}",
+      "changeMasteryConfirm": "Đặt mức độ thành:"
+    },
+    "empty": {
+      "filtered": {
+        "title": "Không có từ ở mức \"{strength}\"",
+        "description": "Thử mức khác hoặc bỏ lọc để thấy hết các chủ đề.",
+        "cta": "Bỏ lọc"
+      }
+    }
+  },
   "loadMore": "Tải thêm",
   "loadingMore": "Đang tải…",
   "empty": {

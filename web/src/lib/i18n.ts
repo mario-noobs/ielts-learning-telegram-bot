@@ -75,6 +75,12 @@ void i18n
       useSuspense: true,
     },
   })
+  // Eagerly load the `errors` namespace. Without this, `ApiError.localize()`
+  // calls `i18n.exists('<code>', { ns: 'errors' })` *before* the lazy
+  // load completes — exists() returns false, the fallback path also
+  // misses, and the raw code (e.g. "common.upstream_error") leaks into
+  // the UI. The bundle is small so eager-loading is essentially free.
+  .then(() => i18n.loadNamespaces('errors'))
 
 /** Set the active locale and persist to localStorage. */
 export function setLocale(locale: SupportedLocale): Promise<unknown> {

@@ -105,9 +105,15 @@ class FirestoreVocabRepo:
         user_id: UserId,
         limit: int = 20,
         after_added_at: Optional[datetime] = None,
+        topic: Optional[str] = None,
     ) -> list[VocabularyItem]:
-        query = (_vocab_col(user_id)
-                 .order_by("added_at", direction=firestore.Query.DESCENDING))
+        query = _vocab_col(user_id)
+        if topic:
+            # Filter by topic before ordering — Firestore composite
+            # index on (topic, added_at desc) handles this efficiently
+            # at the user-subcollection scale we deal with.
+            query = query.where("topic", "==", topic)
+        query = query.order_by("added_at", direction=firestore.Query.DESCENDING)
         if after_added_at is not None:
             query = query.start_after({"added_at": after_added_at})
         docs = query.limit(limit).stream()
@@ -122,6 +128,27 @@ class FirestoreVocabRepo:
                 continue
             counts[topic] = counts.get(topic, 0) + 1
         return counts
+
+    def count_by_topic_with_mastery(self, user_id: UserId) -> dict[str, dict[str, int]]:
+        """Per-topic breakdown into {total, mastered} (US-#231).
+
+        Mastered := srs_interval > 30 (matching the 5-bucket strength
+        rule in services.srs_service.get_word_strength). Used by the
+        /learn/vocab home cards so each topic card shows progress
+        without needing to load every word.
+        """
+        docs = _vocab_col(user_id).stream()
+        out: dict[str, dict[str, int]] = {}
+        for d in docs:
+            data = d.to_dict() or {}
+            topic = data.get("topic") or ""
+            if not topic:
+                continue
+            entry = out.setdefault(topic, {"total": 0, "mastered": 0})
+            entry["total"] += 1
+            if int(data.get("srs_interval") or 0) > 30:
+                entry["mastered"] += 1
+        return out
 
     def get_mastered(self, user_id: UserId) -> list[VocabularyItem]:
         docs = (_vocab_col(user_id)

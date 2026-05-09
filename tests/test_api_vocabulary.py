@@ -63,7 +63,7 @@ class TestListVocabulary:
         assert body["items"][0]["srs_ease"] == 2.5
         assert "strength" in body["items"][0]
         assert body["next_cursor"] is None  # fewer than limit
-        mock_fn.assert_called_once_with("test-user-1", 20, None)
+        mock_fn.assert_called_once_with("test-user-1", 20, None, None)
 
     def test_next_cursor_populated_when_page_full(self, client):
         """When items count equals limit, next_cursor is the last added_at."""

@@ -1,7 +1,15 @@
+import asyncio
+import time
+from collections import defaultdict, deque
+from datetime import datetime, timezone
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 import config
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.vocabulary import Collocation, EnrichedExample, EnrichedWord
 from api.permissions import enforce_ai_quota
 from services import word_service
@@ -13,6 +21,116 @@ def _to_collocation(item) -> Collocation:
     return Collocation(phrase=str(item), label="")
 
 router = APIRouter(prefix="/api/v1/words", tags=["words"])
+
+
+# ── Strength override (US-#231) ──────────────────────────────────────
+#
+# Per-user-per-day rate limit on manual mastery overrides. Defends
+# against a user spamming "Mastered" on every word to game the
+# progress dashboard. 30/day is comfortably above honest usage but
+# tight enough that a script-y bulk-edit notices.
+#
+# Window is "today in UTC" — same boundary as ai_usage. In-memory
+# deque per user; resets at midnight UTC. If we ever go multi-process
+# move to ai_usage table or its own counter.
+_OVERRIDE_LIMIT_PER_DAY = 30
+_override_log: dict[str, deque[float]] = defaultdict(deque)
+
+
+def _check_override_rate_limit(user_uid: str) -> None:
+    now = time.monotonic()
+    cutoff = now - 24 * 3600
+    log = _override_log[user_uid]
+    while log and log[0] < cutoff:
+        log.popleft()
+    if len(log) >= _OVERRIDE_LIMIT_PER_DAY:
+        raise ApiError(ERR.vocab_override_rate_limited)
+    log.append(now)
+
+
+class _StrengthBody(BaseModel):
+    """Body for ``PATCH /api/v1/words/{word_id}/strength``."""
+
+    strength: Literal["Weak", "Learning", "Good", "Mastered"]
+
+
+class _StrengthResponse(BaseModel):
+    """Response — echoes back the resolved strength + new SRS state.
+
+    ``strength_applied`` is true when the override actually changed
+    state. False means we honoured the "don't roll back quiz progress"
+    rule (e.g. user clicked Mastered but they were already past 30d
+    interval) — UI uses this to decide whether to flash a confirmation
+    or not.
+    """
+
+    word_id: str
+    strength: str
+    strength_applied: bool
+    srs_interval: int
+    srs_reps: int
+    srs_next_review: str | None
+
+
+@router.patch("/{word_id}/strength", response_model=_StrengthResponse)
+async def update_word_strength(
+    word_id: str,
+    body: _StrengthBody,
+    user: dict = Depends(get_current_user),
+) -> _StrengthResponse:
+    """Manually set a word's mastery tier (US-#231).
+
+    Translates the chosen tier to an SRS interval/reps target so the
+    review engine continues from the new state. Anti-game: max 30
+    overrides/user/day; protects against bulk "Mastered" spam.
+
+    Per the saved memory rule, manual overrides shouldn't roll back
+    quiz progress: if the user is already past the chosen tier's
+    interval, the request is acknowledged but state is not changed.
+    """
+    user_id_raw = str(user.get("id") or "")
+    if not user_id_raw.isdigit():
+        # Web-only users have no Telegram-side vocab. Their words live
+        # under a `web_*` doc tree — currently unsupported by the bot
+        # vocab repo. Surface as not-found until web vocab ships.
+        raise ApiError(ERR.vocab_word_not_found)
+
+    auth_uid = user.get("auth_uid") or user_id_raw
+    _check_override_rate_limit(auth_uid)
+
+    try:
+        before_word = await asyncio.to_thread(
+            word_service.firebase_service.get_word_by_id,
+            int(user_id_raw), word_id,
+        )
+        if not before_word:
+            raise ApiError(ERR.vocab_word_not_found)
+
+        before_interval = int(before_word.get("srs_interval") or 0)
+        updated = await asyncio.to_thread(
+            word_service.set_word_strength_manual,
+            int(user_id_raw), word_id, body.strength,
+        )
+    except ValueError:
+        raise ApiError(ERR.vocab_word_not_found)
+
+    after_interval = int(updated.get("srs_interval") or 0)
+    applied = before_interval != after_interval or before_word.get("srs_reps") != updated.get("srs_reps")
+
+    next_review = updated.get("srs_next_review")
+    if isinstance(next_review, datetime):
+        next_review_iso = next_review.astimezone(timezone.utc).isoformat()
+    else:
+        next_review_iso = str(next_review) if next_review else None
+
+    return _StrengthResponse(
+        word_id=word_id,
+        strength=body.strength,
+        strength_applied=applied,
+        srs_interval=after_interval,
+        srs_reps=int(updated.get("srs_reps") or 0),
+        srs_next_review=next_review_iso,
+    )
 
 
 @router.get(

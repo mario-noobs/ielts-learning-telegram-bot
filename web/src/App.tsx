@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage'
 import PricingPage from './pages/PricingPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHomePage from './pages/VocabHomePage'
+import VocabTopicPage from './pages/VocabTopicPage'
 import WordDetailPage from './pages/WordDetailPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
 import DailyWordsPage from './pages/DailyWordsPage'
@@ -126,6 +127,9 @@ export default function App() {
             {/* New paths under /learn/* and /practice/* (US-#211 IA). */}
             <Route path="/learn" element={<Navigate to="/learn/daily" replace />} />
             <Route path="/learn/vocab" element={<VocabHomePage />} />
+            {/* Topic drill-down — must precede `:id` so /topic/:slug
+                doesn't get matched as a word id. */}
+            <Route path="/learn/vocab/topic/:slug" element={<VocabTopicPage />} />
             <Route path="/learn/vocab/:id" element={<WordDetailPage />} />
             <Route path="/learn/review" element={<FlashcardReviewPage />} />
             <Route path="/learn/daily" element={<DailyWordsPage />} />
