@@ -46,11 +46,26 @@
       "progress": "Tiến độ",
       "profile": "Tôi",
       "admin": "Quản trị"
+    },
+    "subnav": {
+      "ariaLabel": "Điều hướng mục",
+      "daily": "Hàng ngày",
+      "vocab": "Từ vựng",
+      "review": "Ôn tập",
+      "writing": "Writing",
+      "listening": "Listening",
+      "reading": "Reading"
     }
   },
   "auth": {
     "tagline": "Luyện IELTS cùng AI",
-    "brandBetaLabel": "Phiên bản thử nghiệm"
+    "brandBetaLabel": "Phiên bản thử nghiệm",
+    "heroTitle": "Người bạn AI ôn IELTS cùng bạn",
+    "heroSubtitle": "Học từ mỗi ngày, ôn thông minh, phản hồi tức thì.",
+    "welcomeBack": "Chào mừng trở lại",
+    "bullet1": "Học từ vựng tự động mỗi ngày",
+    "bullet2": "AI chấm Writing trong 30 giây",
+    "bullet3": "Miễn phí trong giai đoạn beta"
   },
   "skills": {
     "writing": "Writing",

@@ -105,7 +105,7 @@ export default function DailyFlipCardPage() {
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <Link to="/daily" className="text-sm text-muted-fg hover:text-fg">
+        <Link to="/learn/daily" className="text-sm text-muted-fg hover:text-fg">
           {t('review.exit')}
         </Link>
         <span className="text-sm text-muted-fg tabular-nums">
@@ -169,7 +169,7 @@ export default function DailyFlipCardPage() {
         </button>
         {isLast ? (
           <Link
-            to="/daily"
+            to="/learn/daily"
             className="py-3 min-h-[44px] rounded-xl bg-primary text-primary-fg font-medium hover:bg-primary-hover text-center flex items-center justify-center"
           >
             ✅ {t('daily.flip.done')}

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
   Badge,
@@ -11,77 +13,34 @@ import {
 } from '../../components/ui'
 import Icon from '../../components/Icon'
 import { track } from '../../lib/analytics'
+import {
+  MARKETING_TO_DB_PLAN,
+  MarketingTier,
+  PLAN_QUOTA,
+} from '../../lib/plans'
 
-type PlanId = 'free' | 'pro' | 'intensive'
-
-type Feature = { text: string; negative?: boolean }
-
-type Tier = {
-  name: string
-  price: string
-  cadence: string
-  tagline: string
-  features: Feature[]
-  cta: string
-  planId: PlanId
+interface TierCard {
+  tier: MarketingTier
   highlighted: boolean
+  // Per-plan extras the i18n bundle doesn't carry (counts come from PLAN_QUOTA).
+  extra: { speakingCoach?: boolean; mockExams?: boolean; coachReview?: boolean }
 }
 
-const tiers: Tier[] = [
-  {
-    name: 'Free',
-    price: '0đ',
-    cadence: '/ mãi mãi',
-    tagline: 'Thử trước khi cam kết',
-    features: [
-      { text: 'Vocab SRS · 50 từ/ngày' },
-      { text: 'Writing AI chấm 1 bài/tuần' },
-      { text: 'Listening · 10 phút/ngày' },
-      { text: 'Không có Adaptive Plan', negative: true },
-    ],
-    cta: 'Bắt đầu miễn phí',
-    planId: 'free',
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    price: '99.000đ',
-    cadence: '/tháng',
-    tagline: 'Phù hợp cho luyện 3–6 tháng',
-    features: [
-      { text: 'Vocab SRS · không giới hạn' },
-      { text: 'Writing AI chấm không giới hạn' },
-      { text: 'Listening + Reading đầy đủ' },
-      { text: 'Adaptive Plan hàng ngày' },
-      { text: 'Xuất báo cáo band progress' },
-    ],
-    cta: 'Dùng thử Pro 7 ngày',
-    planId: 'pro',
-    highlighted: true,
-  },
-  {
-    name: 'Intensive',
-    price: 'Liên hệ',
-    cadence: '',
-    tagline: 'Cho mục tiêu 7.5+ trong 90 ngày',
-    features: [
-      { text: 'Tất cả tính năng Pro' },
-      { text: 'Speaking Coach AI (sắp ra mắt)' },
-      { text: 'Mock Exam hàng tuần (sắp ra mắt)' },
-      { text: 'Coach review cá nhân 2 lần/tháng' },
-      { text: 'Ưu tiên hỗ trợ' },
-    ],
-    cta: 'Chọn Intensive',
-    planId: 'intensive',
-    highlighted: false,
-  },
+const TIERS: TierCard[] = [
+  { tier: 'free', highlighted: false, extra: {} },
+  { tier: 'pro', highlighted: true, extra: {} },
+  { tier: 'team', highlighted: false, extra: {} },
+  { tier: 'org', highlighted: false, extra: { coachReview: true } },
 ]
 
 export default function Pricing() {
+  const { t } = useTranslation('landing')
   const navigate = useNavigate()
+  const [yearly, setYearly] = useState(true)
 
-  const handleChoose = (planId: PlanId) => {
-    track('landing_pricing_cta', { plan: planId })
+  const handleChoose = (tier: MarketingTier) => {
+    const planId = MARKETING_TO_DB_PLAN[tier]
+    track('landing_pricing_cta', { plan: planId, yearly })
     try {
       localStorage.setItem('intended_plan', planId)
     } catch {
@@ -96,97 +55,126 @@ export default function Pricing() {
       className="bg-surface px-4 py-16 sm:px-6 sm:py-24"
       aria-labelledby="pricing-heading"
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <h2
           id="pricing-heading"
           className="mb-4 text-center text-3xl font-bold text-fg sm:text-4xl"
         >
-          Gói học phù hợp với bạn
+          {t('pricing.heading')}
         </h2>
-        <p className="mb-12 text-center text-base text-muted-fg sm:text-lg">
-          Không thẻ tín dụng. Hủy bất cứ lúc nào.
+        <p className="mb-8 text-center text-base text-muted-fg sm:text-lg">
+          {t('pricing.subheading')}
         </p>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-stretch">
-          {tiers.map((tier) => {
+        <div className="mb-12 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setYearly(false)}
+            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+              !yearly
+                ? 'bg-primary text-on-primary font-semibold'
+                : 'text-muted-fg hover:text-fg'
+            }`}
+            aria-pressed={!yearly}
+          >
+            {t('pricing.monthly')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setYearly(true)}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+              yearly
+                ? 'bg-primary text-on-primary font-semibold'
+                : 'text-muted-fg hover:text-fg'
+            }`}
+            aria-pressed={yearly}
+          >
+            {t('pricing.yearly')}
+            <Badge variant="primary">{t('pricing.yearlySavings')}</Badge>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4 md:items-stretch">
+          {TIERS.map((tc) => {
+            const quota = PLAN_QUOTA[tc.tier]
+            const tName = t(`pricing.tiers.${tc.tier}.name`)
+            const tTagline = t(`pricing.tiers.${tc.tier}.tagline`)
+            const tCta = t(`pricing.tiers.${tc.tier}.cta`)
+            const tPriceMonthly = t(`pricing.tiers.${tc.tier}.priceMonthly`)
+            const tPriceYearly = t(`pricing.tiers.${tc.tier}.priceYearly`)
+            const tCadence = yearly
+              ? t('pricing.cadenceYearly')
+              : t('pricing.cadenceMonthly')
+
+            const features: string[] = [
+              t('pricing.features.dailyCalls', { n: quota.daily }),
+              t('pricing.features.monthlyCalls', { n: quota.monthly }),
+            ]
+            if (quota.maxSeats) {
+              features.push(
+                t('pricing.features.maxSeats', { n: quota.maxSeats }),
+              )
+            }
+            if (tc.extra.coachReview) {
+              features.push(t('pricing.features.coachReview'))
+            }
+
             const card = (
-              <Card className="flex h-full flex-col" aria-label={`Gói ${tier.name}`}>
+              <Card className="flex h-full flex-col" aria-label={tName}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl">{tier.name}</CardTitle>
-                    {tier.highlighted && (
-                      <Badge variant="primary">Phổ biến nhất</Badge>
+                    <CardTitle className="text-xl">{tName}</CardTitle>
+                    {tc.highlighted && (
+                      <Badge variant="primary">{t('pricing.popular')}</Badge>
                     )}
                   </div>
-                  <CardDescription>{tier.tagline}</CardDescription>
+                  <CardDescription>{tTagline}</CardDescription>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-fg">
-                      {tier.price}
+                    <span className="text-3xl font-bold text-fg">
+                      {yearly ? tPriceYearly : tPriceMonthly}
                     </span>
-                    {tier.cadence && (
-                      <span className="text-sm text-muted-fg">
-                        {tier.cadence}
-                      </span>
+                    {tCadence && (
+                      <span className="text-sm text-muted-fg">{tCadence}</span>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <ul className="flex min-h-[200px] flex-col gap-3">
-                    {tier.features.map((f) => (
-                      <li
-                        key={f.text}
-                        className="flex items-start gap-2 text-sm"
-                      >
-                        {f.negative ? (
-                          <Icon
-                            name="Minus"
-                            size="sm"
-                            variant="muted"
-                            className="mt-0.5"
-                          />
-                        ) : (
-                          <Icon
-                            name="Check"
-                            size="sm"
-                            variant="primary"
-                            className="mt-0.5"
-                          />
-                        )}
-                        <span
-                          className={
-                            f.negative
-                              ? 'text-muted-fg line-through decoration-muted-fg/60'
-                              : 'text-fg'
-                          }
-                        >
-                          {f.text}
-                        </span>
+                  <ul className="flex min-h-[140px] flex-col gap-3">
+                    {features.map((f) => (
+                      <li key={f} className="flex items-start gap-2 text-sm">
+                        <Icon
+                          name="Check"
+                          size="sm"
+                          variant="primary"
+                          className="mt-0.5"
+                        />
+                        <span className="text-fg">{f}</span>
                       </li>
                     ))}
                   </ul>
                 </CardContent>
                 <CardFooter>
                   <Button
-                    variant={tier.highlighted ? 'primary' : 'secondary'}
+                    variant={tc.highlighted ? 'primary' : 'secondary'}
                     size="lg"
                     className="w-full"
-                    onClick={() => handleChoose(tier.planId)}
+                    onClick={() => handleChoose(tc.tier)}
                   >
-                    {tier.cta}
+                    {tCta}
                   </Button>
                 </CardFooter>
               </Card>
             )
 
-            return tier.highlighted ? (
+            return tc.highlighted ? (
               <div
-                key={tier.name}
-                className="rounded-2xl ring-2 ring-primary md:scale-[1.03] md:shadow-lg md:transition-transform"
+                key={tc.tier}
+                className="rounded-2xl ring-2 ring-primary md:scale-[1.02] md:shadow-lg md:transition-transform"
               >
                 {card}
               </div>
             ) : (
-              <div key={tier.name}>{card}</div>
+              <div key={tc.tier}>{card}</div>
             )
           })}
         </div>

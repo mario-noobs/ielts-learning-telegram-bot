@@ -403,7 +403,7 @@ export default function FlashcardReviewPage() {
               {t('review.reviewAgainBtn')}
             </button>
             <Link
-              to="/vocab"
+              to="/learn/vocab"
               className="flex-1 py-3 bg-surface text-fg rounded-xl font-medium hover:bg-border text-center"
             >
               {t('review.backToVocabBtn')}

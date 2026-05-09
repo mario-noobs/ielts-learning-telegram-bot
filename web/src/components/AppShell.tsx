@@ -4,6 +4,7 @@ import { useAuth, useProfile } from '../contexts/AuthContext'
 import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
+import LogoMark from './brand/LogoMark'
 import QuotaExceededModal from './QuotaExceededModal'
 import UpgradeBanner from './UpgradeBanner'
 
@@ -17,11 +18,41 @@ interface Tab {
 
 const TABS: Tab[] = [
   { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
-  { to: '/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/review'] },
-  { to: '/write', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/listening', '/reading'] },
+  // US-#211: route restructure → /learn/* and /practice/*. Old /vocab,
+  // /write, /listening, /reading paths still redirect for bookmarks.
+  { to: '/learn/daily', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
+  { to: '/practice/writing', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/practice/', '/write', '/listening', '/reading'] },
   { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
   { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
 ]
+
+interface SubNavItem {
+  to: string
+  labelKey: string
+  matches?: string[]
+}
+
+const LEARN_SUBNAV: SubNavItem[] = [
+  { to: '/learn/daily', labelKey: 'nav.subnav.daily', matches: ['/learn/daily'] },
+  { to: '/learn/vocab', labelKey: 'nav.subnav.vocab', matches: ['/learn/vocab'] },
+  { to: '/learn/review', labelKey: 'nav.subnav.review', matches: ['/learn/review'] },
+]
+
+const PRACTICE_SUBNAV: SubNavItem[] = [
+  { to: '/practice/writing', labelKey: 'nav.subnav.writing', matches: ['/practice/writing'] },
+  { to: '/practice/listening', labelKey: 'nav.subnav.listening', matches: ['/practice/listening'] },
+  { to: '/practice/reading', labelKey: 'nav.subnav.reading', matches: ['/practice/reading'] },
+]
+
+function activeSubnav(pathname: string): SubNavItem[] | null {
+  if (pathname.startsWith('/learn/')) return LEARN_SUBNAV
+  if (pathname.startsWith('/practice/')) return PRACTICE_SUBNAV
+  return null
+}
+
+function isSubnavActive(item: SubNavItem, pathname: string): boolean {
+  return (item.matches ?? [item.to]).some((m) => pathname.startsWith(m))
+}
 
 const ADMIN_ROLES: readonly string[] = [
   'team_admin', 'org_admin', 'platform_admin',
@@ -59,8 +90,12 @@ export default function AppShell() {
           aria-label={t('nav.mainNav')}
           className="hidden md:flex md:flex-col md:w-20 lg:w-60 md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0"
         >
-          <div className="hidden lg:block px-3 py-2 mb-2">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-2">
+            <LogoMark size="sm" />
             <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
+          </div>
+          <div className="hidden md:flex lg:hidden items-center justify-center px-2 py-2 mb-2">
+            <LogoMark size="sm" />
           </div>
           <ul className="flex-1 space-y-1">
             {tabs.map((tab) => {
@@ -112,6 +147,37 @@ export default function AppShell() {
             <LanguageSwitcher persistToServer />
           </div>
           <UpgradeBanner />
+          {(() => {
+            const subnav = activeSubnav(pathname)
+            if (!subnav) return null
+            return (
+              <nav
+                aria-label={t('nav.subnav.ariaLabel')}
+                className="border-b border-border bg-surface-raised/50 px-4 md:px-6"
+              >
+                <ul className="flex gap-1 overflow-x-auto">
+                  {subnav.map((item) => {
+                    const active = isSubnavActive(item, pathname)
+                    return (
+                      <li key={item.to} className="shrink-0">
+                        <NavLink
+                          to={item.to}
+                          aria-current={active ? 'page' : undefined}
+                          className={`block px-3 py-2.5 text-sm font-medium border-b-2 transition-colors duration-fast ${
+                            active
+                              ? 'text-primary border-primary'
+                              : 'text-muted-fg border-transparent hover:text-fg'
+                          }`}
+                        >
+                          {t(item.labelKey)}
+                        </NavLink>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </nav>
+            )
+          })()}
           <Outlet />
           <QuotaExceededModal />
         </main>

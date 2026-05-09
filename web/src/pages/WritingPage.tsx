@@ -268,11 +268,11 @@ export default function WritingPage() {
     return (
       <div className="max-w-3xl mx-auto p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <Link to="/write/history" className="text-sm text-muted-fg hover:text-fg">
+          <Link to="/practice/writing/history" className="text-sm text-muted-fg hover:text-fg">
             {t('history.heading')}
           </Link>
           <Link
-            to="/write"
+            to="/practice/writing"
             className="text-sm text-primary hover:text-primary-hover font-medium"
           >
             {t('history.newEssayBtn')}

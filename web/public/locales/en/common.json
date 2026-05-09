@@ -46,11 +46,26 @@
       "progress": "Progress",
       "profile": "Me",
       "admin": "Admin"
+    },
+    "subnav": {
+      "ariaLabel": "Section navigation",
+      "daily": "Daily",
+      "vocab": "Vocab",
+      "review": "Review",
+      "writing": "Writing",
+      "listening": "Listening",
+      "reading": "Reading"
     }
   },
   "auth": {
     "tagline": "Practice IELTS with AI",
-    "brandBetaLabel": "Beta version"
+    "brandBetaLabel": "Beta version",
+    "heroTitle": "Your AI study buddy for IELTS",
+    "heroSubtitle": "Daily words, smart review, instant feedback.",
+    "welcomeBack": "Welcome back",
+    "bullet1": "Daily vocab on autopilot",
+    "bullet2": "AI-graded writing in 30 seconds",
+    "bullet3": "Free during beta"
   },
   "skills": {
     "writing": "Writing",

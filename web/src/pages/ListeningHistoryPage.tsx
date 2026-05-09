@@ -35,7 +35,7 @@ export default function ListeningHistoryPage() {
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-end">
         <Link
-          to="/listening"
+          to="/practice/listening"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
           {t('history.newLink')}
@@ -71,7 +71,7 @@ export default function ListeningHistoryPage() {
             return (
               <Link
                 key={it.id}
-                to={`/listening/${it.id}`}
+                to={`/practice/listening/${it.id}`}
                 className="block bg-surface-raised rounded-xl border border-border hover:border-primary/40 p-3 transition-colors"
               >
                 <div className="flex items-center gap-3">

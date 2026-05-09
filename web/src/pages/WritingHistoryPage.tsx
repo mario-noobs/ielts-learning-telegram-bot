@@ -91,7 +91,7 @@ export default function WritingHistoryPage() {
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-end">
         <Link
-          to="/write"
+          to="/practice/writing"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
           {t('writing:history.newEssayLink')}
@@ -126,7 +126,7 @@ export default function WritingHistoryPage() {
             {items.map((it) => (
               <Link
                 key={it.id}
-                to={`/write/${it.id}`}
+                to={`/practice/writing/${it.id}`}
                 className="bg-surface-raised rounded-lg p-4 flex items-center justify-between hover:shadow-sm transition"
               >
                 <div className="min-w-0">

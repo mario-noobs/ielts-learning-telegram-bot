@@ -41,7 +41,7 @@ export default function RecentContent() {
           Từ vừa học gần đây
         </h2>
         <Link
-          to="/vocab"
+          to="/learn/vocab"
           className="text-sm text-primary hover:text-primary-hover focus-visible:outline-none focus-visible:underline"
         >
           Xem tất cả →
@@ -52,7 +52,7 @@ export default function RecentContent() {
         {items.map((w) => (
           <li key={w.id}>
             <Link
-              to={`/vocab/${encodeURIComponent(w.id)}`}
+              to={`/learn/vocab/${encodeURIComponent(w.id)}`}
               className="flex items-center gap-3 p-4 transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

@@ -59,7 +59,7 @@ export default function ListeningHomePage() {
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-end">
         <Link
-          to="/listening/history"
+          to="/practice/listening/history"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
           {t('historyLink')}
@@ -117,7 +117,7 @@ export default function ListeningHomePage() {
               return (
                 <Link
                   key={it.id}
-                  to={`/listening/${it.id}`}
+                  to={`/practice/listening/${it.id}`}
                   className="flex items-center gap-3 bg-surface-raised rounded-lg border border-border hover:border-primary/40 p-2.5 text-sm"
                 >
                   <Icon name={EXERCISE_ICONS[it.exercise_type]} size="md" variant="primary" />

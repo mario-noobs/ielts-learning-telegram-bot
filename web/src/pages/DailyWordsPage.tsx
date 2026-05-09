@@ -168,13 +168,13 @@ export default function DailyWordsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
         <Link
-          to="/daily/flip"
+          to="/learn/daily/flip"
           className="p-4 min-h-[56px] rounded-xl border-2 border-border bg-surface-raised text-fg text-center font-medium hover:border-primary hover:bg-primary/5 transition-colors"
         >
           📖 {t('daily.openFlip')}
         </Link>
         <Link
-          to="/daily/quiz"
+          to="/learn/daily/quiz"
           className="p-4 min-h-[56px] rounded-xl border-2 border-border bg-surface-raised text-fg text-center font-medium hover:border-primary hover:bg-primary/5 transition-colors"
         >
           ✏️ {t('daily.openQuiz')}

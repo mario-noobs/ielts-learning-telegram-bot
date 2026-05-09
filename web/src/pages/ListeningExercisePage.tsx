@@ -30,7 +30,7 @@ export default function ListeningExercisePage() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <Link to="/listening" className="text-sm text-muted-fg hover:text-fg">
+        <Link to="/practice/listening" className="text-sm text-muted-fg hover:text-fg">
           ← {t('heading')}
         </Link>
         <div className="bg-danger/10 border-l-4 border-danger p-3 rounded text-danger">
@@ -59,11 +59,11 @@ export default function ListeningExercisePage() {
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <Link to="/listening" className="text-sm text-muted-fg hover:text-fg">
+        <Link to="/practice/listening" className="text-sm text-muted-fg hover:text-fg">
           {t('heading')}
         </Link>
         <Link
-          to="/listening/history"
+          to="/practice/listening/history"
           className="text-sm text-primary hover:text-primary-hover font-medium"
         >
           {t('historyLink')}
