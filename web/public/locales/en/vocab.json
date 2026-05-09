@@ -38,6 +38,31 @@
     "clearTopic": "Clear topic: {name}",
     "countOfTotal": "{filtered} of {total} words"
   },
+  "byTopic": {
+    "heading": "Vocabulary",
+    "headingPill": "by topic",
+    "subtitle": "Words grouped by topic. Within each topic, less-mastered words show first.",
+    "clearFilter": "Clear filter",
+    "progress": {
+      "label": "Mastered",
+      "aria": "{pct}% of words mastered"
+    },
+    "topicSection": {
+      "count": "{count, plural, one {# word} other {# words}}",
+      "showMore": "Show {count} more"
+    },
+    "row": {
+      "changeMastery": "Change mastery — currently {current}",
+      "changeMasteryConfirm": "Set mastery to:"
+    },
+    "empty": {
+      "filtered": {
+        "title": "No words at \"{strength}\" level",
+        "description": "Try a different mastery filter or clear the filter to see all topics.",
+        "cta": "Clear filter"
+      }
+    }
+  },
   "loadMore": "Load more",
   "loadingMore": "Loading…",
   "empty": {

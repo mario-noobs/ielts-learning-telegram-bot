@@ -38,6 +38,31 @@
     "clearTopic": "Bỏ lọc: {name}",
     "countOfTotal": "{filtered} / {total} từ"
   },
+  "byTopic": {
+    "heading": "Từ vựng",
+    "headingPill": "theo chủ đề",
+    "subtitle": "Từ vựng gom theo chủ đề. Trong mỗi chủ đề, từ chưa thuộc hiển thị trước.",
+    "clearFilter": "Bỏ lọc",
+    "progress": {
+      "label": "Đã thuộc",
+      "aria": "Đã thuộc {pct}% tổng số từ"
+    },
+    "topicSection": {
+      "count": "{count} từ",
+      "showMore": "Hiện thêm {count} từ"
+    },
+    "row": {
+      "changeMastery": "Đổi mức độ thuộc — hiện tại {current}",
+      "changeMasteryConfirm": "Đặt mức độ thành:"
+    },
+    "empty": {
+      "filtered": {
+        "title": "Không có từ ở mức \"{strength}\"",
+        "description": "Thử mức khác hoặc bỏ lọc để thấy hết các chủ đề.",
+        "cta": "Bỏ lọc"
+      }
+    }
+  },
   "loadMore": "Tải thêm",
   "loadingMore": "Đang tải…",
   "empty": {
