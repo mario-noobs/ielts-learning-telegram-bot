@@ -51,14 +51,14 @@ def _stub_chain(chain: list[dict]):
 
 
 @pytest.mark.asyncio
-async def test_premium_starts_at_first_hop(fake_groq):
-    """Quality=premium → chain index 0 (the premium model)."""
+async def test_premium_walks_premium_tagged_hop_first(fake_groq):
+    """Quality=premium → tier='premium' hop is eligible."""
     fake_groq.behaviours = {
         "llama-3.3-70b-versatile": "premium-result",
         "llama-3.1-8b-instant": "cheap-result",
     }
     chain = [
-        {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+        {"provider": "groq", "model": "llama-3.3-70b-versatile", "tier": "premium"},
         {"provider": "groq", "model": "llama-3.1-8b-instant"},
     ]
     with _stub_chain(chain):
@@ -69,19 +69,38 @@ async def test_premium_starts_at_first_hop(fake_groq):
 
 
 @pytest.mark.asyncio
-async def test_cheap_skips_premium_hop(fake_groq):
-    """Quality=cheap → chain index 1 (skips the expensive model entirely)."""
+async def test_cheap_skips_premium_tagged_hops(fake_groq):
+    """Quality=cheap on Pro chain skips tier='premium' hops."""
     fake_groq.behaviours = {
         "llama-3.3-70b-versatile": "should-not-call",
         "llama-3.1-8b-instant": "cheap-result",
     }
     chain = [
-        {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+        {"provider": "groq", "model": "llama-3.3-70b-versatile", "tier": "premium"},
         {"provider": "groq", "model": "llama-3.1-8b-instant"},
     ]
     with _stub_chain(chain):
-        text = await router.generate("p", plan="free", quality="cheap")
+        text = await router.generate("p", plan="personal_pro", quality="cheap")
     assert text == "cheap-result"
+    assert [c[0] for c in fake_groq.calls] == ["llama-3.1-8b-instant"]
+
+
+@pytest.mark.asyncio
+async def test_cheap_does_not_skip_untagged_hop_zero(fake_groq):
+    """REGRESSION: Free chain has no premium tags — quality=cheap must
+    walk hop 0, not jump to hop 1 (the bug that 400'd gemma2-9b-it in
+    prod). All untagged hops are eligible at every quality level."""
+    fake_groq.behaviours = {
+        "llama-3.1-8b-instant": "served-from-hop-0",
+        "gemma2-9b-it": "should-not-be-reached",
+    }
+    chain = [
+        {"provider": "groq", "model": "llama-3.1-8b-instant"},
+        {"provider": "groq", "model": "gemma2-9b-it"},
+    ]
+    with _stub_chain(chain):
+        text = await router.generate("p", plan="free", quality="cheap")
+    assert text == "served-from-hop-0"
     assert [c[0] for c in fake_groq.calls] == ["llama-3.1-8b-instant"]
 
 
@@ -136,6 +155,9 @@ async def test_all_providers_failed_raises(fake_groq, fake_gemini):
         ),
         "gemma2-9b-it": ProviderRateLimit("groq", "gemma2-9b-it", 60),
     }
+    fake_groq.behaviours["llama-3.1-8b-instant"] = ProviderTransientError(
+        "groq", "llama-3.1-8b-instant", "5xx",
+    )
     fake_gemini.behaviours = {
         "gemini-2.5-flash-lite": ProviderRateLimit(
             "gemini", "gemini-2.5-flash-lite", 60,
@@ -148,8 +170,9 @@ async def test_all_providers_failed_raises(fake_groq, fake_gemini):
     ]
     with _stub_chain(chain), pytest.raises(router.RouterAllProvidersFailed) as exc:
         await router.generate("p", plan="free", quality="cheap")
+    # No tier tags → cheap walks every hop in order.
     assert exc.value.attempts == [
-        # cheap starts at hop 1 (index 1) for a 3-hop chain
+        "groq/llama-3.1-8b-instant",
         "groq/gemma2-9b-it",
         "gemini/gemini-2.5-flash-lite",
     ]

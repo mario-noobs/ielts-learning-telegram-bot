@@ -94,9 +94,16 @@ class GroqProvider:
                 raise ProviderFatalError(
                     self.name, model, f"auth_error_{status}",
                 ) from exc
+            # 400 covers a mix of "model retired", "param not supported
+            # by this model", and genuine prompt bugs. Treat as
+            # transient so a single bad model doesn't take down the
+            # chain — the next hop usually has a different surface and
+            # works fine. If the prompt itself is broken, every hop
+            # will 400 and we'll surface RouterAllProvidersFailed → 503,
+            # which is the right signal anyway.
             if status == 400:
-                raise ProviderFatalError(
-                    self.name, model, "bad_request",
+                raise ProviderTransientError(
+                    self.name, model, f"bad_request: {str(exc)[:160]}",
                 ) from exc
             # Everything else (5xx, connection errors, unknown) → transient.
             raise ProviderTransientError(

@@ -27,23 +27,30 @@ logger = logging.getLogger(__name__)
 #   - Postgres is unreachable.
 #   - A plan name we don't have a row for shows up (defensive).
 DEFAULT_CHAINS: dict[str, list[dict]] = {
+    # Free chain: no premium hop. Both quality=cheap and quality=premium
+    # walk these in order. gemma2-9b-it dropped after Phase-1 prod
+    # deploy returned 400 from Groq for it — keeping the chain to
+    # llama-3.1-8b-instant + Gemini last-resort.
     "free": [
         {"provider": "groq", "model": "llama-3.1-8b-instant"},
-        {"provider": "groq", "model": "gemma2-9b-it"},
         {"provider": "gemini", "model": "gemini-2.5-flash-lite"},
     ],
+    # Paid chains: hop 0 tagged "premium" so quality=cheap callers
+    # (vocab/quiz/listening on a Pro user) skip 70B and go straight
+    # to 8B — saves the 1,000-RPD premium budget for the calls that
+    # actually need it (writing/coaching/paraphrase).
     "personal_pro": [
-        {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+        {"provider": "groq", "model": "llama-3.3-70b-versatile", "tier": "premium"},
         {"provider": "groq", "model": "llama-3.1-8b-instant"},
         {"provider": "gemini", "model": "gemini-2.5-flash-lite"},
     ],
     "team_member": [
-        {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+        {"provider": "groq", "model": "llama-3.3-70b-versatile", "tier": "premium"},
         {"provider": "groq", "model": "llama-3.1-8b-instant"},
         {"provider": "gemini", "model": "gemini-2.5-flash-lite"},
     ],
     "org_member": [
-        {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+        {"provider": "groq", "model": "llama-3.3-70b-versatile", "tier": "premium"},
         {"provider": "groq", "model": "llama-3.1-8b-instant"},
         {"provider": "gemini", "model": "gemini-2.5-flash-lite"},
     ],

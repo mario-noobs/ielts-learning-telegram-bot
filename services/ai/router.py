@@ -7,14 +7,17 @@ don't break:
     obj  = await router.generate_json(prompt, plan="free", quality="cheap")
 
 Resolution flow:
-  1. `quality` ∈ {cheap, premium} maps to a chain index. For Phase 1
-     "premium" picks the FIRST hop of the plan's chain; "cheap" starts
-     at the SECOND hop (or first, if there's no second). This keeps
-     "one knob per tier" semantics (PO direction) while letting the
-     three premium call sites (`writing.score_essay`,
-     `quiz.evaluate_paraphrase`, `coaching.generate_recommendations`)
-     opt up.
-  2. Walk the chain in order. On `ProviderRateLimit` /
+  1. Each hop in a plan's chain may carry an optional `tier` tag. A
+     hop with `tier="premium"` is only walked when the caller asks
+     for `quality="premium"`. Untagged hops (default) are walked at
+     both quality levels. This is what implements "one knob per tier"
+     (PO direction): Pro chain tags 70B as premium so a Pro user's
+     `quality="cheap"` call (vocab/quiz/listening) skips it and goes
+     to 8B, while their `quality="premium"` call (writing/coaching/
+     paraphrase) starts on 70B. Free chain has NO premium hops, so
+     both quality levels walk the same hops in order — Free is
+     locked to cheap regardless of `quality=`.
+  2. Walk the eligible hops in order. On `ProviderRateLimit` /
      `ProviderTransientError` → fall forward. On `ProviderFatalError`
      → bubble immediately (programmer / config bug, not a vendor
      hiccup).
@@ -79,31 +82,35 @@ def register_provider(name: str, provider: AiProvider) -> None:
     _PROVIDERS[name] = provider
 
 
-def _select_starting_hop(chain: list[dict], quality: Quality) -> int:
-    """Map `quality` to the chain index we start walking from.
+def _eligible_hops(chain: list[dict], quality: Quality) -> list[int]:
+    """Indexes (in chain order) the router will try for this `quality`.
 
-    `premium` = hop 0. `cheap` = hop 1 if present, else hop 0. This
-    is the "one knob per tier" implementation: the chain itself
-    encodes the per-tier model order, and `quality` only shifts the
-    starting point. Pro user with `cheap` call (e.g. vocab gen) skips
-    Llama-70B and goes straight to Llama-8B; same Pro user with
-    `premium` call (writing feedback) starts on Llama-70B.
+    Hops carry an optional `tier` field:
+      * Untagged / `tier == "cheap"` → eligible at both quality levels.
+      * `tier == "premium"`         → only eligible when quality=premium.
+
+    Defensive: if `quality="cheap"` would result in zero eligible hops
+    (e.g. an admin tagged every hop premium), fall back to walking the
+    full chain — better to serve from a premium-tagged hop than to
+    return 503 to a cheap caller.
     """
-    if quality == "premium":
-        return 0
-    if len(chain) >= 2:
-        return 1
-    return 0
+    indexes = [
+        i for i, hop in enumerate(chain)
+        if not (quality == "cheap" and hop.get("tier") == "premium")
+    ]
+    if not indexes:
+        return list(range(len(chain)))
+    return indexes
 
 
 async def _walk_chain(
     prompt: str,
     chain: list[dict],
-    starting_hop: int,
+    eligible: list[int],
     plan: str,
 ) -> AiResult:
     attempts: list[str] = []
-    for i in range(starting_hop, len(chain)):
+    for i in eligible:
         hop = chain[i]
         provider_name = hop.get("provider", "")
         model = hop.get("model", "")
@@ -146,8 +153,8 @@ async def generate(
     chain = routing_config.get_chain(plan)
     if not chain:
         raise RouterAllProvidersFailed(plan or "free", [])
-    starting = _select_starting_hop(chain, quality)
-    result = await _walk_chain(prompt, chain, starting, plan or "free")
+    eligible = _eligible_hops(chain, quality)
+    result = await _walk_chain(prompt, chain, eligible, plan or "free")
     return result.text
 
 
