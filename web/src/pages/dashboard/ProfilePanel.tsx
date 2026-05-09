@@ -92,7 +92,7 @@ export default function ProfilePanel({ profile, progress }: Props) {
         <div className="flex items-center gap-3">
           <div
             aria-hidden="true"
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-teal-100 text-lg font-semibold text-teal-800"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-semibold text-primary"
           >
             {initialsOf(profile.name)}
           </div>

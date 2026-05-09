@@ -18,7 +18,7 @@ const testimonials: Testimonial[] = [
     band: '6.5 → 7.5',
     quote:
       'Sau 3 tháng dùng IELTS Coach, tôi tăng 1 band Writing. AI chấm rất cụ thể, mỗi bài đều chỉ ra đâu là lỗi Task Response và Grammar. Trước đây tự học một mình rất mông lung.',
-    tint: 'bg-teal-100 text-teal-800',
+    tint: 'bg-primary/15 text-primary',
   },
   {
     name: 'Tuấn Dũng',
@@ -26,7 +26,7 @@ const testimonials: Testimonial[] = [
     band: '5.5 → 7.0',
     quote:
       'Làm việc 8 tiếng/ngày, chỉ có 30 phút luyện IELTS mỗi tối. Adaptive Plan cho tôi đúng 3 task phù hợp mỗi ngày, không bị quá tải. Đã đạt 7.0 sau 4 tháng.',
-    tint: 'bg-orange-100 text-orange-800',
+    tint: 'bg-accent/15 text-accent',
   },
   {
     name: 'Thu Hà',
@@ -34,7 +34,7 @@ const testimonials: Testimonial[] = [
     band: '6.0 → 7.5',
     quote:
       'Vocab SRS là tính năng tôi thích nhất. 1500+ từ IELTS theo topic, học 20 từ/ngày, ôn lại đúng lúc cần. Đến ngày thi, từ nào cũng "nhớ như in".',
-    tint: 'bg-sky-100 text-sky-800',
+    tint: 'bg-success/15 text-success',
   },
   {
     name: 'Quang Huy',
@@ -42,7 +42,7 @@ const testimonials: Testimonial[] = [
     band: '5.0 → 6.5',
     quote:
       'Tôi mất gốc tiếng Anh 10 năm. Bắt đầu lại từ band 5.0, coach AI kiên nhẫn chỉ lỗi cơ bản mà không phán xét. Sau 6 tháng tôi đã đạt 6.5 để đi du lịch nước ngoài.',
-    tint: 'bg-pink-100 text-pink-800',
+    tint: 'bg-warning/15 text-warning',
   },
   {
     name: 'Lan Phương',
@@ -50,7 +50,7 @@ const testimonials: Testimonial[] = [
     band: '7.0 → 8.0',
     quote:
       'Đã có 7.0 nhưng muốn đạt 8.0 để xin học bổng. Writing feedback ở band cao rất chi tiết: nhấn mạnh cohesion và lexical resource, đúng những gì thi thật đòi hỏi.',
-    tint: 'bg-violet-100 text-violet-800',
+    tint: 'bg-danger/15 text-danger',
   },
 ]
 

@@ -57,11 +57,11 @@
 
   --color-bg: 11 18 32;               /* custom dark */
   --color-surface: 17 24 39;          /* slate-900 */
-  --color-surface-raised: 31 41 55;   /* slate-800 */
-  --color-border: 31 41 55;           /* slate-800 */
+  --color-surface-raised: 30 41 59;   /* slate-800 #1e293b */
+  --color-border: 51 65 85;           /* slate-700 #334155 — visibly above surface-raised */
 
   --color-fg: 241 245 249;            /* slate-100 */
-  --color-muted-fg: 148 163 184;      /* slate-400 */
+  --color-muted-fg: 156 163 184;      /* lifted from slate-400 for readability on dark surfaces */
 
   --color-ring: 20 184 166;           /* teal-500 */
 
