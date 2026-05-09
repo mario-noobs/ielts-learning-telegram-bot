@@ -69,6 +69,8 @@ def _to_profile(user: dict) -> UserProfile:
         team_id=user.get("team_id"),
         org_id=user.get("org_id"),
         quota_override=user.get("quota_override"),
+        daily_time=user.get("daily_time"),
+        timezone=user.get("timezone"),
     )
 
 
@@ -99,6 +101,10 @@ async def update_me(
             updates["exam_date"] = parsed.isoformat()
     if body.preferred_locale is not None:
         updates["preferred_locale"] = body.preferred_locale
+    if body.daily_time is not None:
+        updates["daily_time"] = body.daily_time or None
+    if body.timezone is not None:
+        updates["timezone"] = body.timezone.strip() or None
 
     if updates:
         await asyncio.to_thread(
@@ -128,6 +134,7 @@ async def create_user(
         decoded_token = firebase_admin.auth.verify_id_token(credentials.credentials)
         auth_uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
+        token_name = decoded_token.get("name", "")
     except Exception:
         raise ApiError(ERR.auth_invalid_token)
 
@@ -135,11 +142,26 @@ async def create_user(
     if existing:
         return _to_profile(existing)
 
+    # US-M14.1: prefer Firebase token's `name` claim (Google SSO supplies
+    # this). Fall back to email local-part, then to a friendly default.
+    # The frontend used to hardcode "IELTS Learner" in the body; if a
+    # client still sends that placeholder, we override it here.
+    placeholder_name = body.name and body.name.strip().lower() in {
+        "", "ielts learner", "learner",
+    }
+    resolved_name = (
+        (token_name or "").strip()
+        or (email.split("@", 1)[0] if email else "")
+        or body.name
+        or "Learner"
+    )
+    name_to_create = resolved_name if placeholder_name else body.name
+
     user = await asyncio.to_thread(
         firebase_service.create_web_user,
         auth_uid=auth_uid,
         email=email,
-        name=body.name,
+        name=name_to_create,
         target_band=body.target_band,
         topics=body.topics,
     )

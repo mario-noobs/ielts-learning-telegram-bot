@@ -1,6 +1,7 @@
 {
   "actions": {
     "save": "Lưu",
+    "add": "Thêm",
     "cancel": "Hủy",
     "continue": "Tiếp tục",
     "retry": "Thử lại",
