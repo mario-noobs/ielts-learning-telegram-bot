@@ -20,9 +20,17 @@ def get_scheduler() -> AsyncIOScheduler:
 
 
 async def scheduled_daily_vocab(bot, group_id: int):
-    """Called by scheduler to post daily vocabulary."""
+    """Called by scheduler to post daily vocabulary.
+
+    Posts the word chunks first, then a single ack-prompt message with
+    a "Tôi đã đọc" inline button. Each member who reads the post taps
+    once to tick their own streak (US-#226). Cron used to be silent
+    on streak — every passive reader stayed at streak 0 forever.
+    """
     try:
         import config
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
         group = firebase_service.get_group_settings(group_id)
         count = group.get("word_count", config.DEFAULT_WORD_COUNT) if group else config.DEFAULT_WORD_COUNT
         band = group.get("default_band", 7.0) if group else 7.0
@@ -39,6 +47,20 @@ async def scheduled_daily_vocab(bot, group_id: int):
         messages = vocab_service.format_daily_words(words, topic)
         for msg in messages:
             await safe_send(bot, msg, chat_id=group_id)
+
+        # Streak-ack prompt (US-#226). Sent as the LAST message so it
+        # sits at the bottom of the post and is the obvious tap target.
+        ack_markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton(
+                "📖 Tôi đã đọc",
+                callback_data=f"streak_ack:{group_id}:{date_str}",
+            )
+        ]])
+        await bot.send_message(
+            chat_id=group_id,
+            text="👇 Bấm khi bạn đã đọc xong các từ hôm nay để tick streak.",
+            reply_markup=ack_markup,
+        )
         logger.info(f"Daily vocab posted to group {group_id}")
 
         # Persist enriched words to cache (sync, no Gemini calls)

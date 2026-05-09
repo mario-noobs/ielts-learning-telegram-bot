@@ -12,6 +12,18 @@ from services.rate_limit_service import check_rate_limit
 logger = logging.getLogger(__name__)
 
 
+# US-#226 — daily vocab streak ack button. Renders as a single tap
+# affordance under each daily post; click → streak ticks for the
+# specific user who clicked, not for everyone in the group.
+def _streak_ack_keyboard(group_id: int | str, date_str: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "📖 Tôi đã đọc",
+            callback_data=f"streak_ack:{group_id}:{date_str}",
+        )
+    ]])
+
+
 async def _generate_daily(update: Update, context: ContextTypes.DEFAULT_TYPE,
                           force: bool = False):
     """Core logic for daily vocabulary generation."""
@@ -86,10 +98,13 @@ async def _generate_daily(update: Update, context: ContextTypes.DEFAULT_TYPE,
         except Exception:
             logger.exception("Failed to persist generated words")
 
-        # Update streaks for all users
-        users = firebase_service.get_all_users_in_group(group_id)
-        for u in users:
-            firebase_service.update_streak(int(u["id"]))
+        # US-#226: streak no longer auto-ticks for every user in the
+        # group when *one* member runs /daily. Each member gets a tap
+        # affordance and ticks their own streak by clicking.
+        await message.reply_text(
+            "👇 Bấm khi bạn đã đọc xong các từ hôm nay để tick streak.",
+            reply_markup=_streak_ack_keyboard(group_id, date_str),
+        )
 
     except RateLimitError as e:
         await message.reply_text(rate_limit_message(e))
@@ -462,3 +477,38 @@ async def share_mydaily_callback(update: Update,
         await query.edit_message_text(
             "Failed to share. Make sure the bot is still in the group."
         )
+
+
+async def streak_ack_callback(update: Update,
+                              context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Daily-vocab ack button (US-#226) — ticks the clicker's streak.
+
+    Idempotent: ``firebase_service.update_streak`` keys off
+    ``last_active``, so two clicks on the same day reduce to a no-op
+    (delta_days == 0 → streak unchanged). The reply still shows the
+    current streak number so the user gets feedback either way.
+
+    Callback data shape: ``streak_ack:{group_id_or_user}:{date_str}``.
+    The group_id portion is informational — the streak belongs to the
+    clicker, not the group.
+    """
+    query = update.callback_query
+    if not query:
+        return
+    user = query.from_user
+    user_doc = firebase_service.get_user(user.id)
+    if not user_doc:
+        await query.answer("Hãy /start trước để đăng ký nhé.", show_alert=True)
+        return
+
+    firebase_service.update_streak(user.id)
+    refreshed = firebase_service.get_user(user.id) or user_doc
+    streak = int(refreshed.get("streak", 0))
+
+    # Use answer_callback_query so the toast is ephemeral and the
+    # original group post stays clean — no edit, no extra message
+    # spam in the chat.
+    await query.answer(
+        f"🔥 Streak {streak} ngày — hẹn mai nhé!",
+        show_alert=False,
+    )

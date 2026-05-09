@@ -47,6 +47,7 @@ from bot.handlers.vocabulary import (
     mywords_command,
     newdaily_command,
     share_mydaily_callback,
+    streak_ack_callback,
     word_command,
 )
 from bot.handlers.writing import share_callback, translate_command, write_command
@@ -130,6 +131,10 @@ def main():
     # Share mydaily to group
     app.add_handler(CallbackQueryHandler(
         share_mydaily_callback, pattern=r"^share_mydaily$"
+    ))
+    # Daily vocab streak ack (US-#226) — clicker ticks own streak
+    app.add_handler(CallbackQueryHandler(
+        streak_ack_callback, pattern=r"^streak_ack:"
     ))
     # Share writing/translation to group
     app.add_handler(CallbackQueryHandler(
