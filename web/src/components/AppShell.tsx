@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useProfile } from '../contexts/AuthContext'
@@ -5,8 +6,11 @@ import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
 import LogoMark from './brand/LogoMark'
+import PlanBadge from './PlanBadge'
 import QuotaExceededModal from './QuotaExceededModal'
 import UpgradeBanner from './UpgradeBanner'
+
+const SIDEBAR_COLLAPSED_KEY = 'ui.sidebar.collapsed'
 
 interface Tab {
   to: string
@@ -71,9 +75,34 @@ export default function AppShell() {
   const profile = useProfile()
   useProfileLocaleSync(!!user)
 
+  // Sidebar collapse — only takes effect at lg+ where the rail is wide
+  // (md is already icon-only). Persisted across reloads.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0')
+  }, [collapsed])
+
   const tabs = TABS
   const showAdminEntry =
     profile?.role !== undefined && ADMIN_ROLES.includes(profile.role)
+  const planId = profile?.plan ?? 'free'
+
+  // Width + label visibility — when collapsed, force icon-only on lg too.
+  const railWidthCls = collapsed ? 'md:w-20' : 'md:w-20 lg:w-60'
+  const showLabels = !collapsed
+
+  // Account-card data (avatar initial + display name).
+  const displayName =
+    profile?.name?.trim() ||
+    user?.displayName?.trim() ||
+    user?.email?.split('@')[0] ||
+    ''
+  const initial =
+    (displayName || user?.email || '?').trim()[0]?.toUpperCase() ?? '?'
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -88,16 +117,44 @@ export default function AppShell() {
         {/* Desktop side rail (≥md) */}
         <nav
           aria-label={t('nav.mainNav')}
-          className="hidden md:flex md:flex-col md:w-20 lg:w-60 md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0"
+          className={`hidden md:flex md:flex-col ${railWidthCls} md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0`}
         >
-          <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-2">
-            <LogoMark size="sm" />
-            <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
-          </div>
-          <div className="hidden md:flex lg:hidden items-center justify-center px-2 py-2 mb-2">
-            <LogoMark size="sm" />
-          </div>
-          <ul className="flex-1 space-y-1">
+          {/* Header — brand mark + wordmark (lg-expanded) + collapse toggle.
+              Toggle moves with the brand instead of floating at the bottom,
+              following the pattern used by Linear/Vercel sidebars. */}
+          {!collapsed ? (
+            <>
+              <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-3">
+                <LogoMark size="sm" />
+                <p className="text-base font-semibold text-fg">{t('brand.name')}</p>
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(true)}
+                  aria-label={t('nav.sidebar.collapse')}
+                  className="ml-auto p-1 rounded-md text-muted-fg hover:bg-surface hover:text-fg transition-colors"
+                >
+                  <Icon name="ChevronLeft" size="sm" variant="muted" />
+                </button>
+              </div>
+              <div className="flex lg:hidden items-center justify-center px-2 py-2 mb-2">
+                <LogoMark size="sm" />
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2 px-2 py-2 mb-2">
+              <LogoMark size="sm" />
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                aria-label={t('nav.sidebar.expand')}
+                className="hidden lg:inline-flex p-1 rounded-md text-muted-fg hover:bg-surface hover:text-fg transition-colors"
+              >
+                <Icon name="ChevronRight" size="sm" variant="muted" />
+              </button>
+            </div>
+          )}
+
+          <ul className="flex-1 space-y-0.5">
             {tabs.map((tab) => {
               const active = isTabActive(tab, pathname)
               return (
@@ -105,40 +162,98 @@ export default function AppShell() {
                   <NavLink
                     to={tab.to}
                     aria-current={active ? 'page' : undefined}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-fast ${
+                    title={collapsed ? t(tab.labelKey) : undefined}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-fast ${
                       active
                         ? 'bg-primary/10 text-primary'
                         : 'text-muted-fg hover:bg-surface hover:text-fg'
                     }`}
                   >
                     <Icon name={tab.icon} size="lg" variant={active ? 'primary' : 'muted'} />
-                    <span className="hidden lg:inline font-medium">{t(tab.labelKey)}</span>
+                    {showLabels && (
+                      <span className="hidden lg:inline font-medium">{t(tab.labelKey)}</span>
+                    )}
                   </NavLink>
                 </li>
               )
             })}
           </ul>
-          {/* Account-level controls — Admin entry sits directly above
-              Sign Out (US-M11.6), visually separated from learner tabs. */}
-          <div className="border-t border-border pt-2 mt-2 space-y-1">
-            {showAdminEntry && (
-              <NavLink
-                to="/admin"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-primary transition-colors duration-fast"
-              >
-                <Icon name="ShieldCheck" size="lg" variant="muted" />
-                <span className="hidden lg:inline font-medium">
-                  {t('nav.tabs.admin')}
-                </span>
-              </NavLink>
+
+          {/* Account block — single cohesive card at lg-expanded; stacked
+              icon column at md and lg-collapsed. Replaces the previous
+              loose stack of badge + admin + signout + toggle. */}
+          <div className="mt-3 pt-3 border-t border-border">
+            {!collapsed && (
+              <div className="hidden lg:block space-y-1">
+                <div className="rounded-xl border border-border p-3 space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold"
+                    >
+                      {initial}
+                    </span>
+                    <p
+                      className="flex-1 truncate text-sm font-medium text-fg"
+                      title={displayName}
+                    >
+                      {displayName}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      aria-label={t('nav.signOut')}
+                      className="rounded-md p-1.5 text-muted-fg hover:bg-surface-raised hover:text-danger transition-colors"
+                    >
+                      <Icon name="LogOut" size="md" variant="muted" />
+                    </button>
+                  </div>
+                  <PlanBadge plan={planId} />
+                </div>
+                {showAdminEntry && (
+                  <NavLink
+                    to="/admin"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-fg hover:bg-surface hover:text-primary transition-colors"
+                  >
+                    <Icon name="ShieldCheck" size="sm" variant="muted" />
+                    <span>{t('nav.tabs.admin')}</span>
+                  </NavLink>
+                )}
+              </div>
             )}
-            <button
-              onClick={logout}
-              className="hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors duration-fast"
+
+            <div
+              className={`flex flex-col items-center gap-2 ${
+                collapsed ? '' : 'lg:hidden'
+              }`}
             >
-              <Icon name="LogOut" size="lg" variant="muted" />
-              <span>{t('nav.signOut')}</span>
-            </button>
+              <span
+                aria-hidden="true"
+                title={displayName}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold"
+              >
+                {initial}
+              </span>
+              <PlanBadge plan={planId} compact />
+              {showAdminEntry && (
+                <NavLink
+                  to="/admin"
+                  title={t('nav.tabs.admin')}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-fg hover:bg-surface hover:text-primary transition-colors"
+                >
+                  <Icon name="ShieldCheck" size="md" variant="muted" />
+                </NavLink>
+              )}
+              <button
+                type="button"
+                onClick={logout}
+                aria-label={t('nav.signOut')}
+                title={t('nav.signOut')}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors"
+              >
+                <Icon name="LogOut" size="md" variant="muted" />
+              </button>
+            </div>
           </div>
         </nav>
 

@@ -55,13 +55,7 @@
   "plan": {
     "heading": "Your plan",
     "subtitle": "Manage your subscription and AI usage.",
-    "upgrade": "Upgrade to Pro",
-    "tier": {
-      "free": "Free",
-      "pro": "Pro",
-      "team": "Team",
-      "org": "Org"
-    }
+    "upgrade": "Upgrade to Pro"
   },
   "privacy": {
     "deferNote": "Data export and account deletion are coming soon. Contact support if you need them today."

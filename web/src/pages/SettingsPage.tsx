@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
+import PlanBadge from '../components/PlanBadge'
 import { apiFetch } from '../lib/api'
 import { ThemePref, useTheme } from '../lib/theme'
 
@@ -79,27 +80,6 @@ function ThemeToggle() {
         ))}
       </div>
     </div>
-  )
-}
-
-function PlanChip({ plan }: { plan: string }) {
-  const { t } = useTranslation('settings')
-  const map: Record<string, { label: string; cls: string }> = {
-    personal_pro: { label: t('plan.tier.pro'), cls: 'bg-primary text-on-primary' },
-    team_member: { label: t('plan.tier.team'), cls: 'bg-accent text-on-accent' },
-    org_member: { label: t('plan.tier.org'), cls: 'bg-success text-on-success' },
-    free: {
-      label: t('plan.tier.free'),
-      cls: 'border border-border bg-surface text-muted-fg',
-    },
-  }
-  const tier = map[plan] ?? map.free
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${tier.cls}`}
-    >
-      {tier.label}
-    </span>
   )
 }
 
@@ -518,7 +498,7 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-semibold text-fg">{t('plan.heading')}</h2>
                   <p className="text-sm text-muted-fg mt-1">{t('plan.subtitle')}</p>
                 </div>
-                <PlanChip plan={profile.plan} />
+                <PlanBadge plan={profile.plan} hideUpgrade />
               </div>
               <Link
                 to="/settings/usage"

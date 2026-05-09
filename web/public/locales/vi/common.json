@@ -56,6 +56,19 @@
       "writing": "Writing",
       "listening": "Listening",
       "reading": "Reading"
+    },
+    "sidebar": {
+      "collapse": "Thu gọn sidebar",
+      "expand": "Mở rộng sidebar"
+    }
+  },
+  "plan": {
+    "badge": {
+      "free": "Free",
+      "pro": "Pro",
+      "team": "Team",
+      "org": "Org",
+      "upgrade": "Nâng cấp"
     }
   },
   "auth": {
