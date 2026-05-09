@@ -164,8 +164,13 @@ def format_question(question: dict, question_num: int = 1) -> str:
 
 
 async def check_answer(question: dict, user_answer: str,
-                        telegram_id: int) -> tuple[bool, str]:
-    """Check the user's answer and return (is_correct, feedback)."""
+                        telegram_id: int,
+                        *, plan: str | None = None) -> tuple[bool, str]:
+    """Check the user's answer and return (is_correct, feedback).
+
+    `plan` is passed through to ``ai_service.evaluate_paraphrase`` for
+    free-form paraphrase questions (US-#221 — premium routing).
+    """
     q_type = question.get("type")
     is_correct = False
     feedback = ""
@@ -213,7 +218,8 @@ async def check_answer(question: dict, user_answer: str,
             original=question.get("question", ""),
             word=question.get("word", ""),
             student_answer=user_answer,
-            sample_answer=question.get("sample_answer", "")
+            sample_answer=question.get("sample_answer", ""),
+            plan=plan,
         )
         score = result.get("overall_score", 0)
         is_correct = score >= 3

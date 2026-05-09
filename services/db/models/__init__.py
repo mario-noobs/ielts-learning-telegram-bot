@@ -1,5 +1,6 @@
 """Re-export models so Alembic autogenerate sees their metadata."""
 
+from services.db.models.ai_routing import AiProviderUsage, AiRoutingConfig
 from services.db.models.ai_usage import AiUsage
 from services.db.models.audit_log import AuditLog
 from services.db.models.link_token import LinkToken
@@ -10,6 +11,8 @@ from services.db.models.team import Team, TeamMember
 from services.db.models.user import User
 
 __all__ = [
+    "AiProviderUsage",
+    "AiRoutingConfig",
     "AiUsage",
     "AuditLog",
     "LinkToken",

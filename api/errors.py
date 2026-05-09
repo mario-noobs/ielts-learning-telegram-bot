@@ -180,6 +180,12 @@ class _Registry:
         "User's plan is not registered in the plans table.",
     )
 
+    # ─── AI router (US-#221) ──────────────────────────────────────────
+    ai_provider_unavailable = ErrorCode(
+        "ai.provider_unavailable", 503,
+        "All AI providers in the chain are unavailable. Please try again.",
+    )
+
 
 ERR = _Registry()
 

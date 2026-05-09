@@ -16,9 +16,22 @@ BOT_USERNAME = os.getenv("BOT_USERNAME")
 # so emulator + dev-server flows work without extra config.
 WEB_BASE_URL = os.getenv("WEB_BASE_URL", "http://localhost:5173")
 
-# Google Gemini
+# Google Gemini — single-provider legacy, now wrapped by services/ai/.
+# Kept for the bot's direct callers + last-resort fallback in the chain.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-2.5-flash-lite"
+
+# Groq — Phase 1 primary AI provider (US-#221). Free tier offers
+# 1,000 RPD on llama-3.3-70b-versatile + 14,400 RPD on llama-3.1-8b
+# and gemma2-9b-it on the same key — ~30K RPD total headroom.
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+
+# Default routing chains seeded into ai_routing_config on first startup.
+# Admin can override per-plan via the table; the in-memory router cache
+# refreshes every AI_ROUTING_CACHE_TTL_SECONDS (60s, mirroring the
+# feature_flag_service pattern).
+AI_ROUTING_CACHE_TTL_SECONDS = int(os.getenv("AI_ROUTING_CACHE_TTL_SECONDS", "60"))
 
 # Firebase
 FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")

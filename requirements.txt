@@ -1,5 +1,8 @@
 python-telegram-bot[job-queue]>=21.0
 google-generativeai==0.8.3
+# OpenAI-compat SDK — used to talk to Groq (and future Cerebras /
+# OpenRouter) via their compatible base_url. Not used for OpenAI itself.
+openai>=1.40,<2.0
 firebase-admin==6.6.0
 gTTS==2.5.4
 python-dotenv==1.0.1
