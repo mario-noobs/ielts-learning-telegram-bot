@@ -43,10 +43,6 @@
       "cta": "View progress"
     }
   },
-  "readiness": {
-    "heading": "Readiness",
-    "details": "See details →"
-  },
   "recent": {
     "heading": "Recently learned",
     "viewAll": "View all →"
@@ -68,6 +64,53 @@
       "bandDelta30d": "Band change (30 days)"
     },
     "beta": "Beta"
+  },
+  "readinessTrack": {
+    "heading": "Exam readiness",
+    "header": {
+      "pct": "{pct}% complete",
+      "ready": "You're exam-ready",
+      "urgent": "{n} days left — push hard"
+    },
+    "empty": {
+      "heading": "Set your exam date to start the readiness track",
+      "description": "Unlock a 4-step roadmap personalised to your target band and exam date.",
+      "cta": "Set exam date"
+    },
+    "stepAria": "Step {n} of {total}, {status}, {title}",
+    "status": {
+      "done": "done",
+      "active": "current",
+      "upcoming": "upcoming",
+      "locked": "locked"
+    },
+    "steps": {
+      "goal": {
+        "title": "Set your goal",
+        "rationale": "Pick a target band and exam date so we can plan around them."
+      },
+      "daily_plan": {
+        "title": "Lock in your daily plan",
+        "rationale": "Aim for ~{min} minutes a day — small steady reps beat weekend cram."
+      },
+      "skills": {
+        "title": "Build skills across 4 areas",
+        "rationale": "{done} of {total} skills at band {target}. Tap a skill to keep going."
+      },
+      "mock_test": {
+        "title": "Mock test week",
+        "rationale": "Run timed mocks under exam pressure. {days} days to go.",
+        "locked": "Unlocks {days} days before your exam.",
+        "locked_no_date": "Set an exam date to unlock this step.",
+        "past": "Exam day has passed. Ready to set a new goal?"
+      }
+    },
+    "subTasks": {
+      "target_band": "Choose target band",
+      "exam_date": "Add exam date",
+      "weekly_goal": "Set weekly minutes goal",
+      "daily_time": "Pick daily reminder time"
+    }
   },
   "aiUsage": {
     "title": "AI usage today",

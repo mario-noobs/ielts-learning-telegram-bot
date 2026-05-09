@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" fill="none" role="img" aria-label="Set IELTS goal — calendar and target band picker">
+  <rect width="400" height="260" fill="#F8FAFC"/>
+  <rect x="16" y="16" width="368" height="32" rx="8" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <rect x="28" y="26" width="100" height="12" rx="4" fill="#0D9488"/>
+
+  <!-- Calendar card -->
+  <rect x="16" y="64" width="200" height="180" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="32" y="80" width="80" height="12" rx="4" fill="#0F172A"/>
+  <rect x="32" y="100" width="120" height="10" rx="4" fill="#94A3B8"/>
+  <g fill="#CBD5E1">
+    <rect x="32" y="124" width="20" height="20" rx="4"/>
+    <rect x="60" y="124" width="20" height="20" rx="4"/>
+    <rect x="88" y="124" width="20" height="20" rx="4"/>
+    <rect x="116" y="124" width="20" height="20" rx="4"/>
+    <rect x="144" y="124" width="20" height="20" rx="4"/>
+    <rect x="172" y="124" width="20" height="20" rx="4"/>
+    <rect x="32" y="152" width="20" height="20" rx="4"/>
+    <rect x="60" y="152" width="20" height="20" rx="4"/>
+    <rect x="88" y="152" width="20" height="20" rx="4"/>
+    <rect x="116" y="152" width="20" height="20" rx="4"/>
+    <rect x="172" y="152" width="20" height="20" rx="4"/>
+    <rect x="32" y="180" width="20" height="20" rx="4"/>
+    <rect x="60" y="180" width="20" height="20" rx="4"/>
+  </g>
+  <!-- Highlighted exam date -->
+  <rect x="144" y="152" width="20" height="20" rx="4" fill="#0D9488"/>
+  <rect x="32" y="212" width="168" height="20" rx="6" fill="#F1F5F9"/>
+  <rect x="40" y="218" width="80" height="8" rx="3" fill="#0D9488"/>
+
+  <!-- Target band card -->
+  <rect x="232" y="64" width="152" height="180" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="248" y="80" width="80" height="12" rx="4" fill="#0F172A"/>
+  <text x="248" y="138" font-family="system-ui, sans-serif" font-size="36" font-weight="700" fill="#0D9488">7.5</text>
+  <rect x="248" y="160" width="120" height="6" rx="3" fill="#E2E8F0"/>
+  <rect x="248" y="160" width="84" height="6" rx="3" fill="#0D9488"/>
+  <circle cx="332" cy="163" r="8" fill="#0D9488"/>
+  <rect x="248" y="180" width="56" height="10" rx="3" fill="#94A3B8"/>
+  <rect x="248" y="208" width="120" height="24" rx="6" fill="#0D9488"/>
+</svg>
