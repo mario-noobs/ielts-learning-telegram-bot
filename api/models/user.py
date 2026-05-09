@@ -76,6 +76,27 @@ class AiUsageHistoryPoint(BaseModel):
     count: int
 
 
+class StudyWeekFeaturePoint(BaseModel):
+    """One row in ``GET /api/v1/me/study-week``'s feature breakdown."""
+
+    feature: str
+    count: int
+    minutes: int
+
+
+class MeStudyWeek(BaseModel):
+    """Response for ``GET /api/v1/me/study-week`` (US-M14.3).
+
+    Completion-event proxy — minutes are estimated from per-feature
+    constants (``MINUTES_PER_FEATURE``), not measured directly.
+    """
+
+    minutes_actual: int
+    minutes_goal: int
+    by_feature: list[StudyWeekFeaturePoint]
+    week_start: str  # ISO datetime at Monday 00:00 UTC
+
+
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=60)
     target_band: float | None = Field(default=None, ge=4.0, le=9.0)

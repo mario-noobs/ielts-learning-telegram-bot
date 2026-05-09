@@ -7,9 +7,22 @@ snapshot to Firestore idempotently.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import config
 from services import firebase_service
+
+# ── Study minutes proxy (US-M14.3) ────────────────────────────────────
+# Per-feature minute estimates for the weekly progress bar. Numbers
+# come from session-time medians sampled in M11/M13 telemetry. Not a
+# precise measurement — a "did this many things this week" proxy.
+MINUTES_PER_FEATURE: dict[str, int] = {
+    "writing": 15,
+    "quiz": 5,
+    "listening": 10,
+    "reading": 12,
+    "vocab_review": 3,
+}
 
 LISTENING_WEIGHTS = {
     "dictation": 0.4,
@@ -213,6 +226,122 @@ def history_window(user_id, days: int = 30) -> list[dict]:
     # Ensure chronological order (oldest → newest) even if backend returned differently.
     docs.sort(key=lambda d: d.get("date", ""))
     return docs
+
+
+def _week_start_utc(now: Optional[datetime] = None) -> datetime:
+    """Monday 00:00 UTC of the current week. Matches AI-quota daily-reset
+    convention (UTC midnight) so weekly + daily counters share an axis."""
+    now = now or datetime.now(timezone.utc)
+    # `weekday()` is 0=Mon … 6=Sun.
+    start = now - timedelta(days=now.weekday())
+    return start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _count_since(items: list[dict], since: datetime, key: str = "created_at") -> int:
+    """Count items whose ``key`` timestamp is at or after ``since``.
+
+    Defensive: accepts datetime, date, or anything with ``.timestamp``;
+    skips rows where the field is missing or unparseable. Naive
+    datetimes are treated as UTC (Firestore returns tz-aware, but
+    legacy rows from the bot may have slipped through naive).
+    """
+    out = 0
+    for it in items:
+        ts = it.get(key)
+        if ts is None:
+            continue
+        if isinstance(ts, datetime):
+            stamped = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+        else:
+            continue
+        if stamped >= since:
+            out += 1
+    return out
+
+
+def weekly_minutes_actual(
+    user_id, *, now: Optional[datetime] = None,
+) -> dict:
+    """Return the current-week study-minute breakdown for ``user_id``.
+
+    Counts rows in each history collection whose ``created_at`` falls in
+    [Mon 00:00 UTC, now] and multiplies by ``MINUTES_PER_FEATURE``. The
+    minute counts are an estimate, not a stopwatch-measured duration —
+    "completion-event proxy" per the M14.3 spec.
+
+    Returns a dict shaped like the API response so the route handler is
+    a thin wrapper:
+
+        {
+            "minutes_actual": int,
+            "by_feature": [{"feature": str, "count": int, "minutes": int}, ...],
+            "week_start": "ISO datetime",
+        }
+    """
+    week_start = _week_start_utc(now)
+
+    # Pulling 50 rows is enough for a week even at heavy use; widen if
+    # we ever see a single user log >50 of one feature in a week.
+    LIMIT = 50
+    counts: dict[str, int] = {
+        "writing": _count_since(
+            firebase_service.list_writing_submissions(user_id, limit=LIMIT),
+            week_start,
+        ),
+        "listening": _count_since(
+            firebase_service.list_listening_exercises(user_id, limit=LIMIT),
+            week_start,
+        ),
+        "reading": _count_since(
+            firebase_service.list_reading_sessions(user_id, limit=LIMIT),
+            week_start,
+            key="updated_at",
+        ),
+        # Quiz history doesn't have a list_* helper — fall back to a
+        # direct Firestore call. Same shape as listening_history.
+        "quiz": _count_quiz_history_since(user_id, week_start, LIMIT),
+        # Vocab reviews are tracked in user.last_active updates, not as
+        # discrete rows. We expose 0 here in v1 — the breakdown remains
+        # honest about what the proxy actually counts.
+        "vocab_review": 0,
+    }
+
+    by_feature = []
+    minutes_actual = 0
+    for feature, count in counts.items():
+        per = MINUTES_PER_FEATURE.get(feature, 0)
+        minutes = count * per
+        minutes_actual += minutes
+        by_feature.append({
+            "feature": feature,
+            "count": count,
+            "minutes": minutes,
+        })
+
+    return {
+        "minutes_actual": minutes_actual,
+        "by_feature": by_feature,
+        "week_start": week_start.isoformat(),
+    }
+
+
+def _count_quiz_history_since(user_id, since: datetime, limit: int) -> int:
+    """Quiz repo only exposes ``get_latest`` — count manually via raw
+    Firestore. Cheap (one capped query, no fanout) and keeps repo API
+    small."""
+    try:
+        from firebase_admin import firestore as fs  # local import: optional dep
+        db = firebase_service._get_db()
+        docs = (
+            db.collection("users").document(str(user_id))
+            .collection("quiz_history")
+            .order_by("created_at", direction=fs.Query.DESCENDING)
+            .limit(limit)
+            .stream()
+        )
+        return _count_since([d.to_dict() for d in docs], since)
+    except Exception:  # noqa: BLE001 — degrade gracefully if collection missing
+        return 0
 
 
 def predict_band(history: list[dict], days_ahead: int) -> float:
