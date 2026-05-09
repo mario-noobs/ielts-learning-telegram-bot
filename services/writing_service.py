@@ -73,13 +73,16 @@ def normalize_feedback(raw: dict) -> dict:
     }
 
 
-async def score_essay(text: str, task_type: str, prompt: str) -> dict:
+async def score_essay(
+    text: str, task_type: str, prompt: str, *, plan: str | None = None,
+) -> dict:
     from prompts.writing_score_prompt import IELTS_SCORING_PROMPT
 
     filled = IELTS_SCORING_PROMPT.format(
         task_type=task_type, prompt=prompt or "(no prompt provided)", text=text,
     )
-    raw = await ai_service.generate_json(filled, priority="foreground")
+    # Premium call site (US-#221): essay band scoring is Pro's value prop.
+    raw = await ai_service.generate_json(filled, plan=plan, quality="premium")
     return normalize_feedback(raw)
 
 

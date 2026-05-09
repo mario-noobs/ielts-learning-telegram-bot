@@ -124,7 +124,7 @@ async def answer_quiz(
 
     normalized = _normalize_answer(body.answer, question)
     is_correct, feedback = await quiz_service.check_answer(
-        question, normalized, user["id"]
+        question, normalized, user["id"], plan=user.get("plan"),
     )
 
     new_word = None

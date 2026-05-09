@@ -75,7 +75,9 @@ async def _score_and_store(
         )
 
     try:
-        feedback = await writing_service.score_essay(text, task_type, prompt)
+        feedback = await writing_service.score_essay(
+            text, task_type, prompt, plan=user.get("plan"),
+        )
     except json.JSONDecodeError as exc:
         raise ApiError(ERR.writing_scoring_failed, detail=str(exc))
 

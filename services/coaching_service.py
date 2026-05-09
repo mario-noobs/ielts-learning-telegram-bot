@@ -170,7 +170,11 @@ async def generate_recommendations(
     )
 
     try:
-        raw = await ai_service.generate_json(filled, priority="foreground")
+        # Premium call site (US-#221): weekly coaching reasoning needs depth.
+        plan_id = (user.get("plan") if user else None) or None
+        raw = await ai_service.generate_json(
+            filled, plan=plan_id, quality="premium",
+        )
     except Exception as exc:
         logger.warning("Coaching generation failed, using fallback: %s", exc)
         return _fallback_tips(snapshot)
