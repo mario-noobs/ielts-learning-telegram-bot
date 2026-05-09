@@ -27,17 +27,26 @@ def _load_topics() -> list[dict]:
 
 @router.get("", response_model=TopicsResponse)
 async def list_topics(user: dict = Depends(get_current_user)) -> TopicsResponse:
-    """Return all IELTS topics with the user's word count per topic."""
+    """Return all IELTS topics with the user's word count + mastered count.
+
+    /learn/vocab home renders a card per topic with a mastery progress
+    bar — sourcing both fields from one call avoids loading the full
+    word list just to compute aggregates (US-#231 follow-up).
+    """
     topics = _load_topics()
-    counts = await asyncio.to_thread(firebase_service.count_words_by_topic, user["id"])
+    breakdown = await asyncio.to_thread(
+        firebase_service.count_words_by_topic_with_mastery, user["id"],
+    )
 
     items = [
         TopicSummary(
             id=t["id"],
             name=t.get("name", t["id"]),
-            word_count=counts.get(t["id"], 0),
+            word_count=breakdown.get(t["id"], {}).get("total", 0),
+            mastered_count=breakdown.get(t["id"], {}).get("mastered", 0),
             subtopics=t.get("subtopics", []),
         )
         for t in topics
     ]
-    return TopicsResponse(items=items, total_words=sum(counts.values()))
+    total_words = sum(b.get("total", 0) for b in breakdown.values())
+    return TopicsResponse(items=items, total_words=total_words)

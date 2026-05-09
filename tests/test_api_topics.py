@@ -20,9 +20,15 @@ def client():
 
 class TestListTopics:
     def test_returns_all_topics_with_counts(self, client):
-        counts = {"education": 12, "environment": 38, "technology": 3}
-        with patch("api.routes.topics.firebase_service.count_words_by_topic",
-                   return_value=counts):
+        breakdown = {
+            "education": {"total": 12, "mastered": 5},
+            "environment": {"total": 38, "mastered": 10},
+            "technology": {"total": 3, "mastered": 0},
+        }
+        with patch(
+            "api.routes.topics.firebase_service.count_words_by_topic_with_mastery",
+            return_value=breakdown,
+        ):
             response = client.get("/api/v1/topics")
 
         assert response.status_code == 200
@@ -31,14 +37,19 @@ class TestListTopics:
         assert len(body["items"]) >= 6  # data/ielts_topics.json ships with 12
         by_id = {t["id"]: t for t in body["items"]}
         assert by_id["education"]["word_count"] == 12
+        assert by_id["education"]["mastered_count"] == 5
         assert by_id["environment"]["word_count"] == 38
+        assert by_id["environment"]["mastered_count"] == 10
         assert by_id["technology"]["word_count"] == 3
+        assert by_id["technology"]["mastered_count"] == 0
         assert by_id["health"]["word_count"] == 0
         assert body["total_words"] == 53
 
     def test_topic_includes_name_and_subtopics(self, client):
-        with patch("api.routes.topics.firebase_service.count_words_by_topic",
-                   return_value={}):
+        with patch(
+            "api.routes.topics.firebase_service.count_words_by_topic_with_mastery",
+            return_value={},
+        ):
             response = client.get("/api/v1/topics")
 
         body = response.json()
@@ -47,10 +58,13 @@ class TestListTopics:
         assert "pollution" in env["subtopics"]
 
     def test_zero_counts_when_no_vocabulary(self, client):
-        with patch("api.routes.topics.firebase_service.count_words_by_topic",
-                   return_value={}):
+        with patch(
+            "api.routes.topics.firebase_service.count_words_by_topic_with_mastery",
+            return_value={},
+        ):
             response = client.get("/api/v1/topics")
 
         body = response.json()
         assert body["total_words"] == 0
         assert all(t["word_count"] == 0 for t in body["items"])
+        assert all(t["mastered_count"] == 0 for t in body["items"])

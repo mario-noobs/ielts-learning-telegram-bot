@@ -116,20 +116,29 @@ def get_user_word_list(telegram_id: int) -> list[str]:
 
 
 def get_user_vocabulary_page(telegram_id, limit: int = 20,
-                              after_added_at: Optional[datetime] = None) -> list[dict]:
+                              after_added_at: Optional[datetime] = None,
+                              topic: Optional[str] = None) -> list[dict]:
     """Cursor-paginated vocabulary fetch ordered by added_at DESC.
 
     Cursor is the `added_at` timestamp of the last item from the previous page.
+    Optional `topic` narrows results to one topic slug.
     """
     return [
         v.model_dump()
-        for v in get_vocab_repo().list_page(telegram_id, limit, after_added_at)
+        for v in get_vocab_repo().list_page(
+            telegram_id, limit, after_added_at, topic,
+        )
     ]
 
 
 def count_words_by_topic(telegram_id) -> dict[str, int]:
     """Return {topic_id: count} across the user's full vocabulary."""
     return get_vocab_repo().count_by_topic(telegram_id)
+
+
+def count_words_by_topic_with_mastery(telegram_id) -> dict[str, dict[str, int]]:
+    """Per-topic ``{total, mastered}`` for /learn/vocab home cards (US-#231)."""
+    return get_vocab_repo().count_by_topic_with_mastery(telegram_id)
 
 
 # ─── Quiz Sessions (Web) ──────────────────────────────────────────

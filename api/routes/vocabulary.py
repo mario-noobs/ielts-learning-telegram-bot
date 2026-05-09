@@ -80,9 +80,15 @@ def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
 async def list_vocabulary(
     limit: int = Query(20, ge=1, le=100),
     cursor: str | None = Query(None, description="ISO-8601 added_at from previous page"),
+    topic: str | None = Query(None, description="Filter to a single topic slug"),
     user: dict = Depends(get_current_user),
 ) -> WordListResponse:
-    """Paginated vocabulary list with SRS data, newest first."""
+    """Paginated vocabulary list with SRS data, newest first.
+
+    With ``?topic=<slug>``, results are scoped to that topic so each
+    /learn/vocab/topic/:slug page paginates within its own bucket
+    (US-#231 — drill-down navigation).
+    """
     after = None
     if cursor:
         try:
@@ -94,7 +100,8 @@ async def list_vocabulary(
             )
 
     docs = await asyncio.to_thread(
-        firebase_service.get_user_vocabulary_page, user["id"], limit, after
+        firebase_service.get_user_vocabulary_page,
+        user["id"], limit, after, topic,
     )
     items = [_to_vocab_word(d) for d in docs]
     next_cursor = None

@@ -41,15 +41,21 @@
   "byTopic": {
     "heading": "Từ vựng",
     "headingPill": "theo chủ đề",
-    "subtitle": "Từ vựng gom theo chủ đề. Trong mỗi chủ đề, từ chưa thuộc hiển thị trước.",
+    "subtitle": "Bấm vào 1 chủ đề để xem chi tiết từ vựng. Chủ đề ít thuộc nhất hiện trước.",
     "clearFilter": "Bỏ lọc",
     "progress": {
       "label": "Đã thuộc",
       "aria": "Đã thuộc {pct}% tổng số từ"
     },
+    "card": {
+      "masteryLine": "{mastered}/{total} đã thuộc ({pct}%)"
+    },
     "topicSection": {
-      "count": "{count} từ",
-      "showMore": "Hiện thêm {count} từ"
+      "count": "{count} từ"
+    },
+    "topicPage": {
+      "back": "Tất cả chủ đề",
+      "subtitle": "{count} từ trong chủ đề này"
     },
     "row": {
       "changeMastery": "Đổi mức độ thuộc — hiện tại {current}",

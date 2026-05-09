@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import VocabHomePage from './VocabHomePage'
 
@@ -16,35 +15,8 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const TOPICS = {
-  items: [
-    { id: 'education', name: 'Education', word_count: 0, subtopics: [] },
-    { id: 'environment', name: 'Environment', word_count: 0, subtopics: [] },
-  ],
-  total_words: 0,
-}
-
-function makeWord(over: Partial<{
-  id: string; word: string; topic: string; strength: string;
-  srs_next_review: string | null; ipa: string;
-}> = {}): unknown {
-  return {
-    id: over.id ?? `w-${Math.random()}`,
-    word: over.word ?? 'sample',
-    definition: '',
-    definition_vi: '',
-    ipa: over.ipa ?? '',
-    part_of_speech: '',
-    topic: over.topic ?? 'education',
-    strength: over.strength ?? 'Weak',
-    srs_next_review: over.srs_next_review ?? null,
-    added_at: null,
-  }
-}
-
 beforeEach(() => {
   apiFetchMock.mockReset()
-  localStorage.clear()
 })
 
 function render_() {
@@ -56,73 +28,65 @@ function render_() {
 }
 
 describe('<VocabHomePage>', () => {
-  it('groups words by topic and sorts by strength within each topic', async () => {
-    apiFetchMock
-      .mockResolvedValueOnce({
-        items: [
-          makeWord({ id: 'a', word: 'mastered_word', topic: 'education', strength: 'Mastered' }),
-          makeWord({ id: 'b', word: 'weak_word', topic: 'education', strength: 'Weak' }),
-          makeWord({ id: 'c', word: 'env_word', topic: 'environment', strength: 'Learning' }),
-        ],
-        next_cursor: null,
-      })
-      .mockResolvedValueOnce(TOPICS)
+  it('renders topic cards sorted by least-mastered first', async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      items: [
+        { id: 'education', name: 'Education', word_count: 10, mastered_count: 8, subtopics: [] },
+        { id: 'environment', name: 'Environment', word_count: 10, mastered_count: 2, subtopics: [] },
+        { id: 'technology', name: 'Technology', word_count: 0, mastered_count: 0, subtopics: [] },
+      ],
+      total_words: 20,
+    })
 
     render_()
-    await waitFor(() =>
-      expect(screen.getByText('mastered_word')).toBeInTheDocument(),
+    // Topics with words are linked. Empty topics (Technology) aren't.
+    await waitFor(() => {
+      expect(
+        screen.getByRole('link', { name: /topicNames\.education/ }),
+      ).toBeInTheDocument()
+    })
+    expect(
+      screen.queryByRole('link', { name: /topicNames\.technology/ }),
+    ).not.toBeInTheDocument()
+    // Environment (20% mastered) should appear before Education (80%).
+    const links = screen.getAllByRole('link')
+    const envIdx = links.findIndex((l) =>
+      l.getAttribute('href')?.includes('environment'),
     )
-
-    // Within education section, weak_word should appear before mastered_word.
-    const weakIdx = screen.getByText('weak_word').compareDocumentPosition(
-      screen.getByText('mastered_word'),
+    const eduIdx = links.findIndex((l) =>
+      l.getAttribute('href')?.includes('education'),
     )
-    // DOCUMENT_POSITION_FOLLOWING = 4
-    expect(weakIdx & 4).toBe(4)
+    expect(envIdx).toBeGreaterThanOrEqual(0)
+    expect(envIdx).toBeLessThan(eduIdx)
   })
 
-  it('filters words by strength chip', async () => {
-    apiFetchMock
-      .mockResolvedValueOnce({
-        items: [
-          makeWord({ id: 'a', word: 'weak_word', strength: 'Weak' }),
-          makeWord({ id: 'b', word: 'good_word', strength: 'Good' }),
-        ],
-        next_cursor: null,
-      })
-      .mockResolvedValueOnce(TOPICS)
-
+  it('topic card links to /learn/vocab/topic/:slug', async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      items: [
+        { id: 'education', name: 'Education', word_count: 5, mastered_count: 1, subtopics: [] },
+      ],
+      total_words: 5,
+    })
     render_()
-    await waitFor(() =>
-      expect(screen.getByText('weak_word')).toBeInTheDocument(),
-    )
-
-    // Click "Good" filter chip — should hide the Weak word.
-    const goodChips = screen.getAllByRole('button', { name: /strength\.Good/ })
-    // First match is the filter chip (not the row chip).
-    await userEvent.click(goodChips[0])
-    expect(screen.queryByText('weak_word')).not.toBeInTheDocument()
-    expect(screen.getByText('good_word')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('link', { name: /topicNames\.education/ }),
+      ).toBeInTheDocument()
+    })
+    const link = screen.getByRole('link', { name: /topicNames\.education/ })
+    expect(link).toHaveAttribute('href', '/learn/vocab/topic/education')
   })
 
-  it('paginates topics with > 20 words via show-more button', async () => {
-    const many = Array.from({ length: 25 }, (_, i) =>
-      makeWord({ id: `w${i}`, word: `word_${i}`, strength: 'Weak' }),
-    )
-    apiFetchMock
-      .mockResolvedValueOnce({ items: many, next_cursor: null })
-      .mockResolvedValueOnce(TOPICS)
-
+  it('shows empty state when user has no words', async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      items: [
+        { id: 'education', name: 'Education', word_count: 0, mastered_count: 0, subtopics: [] },
+      ],
+      total_words: 0,
+    })
     render_()
-    await waitFor(() => screen.getByText('word_0'))
-
-    // Only first 20 should render initially.
-    expect(screen.getByText('word_19')).toBeInTheDocument()
-    expect(screen.queryByText('word_20')).not.toBeInTheDocument()
-
-    // Click "Show more" — should reveal the rest.
-    const showMore = screen.getByText(/byTopic\.topicSection\.showMore/)
-    await userEvent.click(showMore)
-    expect(screen.getByText('word_24')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByText('empty.noWords.title')).toBeInTheDocument(),
+    )
   })
 })
