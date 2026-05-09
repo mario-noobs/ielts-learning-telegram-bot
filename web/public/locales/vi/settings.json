@@ -94,6 +94,16 @@
       "owner": "Chủ group",
       "member": "Thành viên"
     },
+    "roleBanner": {
+      "owner": {
+        "title": "Bạn là chủ group",
+        "description": "Bạn có thể chỉnh mọi setting bên dưới. Member chỉ xem được."
+      },
+      "member": {
+        "title": "Chỉ xem — bạn là thành viên",
+        "description": "Chỉ chủ group mới sửa được. Bạn vẫn thấy được setting đang cấu hình thế nào."
+      }
+    },
     "readonlyBanner": "Chỉ chủ group mới sửa được setting.",
     "saved": "Đã lưu setting group.",
     "fields": {

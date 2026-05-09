@@ -147,27 +147,43 @@ export default function GroupDetailPage() {
       >
         <Icon name="ArrowLeft" size="sm" /> {t('common:actions.back')}
       </Link>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-fg">
-            {group.name || t('groups.card.unnamed', { id: group.id })}
-          </h1>
-          <p className="text-sm text-muted-fg mt-1">
-            {t('groups.card.memberCount', { count: group.member_count })}
-          </p>
-        </div>
-        <span
-          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            isOwner ? 'bg-success/10 text-success' : 'bg-muted-fg/10 text-muted-fg'
-          }`}
-        >
-          {t(`groups.role.${group.role}`)}
-        </span>
+      <div>
+        <h1 className="text-2xl font-bold text-fg">
+          {group.name || t('groups.card.unnamed', { id: group.id })}
+        </h1>
+        <p className="text-sm text-muted-fg mt-1">
+          {t('groups.card.memberCount', { count: group.member_count })}
+        </p>
       </div>
 
-      {!isOwner && (
+      {/* Role banner — owner sees a green "you can edit" affordance,
+          member sees an explicit yellow "view-only" notice. The previous
+          tiny chip in the page header was easy to miss; this banner
+          spans the full width and uses an icon so the role is obvious
+          before the user touches any field. */}
+      {isOwner ? (
+        <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-sm text-success">
+          <div className="flex items-start gap-2">
+            <Icon name="Crown" size="sm" className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">{t('groups.roleBanner.owner.title')}</p>
+              <p className="text-success/80 mt-0.5">
+                {t('groups.roleBanner.owner.description')}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-warning">
-          <Icon name="Info" size="sm" /> {t('groups.readonlyBanner')}
+          <div className="flex items-start gap-2">
+            <Icon name="Eye" size="sm" className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">{t('groups.roleBanner.member.title')}</p>
+              <p className="text-warning/80 mt-0.5">
+                {t('groups.roleBanner.member.description')}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

@@ -134,12 +134,16 @@ export default function GroupsPage() {
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
+                    className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
                       g.role === 'owner'
-                        ? 'bg-success/10 text-success'
-                        : 'bg-muted-fg/10 text-muted-fg'
+                        ? 'bg-success/15 text-success border border-success/30'
+                        : 'bg-muted-fg/10 text-muted-fg border border-border'
                     }`}
                   >
+                    <Icon
+                      name={g.role === 'owner' ? 'Crown' : 'Eye'}
+                      size="sm"
+                    />
                     {t(`groups.role.${g.role}`)}
                   </span>
                 </div>

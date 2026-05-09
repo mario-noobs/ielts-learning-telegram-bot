@@ -94,6 +94,16 @@
       "owner": "Owner",
       "member": "Member"
     },
+    "roleBanner": {
+      "owner": {
+        "title": "You're the group owner",
+        "description": "You can edit any setting below. Members see this group as read-only."
+      },
+      "member": {
+        "title": "View-only — you're a member",
+        "description": "Only the group owner can change these settings. You can still see what's configured."
+      }
+    },
     "readonlyBanner": "Only the group owner can edit settings.",
     "saved": "Group settings saved.",
     "fields": {
