@@ -17,5 +17,66 @@
     "ctaPrimaryAria": "Bắt đầu miễn phí — đăng ký bằng Google",
     "ctaSecondary": "Xem demo",
     "socialProof": "Đã có 2.000+ học viên đang luyện IELTS"
+  },
+  "pricing": {
+    "heading": "Chọn gói phù hợp mục tiêu của bạn",
+    "subheading": "Không cần thẻ tín dụng. Huỷ bất cứ lúc nào.",
+    "monthly": "Hàng tháng",
+    "yearly": "Hàng năm",
+    "yearlySavings": "Tiết kiệm 20%",
+    "popular": "Phổ biến nhất",
+    "cadenceMonthly": "/tháng",
+    "cadenceYearly": "/năm",
+    "features": {
+      "dailyCalls": "{n} lượt AI mỗi ngày",
+      "monthlyCalls": "{n} lượt AI mỗi tháng",
+      "maxSeats": "Tối đa {n} thành viên",
+      "coachReview": "Coach review cá nhân 2 lần/tháng"
+    },
+    "tiers": {
+      "free": {
+        "name": "Free",
+        "tagline": "Thử trước khi cam kết",
+        "priceMonthly": "0₫",
+        "priceYearly": "0₫",
+        "cta": "Bắt đầu miễn phí"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Phù hợp cho luyện 3–6 tháng",
+        "priceMonthly": "99.000₫",
+        "priceYearly": "950.000₫",
+        "cta": "Chọn Pro"
+      },
+      "team": {
+        "name": "Team",
+        "tagline": "Cho trung tâm gia sư và nhóm học",
+        "priceMonthly": "Liên hệ",
+        "priceYearly": "Liên hệ",
+        "cta": "Liên hệ sales"
+      },
+      "org": {
+        "name": "Organization",
+        "tagline": "Cho trường học và doanh nghiệp",
+        "priceMonthly": "Liên hệ",
+        "priceYearly": "Liên hệ",
+        "cta": "Liên hệ sales"
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Dành cho người ôn IELTS, bởi chính người ôn IELTS.",
+    "columns": {
+      "product": "Sản phẩm",
+      "legal": "Pháp lý",
+      "contact": "Liên hệ"
+    },
+    "links": {
+      "pricing": "Bảng giá",
+      "privacy": "Bảo mật",
+      "terms": "Điều khoản",
+      "email": "support@ieltscoach.app"
+    },
+    "copyright": "© {year} IELTS Coach"
   }
 }

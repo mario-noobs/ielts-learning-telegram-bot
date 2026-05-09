@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AdminGate from './components/AdminGate'
 import AdminShell from './components/AdminShell'
 import AppShell from './components/AppShell'
+import PublicLayout from './layouts/PublicLayout'
 import LandingPage from './pages/LandingPage'
 import LegalPage from './pages/LegalPage'
 import LoginPage from './pages/LoginPage'
@@ -88,10 +89,13 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/privacy" element={<LegalPage kind="privacy" />} />
-          <Route path="/terms" element={<LegalPage kind="terms" />} />
-          <Route path="/pricing" element={<PricingPage />} />
+          {/* Public pages with shared footer (US-#211). */}
+          <Route element={<PublicLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+            <Route path="/terms" element={<LegalPage kind="terms" />} />
+            <Route path="/pricing" element={<PricingPage />} />
+          </Route>
           {/* US-M12.3: public so the bot's deep-link works pre-auth;
               the page itself prompts Google sign-in when needed. */}
           <Route path="/link" element={<LinkRedeemPage />} />

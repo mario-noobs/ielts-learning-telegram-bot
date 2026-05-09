@@ -17,5 +17,66 @@
     "ctaPrimaryAria": "Start free — sign up with Google",
     "ctaSecondary": "See a demo",
     "socialProof": "2,000+ learners practising IELTS"
+  },
+  "pricing": {
+    "heading": "Pick a plan that fits your goal",
+    "subheading": "No credit card required. Cancel anytime.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "yearlySavings": "Save 20%",
+    "popular": "Most popular",
+    "cadenceMonthly": "/month",
+    "cadenceYearly": "/year",
+    "features": {
+      "dailyCalls": "{n} AI calls per day",
+      "monthlyCalls": "{n} AI calls per month",
+      "maxSeats": "Up to {n} seats",
+      "coachReview": "Personal coach review 2×/month"
+    },
+    "tiers": {
+      "free": {
+        "name": "Free",
+        "tagline": "Try before you commit",
+        "priceMonthly": "0₫",
+        "priceYearly": "0₫",
+        "cta": "Start free"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For serious 3–6 month preparation",
+        "priceMonthly": "99,000₫",
+        "priceYearly": "950,000₫",
+        "cta": "Get Pro"
+      },
+      "team": {
+        "name": "Team",
+        "tagline": "For tutoring centers and study groups",
+        "priceMonthly": "Contact",
+        "priceYearly": "Contact",
+        "cta": "Talk to sales"
+      },
+      "org": {
+        "name": "Organization",
+        "tagline": "For schools and enterprises",
+        "priceMonthly": "Contact",
+        "priceYearly": "Contact",
+        "cta": "Talk to sales"
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Built for IELTS learners, by IELTS learners.",
+    "columns": {
+      "product": "Product",
+      "legal": "Legal",
+      "contact": "Contact"
+    },
+    "links": {
+      "pricing": "Pricing",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "email": "support@ieltscoach.app"
+    },
+    "copyright": "© {year} IELTS Coach"
   }
 }
