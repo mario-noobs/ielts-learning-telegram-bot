@@ -50,7 +50,23 @@
     "dailyTime": "Daily reminder time",
     "dailyTimeHint": "Telegram bot will DM you at this time ({tz}).",
     "synced": "Synced ⇄ Bot",
-    "notLinked": "Link Telegram to sync →"
+    "notLinked": "Link Telegram to sync →",
+    "reminderLinkCta": "Link Telegram to receive reminders"
+  },
+  "weeklyProgress": {
+    "heading": "This week's progress",
+    "minutesOf": "{actual} / {goal} min",
+    "onTrack": "On track",
+    "behind": "Behind pace",
+    "perFeature": "Per-feature breakdown",
+    "featureLine": "{count}× · {minutes} min",
+    "feature": {
+      "writing": "Writing",
+      "quiz": "Quiz",
+      "listening": "Listening",
+      "reading": "Reading",
+      "vocab_review": "Vocab review"
+    }
   },
   "plan": {
     "heading": "Your plan",
