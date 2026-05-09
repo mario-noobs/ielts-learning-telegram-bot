@@ -23,15 +23,15 @@ export default function DashboardGreeting({ name }: Props) {
   return (
     <section
       aria-labelledby="dashboard-greeting-heading"
-      className="bg-gradient-to-br from-primary to-primary-hover rounded-2xl p-6 text-primary-fg shadow-md"
+      className="bg-gradient-to-br from-primary to-primary-hover rounded-2xl px-5 py-4 text-primary-fg shadow-md md:px-6 md:py-5"
     >
       <h1
         id="dashboard-greeting-heading"
-        className="text-2xl font-bold md:text-3xl"
+        className="text-xl font-bold md:text-2xl"
       >
         {greeting} <span aria-hidden="true">👋</span>
       </h1>
-      <p className="mt-3 text-sm leading-relaxed text-primary-fg/90 md:text-base">
+      <p className="mt-1.5 text-sm leading-relaxed text-primary-fg/90">
         {t(`greeting.motivation.${motivationIdx}`)}
       </p>
     </section>
