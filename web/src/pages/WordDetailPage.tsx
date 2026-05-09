@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { playPronunciation } from '../lib/audio'
+import { localizeError } from '../lib/apiError'
 
 interface EnrichedExample {
   en: string
@@ -163,7 +164,7 @@ export default function WordDetailPage() {
     setError(null)
     apiFetch<EnrichedWord>(`/api/v1/words/${encodeURIComponent(id)}`)
       .then(setData)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(localizeError(e)))
   }, [id, tick])
 
   const highlighted = bandTier(band)

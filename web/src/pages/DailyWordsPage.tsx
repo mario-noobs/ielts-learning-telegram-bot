@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState'
 import Pagination from '../components/Pagination'
 import PronunciationButton from '../components/PronunciationButton'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 
 interface DailyWord {
   word: string
@@ -85,7 +86,7 @@ export default function DailyWordsPage() {
       .then((res) => {
         if (!cancelled) setData(res)
       })
-      .catch((e) => !cancelled && setError((e as Error).message))
+      .catch((e) => !cancelled && setError(localizeError(e)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true

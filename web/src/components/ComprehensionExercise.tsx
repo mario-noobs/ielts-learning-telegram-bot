@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import {
   ComprehensionResultItem,
   ListeningExerciseResult,
@@ -41,7 +42,7 @@ export default function ComprehensionExercise({ exercise, onSubmitted }: Props) 
       setResult(res)
       onSubmitted?.(res)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSubmitting(false)
     }

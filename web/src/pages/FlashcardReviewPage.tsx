@@ -6,6 +6,7 @@ import MultipleChoiceQuestion from '../components/MultipleChoiceQuestion'
 import QuizFeedbackOverlay from '../components/QuizFeedbackOverlay'
 import QuizSessionSummary from '../components/QuizSessionSummary'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import type {
   AnswerRecord,
   QuizAnswerResponse,
@@ -129,7 +130,7 @@ export default function FlashcardReviewPage() {
       setMode('mcq')
       setPhase('mcq-question')
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setLoading(false)
     }
@@ -154,7 +155,7 @@ export default function FlashcardReviewPage() {
       setMode('flip')
       setPhase('flip-front')
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setLoading(false)
     }
@@ -189,7 +190,7 @@ export default function FlashcardReviewPage() {
         setFeedback(res)
         setPhase('mcq-feedback')
       } catch (e) {
-        setError((e as Error).message)
+        setError(localizeError(e))
       }
     },
     [questions, index, sessionId],
@@ -225,7 +226,7 @@ export default function FlashcardReviewPage() {
           setPhase('flip-front')
         }
       } catch (e) {
-        setError((e as Error).message)
+        setError(localizeError(e))
       }
     },
     [flipWords, flipIndex],

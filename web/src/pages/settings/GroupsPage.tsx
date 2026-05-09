@@ -13,6 +13,7 @@ import Icon from '../../components/Icon'
 import TelegramIcon from '../../components/icons/Telegram'
 import { useProfile } from '../../contexts/AuthContext'
 import { apiFetch } from '../../lib/api'
+import { localizeError } from '../../lib/apiError'
 
 interface GroupSummary {
   id: string
@@ -40,7 +41,7 @@ export default function GroupsPage() {
   useEffect(() => {
     apiFetch<GroupSummary[]>('/api/v1/me/groups')
       .then(setGroups)
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   return (

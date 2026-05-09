@@ -9,6 +9,7 @@ import {
 } from '../components/WritingFeedback'
 import WritingDiff from '../components/WritingDiff'
 import { WritingSubmission } from '../lib/writing'
+import { localizeError } from '../lib/apiError'
 
 interface UserProfile {
   target_band: number
@@ -43,7 +44,7 @@ export default function WritingDetailPage() {
             .catch(() => {})
         }
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(localizeError(e)))
   }, [id])
 
   if (error) {

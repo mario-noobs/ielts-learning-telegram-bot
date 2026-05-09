@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import {
   DictationDiffItem,
   ListeningExerciseResult,
@@ -76,7 +77,7 @@ function MisheardBridge({ words }: { words: string[] }) {
       })
       setAdded((prev) => new Set(prev).add(word))
     } catch (e) {
-      const msg = (e as Error).message
+      const msg = localizeError(e)
       if (msg.toLowerCase().includes('already')) {
         setAdded((prev) => new Set(prev).add(word))
       } else {
@@ -148,7 +149,7 @@ export default function DictationExercise({ exercise, onSubmitted }: Props) {
       setResult(res)
       onSubmitted?.(res)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSubmitting(false)
     }

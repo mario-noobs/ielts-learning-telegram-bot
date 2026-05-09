@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import BandRing from '../components/BandRing'
 import BandTrendChart from '../components/BandTrendChart'
 import CoachingPanel from '../components/CoachingPanel'
@@ -21,7 +22,7 @@ export default function ProgressPage() {
   useEffect(() => {
     apiFetch<ProgressResponse>('/api/v1/progress')
       .then(setData)
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   if (error) {

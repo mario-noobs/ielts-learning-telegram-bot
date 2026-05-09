@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 
 interface UserProfile {
   id: string
@@ -27,7 +28,7 @@ export default function LinkTelegramCard({ onLinked }: { onLinked: () => void })
       setCode('')
       if (profile.total_words >= 0) onLinked()
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSubmitting(false)
     }

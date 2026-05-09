@@ -6,6 +6,7 @@ import MultipleChoiceQuestion from '../components/MultipleChoiceQuestion'
 import QuizFeedbackOverlay from '../components/QuizFeedbackOverlay'
 import QuizSessionSummary from '../components/QuizSessionSummary'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import type {
   AnswerRecord,
   QuizAnswerResponse,
@@ -68,7 +69,7 @@ export default function DailyFillBlankPage() {
       setRecords([])
       setPhase('question')
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
       setPhase('error')
     }
   }, [])
@@ -94,7 +95,7 @@ export default function DailyFillBlankPage() {
         setFeedback(res)
         setPhase('feedback')
       } catch (e) {
-        setError((e as Error).message)
+        setError(localizeError(e))
         setPhase('error')
       }
     },

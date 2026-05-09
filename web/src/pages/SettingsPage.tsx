@@ -5,6 +5,7 @@ import Icon, { IconName } from '../components/Icon'
 import TelegramIcon from '../components/icons/Telegram'
 import PlanBadge from '../components/PlanBadge'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import { ThemePref, useTheme } from '../lib/theme'
 
 
@@ -407,7 +408,7 @@ export default function SettingsPage() {
         setTopics(Array.isArray(p.topics) ? p.topics : [])
         setDailyTime(p.daily_time ?? '')
       })
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   // Fetch the weekly study summary lazily when Goals tab is opened.
@@ -478,7 +479,7 @@ export default function SettingsPage() {
       setProfile(updated)
       setSaved(true)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSaving(false)
     }

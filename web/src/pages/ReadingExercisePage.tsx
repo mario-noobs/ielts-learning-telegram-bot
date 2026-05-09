@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
+import { localizeError } from '../lib/apiError'
 import {
   PassageDetail,
   ReadingQuestion,
@@ -52,7 +53,7 @@ export default function ReadingExercisePage() {
         setStatus('ready')
       })
       .catch((e) => {
-        setError((e as Error).message)
+        setError(localizeError(e))
         setStatus('error')
       })
   }, [id])
@@ -94,7 +95,7 @@ export default function ReadingExercisePage() {
         setStatus('submitted')
         clearHighlights(session.id)
       } catch (e) {
-        setError((e as Error).message)
+        setError(localizeError(e))
         setStatus(fromTimer ? 'submitted' : 'ready')
       }
     },

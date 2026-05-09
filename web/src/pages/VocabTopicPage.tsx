@@ -10,17 +10,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
-import { ApiError } from '../lib/apiError'
+import { localizeError } from '../lib/apiError'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
-
-// Errors thrown by apiFetch carry the server's error code as
-// `.message` — `.localize()` turns it into prose via the `errors`
-// i18n bundle. Without this the user sees raw codes like
-// "common.upstream_error" instead of the translated message.
-function describeError(e: unknown): string {
-  return e instanceof ApiError ? e.localize() : (e as Error).message
-}
 
 type Strength = 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
 type VisualStrength = 'Weak' | 'Learning' | 'Good' | 'Mastered'
@@ -227,7 +219,7 @@ export default function VocabTopicPage() {
         setWords(res.items)
         setNextCursor(res.next_cursor)
       })
-      .catch((e) => !cancelled && setError(describeError(e)))
+      .catch((e) => !cancelled && setError(localizeError(e)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -244,7 +236,7 @@ export default function VocabTopicPage() {
       setWords((prev) => [...prev, ...res.items])
       setNextCursor(res.next_cursor)
     } catch (e) {
-      setError(describeError(e))
+      setError(localizeError(e))
     } finally {
       setLoadingMore(false)
     }
@@ -287,7 +279,7 @@ export default function VocabTopicPage() {
       })
     } catch (e) {
       setWords(before)
-      setError(describeError(e))
+      setError(localizeError(e))
     }
   }
 

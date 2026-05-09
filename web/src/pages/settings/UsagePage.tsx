@@ -8,6 +8,7 @@ import AiUsageChart, {
 import Pagination from '../../components/Pagination'
 import { useProfile } from '../../contexts/AuthContext'
 import { apiFetch } from '../../lib/api'
+import { localizeError } from '../../lib/apiError'
 
 interface FeaturePoint {
   feature: string
@@ -56,7 +57,7 @@ export default function UsagePage() {
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError((e as Error).message || 'error')
+          setError(localizeError(e) || 'error')
         }
       })
     return () => {

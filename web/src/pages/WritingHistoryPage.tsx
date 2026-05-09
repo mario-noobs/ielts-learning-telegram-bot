@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import EmptyState from '../components/EmptyState'
 import { WritingHistoryItem } from '../lib/writing'
+import { localizeError } from '../lib/apiError'
 
 function BandTrend({
   items,
@@ -84,7 +85,7 @@ export default function WritingHistoryPage() {
   useEffect(() => {
     apiFetch<{ items: WritingHistoryItem[] }>('/api/v1/writing/history')
       .then((r) => setItems(r.items))
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   return (

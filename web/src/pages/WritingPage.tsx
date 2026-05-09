@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import { clearDraft, formatTimeVi, loadDraft, useAutosave } from '../lib/autosave'
 import { useReducedMotion } from '../lib/motion'
 import {
@@ -193,7 +194,7 @@ export default function WritingPage() {
           text: res.text,
         })
       })
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [reviseOf])
 
   useEffect(() => {
@@ -235,7 +236,7 @@ export default function WritingPage() {
         }, 15)
       }
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setPromptLoading(false)
     }
@@ -257,7 +258,7 @@ export default function WritingPage() {
       clearDraft(currentDraftKey)
       setDraftSavedAt(null)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSubmitting(false)
     }
