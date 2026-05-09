@@ -64,6 +64,31 @@
       }
     }
   },
+  "stats": {
+    "ariaLabel": "Platform stats",
+    "learners": "Active learners",
+    "words": "Words mastered",
+    "rating": "Average rating",
+    "bandLift": "Avg. band lift in 90d"
+  },
+  "valueProps": {
+    "heading": "Everything you need to climb the band",
+    "subheading": "One streamlined loop: learn vocab, write essays, get AI feedback, repeat.",
+    "cards": {
+      "vocab": {
+        "title": "Smart vocabulary",
+        "body": "SM-2 spaced repetition memorises 1,500+ IELTS words at your target band."
+      },
+      "writing": {
+        "title": "Instant AI feedback",
+        "body": "Cambridge 4-criterion scoring: Task Response, Coherence, Lexical, Grammar."
+      },
+      "progress": {
+        "title": "Adaptive plan",
+        "body": "Your AI coach picks tomorrow's tasks based on today's weak spots."
+      }
+    }
+  },
   "footer": {
     "tagline": "Built for IELTS learners, by IELTS learners.",
     "columns": {

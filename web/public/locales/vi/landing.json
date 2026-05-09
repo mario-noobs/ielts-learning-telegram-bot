@@ -64,6 +64,31 @@
       }
     }
   },
+  "stats": {
+    "ariaLabel": "Số liệu nền tảng",
+    "learners": "Học viên đang luyện",
+    "words": "Từ đã thuộc",
+    "rating": "Đánh giá trung bình",
+    "bandLift": "Tăng band TB trong 90 ngày"
+  },
+  "valueProps": {
+    "heading": "Đủ công cụ để bứt phá band điểm",
+    "subheading": "Một vòng lặp gọn: học từ → viết → AI chấm → lặp lại.",
+    "cards": {
+      "vocab": {
+        "title": "SRS từ vựng thông minh",
+        "body": "Thuật toán SM-2 ghi nhớ 1.500+ từ IELTS theo band mục tiêu của bạn."
+      },
+      "writing": {
+        "title": "AI chấm Writing tức thì",
+        "body": "Chấm 4 tiêu chí Cambridge: Task Response, Coherence, Lexical, Grammar."
+      },
+      "progress": {
+        "title": "Adaptive plan",
+        "body": "Coach AI chọn task ngày mai dựa trên điểm yếu hôm nay."
+      }
+    }
+  },
   "footer": {
     "tagline": "Dành cho người ôn IELTS, bởi chính người ôn IELTS.",
     "columns": {

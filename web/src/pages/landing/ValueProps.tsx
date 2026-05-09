@@ -1,4 +1,5 @@
 import { BookOpen, PenLine, Target } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   Card,
   CardHeader,
@@ -6,41 +7,83 @@ import {
   CardDescription,
 } from '../../components/ui'
 
-const PROPS = [
+interface PropDef {
+  icon: typeof BookOpen
+  illustration: string // path under web/public/landing/
+  i18nKey: 'vocab' | 'writing' | 'progress'
+  iconColor: string
+  iconBg: string
+}
+
+const PROPS: PropDef[] = [
   {
     icon: BookOpen,
-    title: 'SRS vocab thông minh',
-    body: 'Thuật toán SM-2 ghi nhớ 1500+ từ IELTS theo band của bạn.',
+    illustration: '/landing/vocab.svg',
+    i18nKey: 'vocab',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10',
   },
   {
     icon: PenLine,
-    title: 'AI writing tức thì',
-    body: 'Chấm theo 4 tiêu chí Cambridge: Task Response, Coherence, Lexical, Grammar.',
+    illustration: '/landing/writing.svg',
+    i18nKey: 'writing',
+    iconColor: 'text-accent',
+    iconBg: 'bg-accent/10',
   },
   {
     icon: Target,
-    title: 'Adaptive plan',
-    body: 'Coach AI đề xuất task hàng ngày dựa trên điểm yếu của bạn.',
+    illustration: '/landing/progress.svg',
+    i18nKey: 'progress',
+    iconColor: 'text-success',
+    iconBg: 'bg-success/10',
   },
-] as const
+]
 
 export default function ValueProps() {
+  const { t } = useTranslation('landing')
   return (
     <section
       aria-labelledby="value-props-heading"
-      className="mx-auto w-full max-w-6xl px-4 py-12 md:px-6 md:py-16"
+      className="mx-auto w-full max-w-6xl px-4 py-12 md:px-6 md:py-20"
     >
-      <h2 id="value-props-heading" className="sr-only">
-        Tính năng chính
-      </h2>
-      <div className="grid gap-4 md:grid-cols-3 md:gap-6">
-        {PROPS.map(({ icon: Icon, title, body }) => (
-          <Card key={title} className="p-6">
-            <CardHeader className="p-0">
-              <Icon className="h-8 w-8 text-primary" aria-hidden="true" />
-              <CardTitle className="mt-4 text-lg">{title}</CardTitle>
+      <div className="mb-10 max-w-2xl md:mb-14">
+        <h2
+          id="value-props-heading"
+          className="text-3xl font-bold text-fg md:text-4xl"
+        >
+          {t('valueProps.heading')}
+        </h2>
+        <p className="mt-3 text-lg text-muted-fg">
+          {t('valueProps.subheading')}
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+        {PROPS.map(({ icon: Icon, illustration, i18nKey, iconColor, iconBg }) => (
+          <Card
+            key={i18nKey}
+            className="group overflow-hidden p-0 transition-shadow hover:shadow-lg"
+          >
+            <div className="relative aspect-[16/10] overflow-hidden bg-surface">
+              <img
+                src={illustration}
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <CardHeader className="p-6">
+              <div
+                className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
+              >
+                <Icon className={`h-5 w-5 ${iconColor}`} aria-hidden="true" />
+              </div>
+              <CardTitle className="text-lg">
+                {t(`valueProps.cards.${i18nKey}.title`)}
+              </CardTitle>
               <CardDescription className="mt-2 leading-relaxed">
-                {body}
+                {t(`valueProps.cards.${i18nKey}.body`)}
               </CardDescription>
             </CardHeader>
           </Card>
