@@ -22,10 +22,27 @@
   },
   "examDate": {
     "label": "IELTS exam date",
-    "daysLeft": "{count, plural, one {# day} other {# days}} to go.",
-    "urgentSuffix": " Your plan will intensify.",
-    "past": "The date has passed.",
-    "clear": "Clear exam date"
+    "clear": "Clear exam date",
+    "unsetHint": "Pick a date to unlock a countdown, intensity phases, and a weekly time-budget projection.",
+    "daysUnit": "{count, plural, one {day} other {days}} to go",
+    "weeksMonths": "≈ {weeks} weeks · {months} months",
+    "studyHoursProjection": "About {hours}h of practice ahead at {min} min/week.",
+    "phase": {
+      "foundation": "Foundation",
+      "foundationCopy": "Plenty of time. Build vocabulary and a steady daily habit.",
+      "build": "Build",
+      "buildCopy": "Practice all four skills weekly. Track your weak areas.",
+      "sharpen": "Sharpen",
+      "sharpenCopy": "Run a mock test every two weeks. Drill weak skills.",
+      "final": "Final stretch",
+      "finalCopy": "Daily mock conditions. Time management. Light vocab review.",
+      "examWeek": "Exam week",
+      "examWeekCopy": "Light review only. Sleep well. Trust your prep.",
+      "examDay": "Exam day",
+      "examDayCopy": "Today's the day. Good luck!",
+      "past": "Past date",
+      "pastCopy": "This date has passed — pick a new one above."
+    }
   },
   "weeklyGoal": {
     "label": "Weekly goal (minutes)",

@@ -22,10 +22,27 @@
   },
   "examDate": {
     "label": "Ngày thi IELTS",
-    "daysLeft": "Còn {count} ngày nữa.",
-    "urgentSuffix": " Kế hoạch sẽ tăng cường.",
-    "past": "Ngày đã qua.",
-    "clear": "Xóa ngày thi"
+    "clear": "Xoá ngày thi",
+    "unsetHint": "Chọn ngày thi để mở countdown, các giai đoạn ôn tập và tổng thời lượng luyện tập dự kiến.",
+    "daysUnit": "ngày còn lại",
+    "weeksMonths": "≈ {weeks} tuần · {months} tháng",
+    "studyHoursProjection": "Khoảng {hours} giờ luyện tập với mục tiêu {min} phút/tuần.",
+    "phase": {
+      "foundation": "Nền tảng",
+      "foundationCopy": "Còn nhiều thời gian. Tập trung học từ vựng và xây thói quen học mỗi ngày.",
+      "build": "Tăng tốc",
+      "buildCopy": "Luyện đủ 4 kỹ năng mỗi tuần. Để mắt tới các kỹ năng còn yếu.",
+      "sharpen": "Mài kỹ năng",
+      "sharpenCopy": "Cứ 2 tuần làm 1 mock test. Cày kỹ năng còn yếu.",
+      "final": "Nước rút",
+      "finalCopy": "Luyện sát đề mỗi ngày. Tập canh giờ. Ôn từ vựng nhẹ.",
+      "examWeek": "Tuần thi",
+      "examWeekCopy": "Chỉ ôn nhẹ. Ngủ đủ giấc. Tin vào quá trình ôn của mình.",
+      "examDay": "Ngày thi",
+      "examDayCopy": "Hôm nay là ngày thi rồi. Chúc may mắn!",
+      "past": "Ngày đã qua",
+      "pastCopy": "Ngày này đã qua — hãy chọn ngày mới ở trên."
+    }
   },
   "weeklyGoal": {
     "label": "Mục tiêu mỗi tuần (phút)",

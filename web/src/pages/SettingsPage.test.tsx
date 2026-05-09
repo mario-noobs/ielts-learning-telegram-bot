@@ -115,6 +115,15 @@ describe('<SettingsPage>', () => {
     expect(onTrack || behind).toBeTruthy()
   })
 
+  it('routes /settings#exam-date to Goals tab and focuses the exam input', async () => {
+    window.history.replaceState(null, '', '/settings#exam-date')
+    renderPage()
+    // Profile tab is bypassed; wait for the Goals-tab input to mount.
+    await waitFor(() => screen.getByLabelText('examDate.label'))
+    const goalsTab = screen.getByRole('tab', { name: 'tabs.goals' })
+    expect(goalsTab).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('Practice tab disables time input + shows link CTA when not linked', async () => {
     apiFetchMock.mockImplementation((url: string) => {
       if (url.includes('/api/v1/me/study-week')) return Promise.resolve(STUDY_WEEK)
