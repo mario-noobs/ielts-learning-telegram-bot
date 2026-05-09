@@ -49,12 +49,24 @@ def _to_profile(user: dict) -> UserProfile:
     else:
         plan_expires_at = None
 
+    # Defensive: legacy rows may have `topics` stored as a comma-string
+    # or null instead of a list. Coerce so the wire shape matches the
+    # `UserProfile.topics: list[str]` contract — and so the web settings
+    # input doesn't compute `topics.length >= 5` against a string.
+    raw_topics = user.get("topics")
+    if isinstance(raw_topics, list):
+        topics = [str(t) for t in raw_topics if t]
+    elif isinstance(raw_topics, str) and raw_topics:
+        topics = [t.strip() for t in raw_topics.split(",") if t.strip()]
+    else:
+        topics = []
+
     return UserProfile(
         id=user["id"],
         name=user.get("name", ""),
         email=user.get("email"),
         target_band=user.get("target_band", 7.0),
-        topics=user.get("topics", []),
+        topics=topics,
         streak=user.get("streak", 0),
         total_words=user.get("total_words", 0),
         total_quizzes=user.get("total_quizzes", 0),

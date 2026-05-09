@@ -140,7 +140,9 @@ export default function SettingsPage() {
         setTargetBand(p.target_band ?? 7.0)
         setExamDate(p.exam_date ?? '')
         setWeeklyGoal(p.weekly_goal_minutes ?? 150)
-        setTopics(p.topics ?? [])
+        // Defensive: legacy data may have topics stored as a string;
+        // coerce non-arrays to [] so `topics.length` reflects actual chips.
+        setTopics(Array.isArray(p.topics) ? p.topics : [])
         setDailyTime(p.daily_time ?? '')
       })
       .catch((e) => setError((e as Error).message))
@@ -445,6 +447,8 @@ export default function SettingsPage() {
                   ))}
                 </div>
                 <div className="flex gap-2">
+                  {/* Input giữ enabled để user gõ được; chỉ Add button +
+                      hint phía dưới mới phản ánh giới hạn 5. */}
                   <input
                     type="text"
                     value={topicDraft}
@@ -456,18 +460,22 @@ export default function SettingsPage() {
                       }
                     }}
                     placeholder={t('practice.topicsPlaceholder')}
-                    disabled={topics.length >= 5}
-                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none disabled:opacity-50"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={addTopic}
-                    disabled={!topicDraft.trim() || topics.length >= 5}
+                    disabled={!topicDraft.trim() || topics.length >= 5 || saving}
                     className="px-3 py-2 rounded-lg bg-primary text-primary-fg text-sm hover:bg-primary-hover disabled:opacity-50"
                   >
                     {t('common:actions.add')}
                   </button>
                 </div>
+                {topics.length >= 5 && (
+                  <p className="text-xs text-warning mt-1">
+                    {t('practice.topicsFull')}
+                  </p>
+                )}
               </div>
 
               <div>

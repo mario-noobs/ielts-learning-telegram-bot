@@ -44,6 +44,7 @@
   "practice": {
     "topics": "Topics",
     "topicsHint": "Up to 5 topics. The AI tailors vocab and writing prompts to these.",
+    "topicsFull": "5 topics maximum — remove one to add another.",
     "topicsPlaceholder": "Add a topic (e.g. environment)",
     "removeTopic": "Remove topic {topic}",
     "dailyTime": "Daily reminder time",

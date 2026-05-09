@@ -44,6 +44,7 @@
   "practice": {
     "topics": "Chủ đề",
     "topicsHint": "Tối đa 5 chủ đề. AI sẽ tạo vocab và đề writing theo các chủ đề này.",
+    "topicsFull": "Tối đa 5 chủ đề — xoá bớt 1 để thêm chủ đề mới.",
     "topicsPlaceholder": "Thêm chủ đề (vd: environment)",
     "removeTopic": "Xoá chủ đề {topic}",
     "dailyTime": "Giờ nhắc nhở hàng ngày",
