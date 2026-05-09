@@ -217,8 +217,9 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Right column — desktop only */}
-          <div className="hidden lg:flex lg:flex-col lg:gap-4">
+          {/* Right column — desktop only. Sticky so ProfilePanel +
+              AiUsageWidget stay in view while the main column scrolls. */}
+          <div className="hidden lg:flex lg:flex-col lg:gap-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
             <ProfilePanel profile={profile} progress={progress} />
             <AiUsageWidget />
           </div>
