@@ -476,21 +476,35 @@ def get_all_groups() -> list[dict]:
 def list_groups_for_user(telegram_id: int) -> list[dict]:
     """Return groups this user is a member of (US-#227).
 
-    Current data model: ``users.group_id`` is a single field, so a user
-    is in at most one group at a time. Returns a list-of-dicts shape so
-    the API can grow into multi-group later without a contract change.
-    Each dict has the full group settings + ``id``.
+    The ``users.group_id`` field is unreliable as a membership marker —
+    it's only set when the user runs ``/start`` *inside* a group chat.
+    A typical Telegram flow has users DM the bot first to /start, then
+    join one or more groups; their group_id stays NULL the whole time
+    even after they're active in a group.
+
+    So we walk ``groups/*`` and check membership via
+    ``get_all_users_in_group(g.id)``. With a small group count (<100
+    in the foreseeable future) this is cheap; if it grows we'll add a
+    membership index doc instead.
     """
-    user = get_user(telegram_id)
-    if not user:
+    if telegram_id is None:
         return []
-    group_id = user.get("group_id")
-    if group_id is None:
-        return []
-    group = get_group_settings(int(group_id))
-    if not group:
-        return []
-    return [{"id": str(group_id), **group}]
+    target_id = int(telegram_id)
+    out: list[dict] = []
+    for group in get_all_groups():
+        try:
+            group_id = int(group.get("id"))
+        except (TypeError, ValueError):
+            continue
+        members = get_all_users_in_group(group_id)
+        member_ids: set[int] = set()
+        for m in members:
+            raw = str(m.get("id", ""))
+            if raw.isdigit():
+                member_ids.add(int(raw))
+        if target_id in member_ids:
+            out.append({**group, "id": str(group_id)})
+    return out
 
 
 # ─── Daily Words (Group) ──────────────────────────────────────────

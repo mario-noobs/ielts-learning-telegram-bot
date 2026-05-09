@@ -80,6 +80,10 @@
       "description": "Tham gia 1 group qua Telegram và link tài khoản để quản lý từ web.",
       "cta": "Liên kết Telegram"
     },
+    "emptyLinked": {
+      "heading": "Bạn chưa join group nào",
+      "description": "Add bot vào 1 Telegram group và gõ /start ở đó. Group sẽ tự động hiện trong list này."
+    },
     "card": {
       "unnamed": "Group {id}",
       "memberCount": "{count} thành viên",

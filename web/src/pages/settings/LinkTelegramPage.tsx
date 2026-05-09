@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
 import GroupJoinCTA from '../../components/GroupJoinCTA'
+import Icon from '../../components/Icon'
 import { useAuth } from '../../contexts/AuthContext'
 import { ApiError } from '../../lib/apiError'
 import { startLink, unlinkTelegram } from '../../lib/link'
@@ -170,8 +171,9 @@ function LinkedState({ onChanged }: { onChanged: () => Promise<void> }) {
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className="mt-4 inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-fg hover:bg-surface-raised"
+        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-danger/40 bg-danger/5 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 hover:border-danger/60"
       >
+        <Icon name="X" size="sm" />
         {t('settings.linked.unlinkCta')}
       </button>
       {confirmOpen ? (

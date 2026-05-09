@@ -80,6 +80,10 @@
       "description": "Join a group via Telegram and link your account to manage it from the web.",
       "cta": "Link Telegram"
     },
+    "emptyLinked": {
+      "heading": "You're not in any group yet",
+      "description": "Add the bot to a Telegram group and run /start there. The group will show up here automatically."
+    },
     "card": {
       "unnamed": "Group {id}",
       "memberCount": "{count, plural, one {# member} other {# members}}",

@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
+import { useProfile } from '../../contexts/AuthContext'
 import { apiFetch } from '../../lib/api'
 
 interface GroupSummary {
@@ -24,8 +25,16 @@ interface GroupSummary {
 
 export default function GroupsPage() {
   const { t } = useTranslation(['settings', 'common'])
+  const profile = useProfile()
   const [groups, setGroups] = useState<GroupSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // `web_*` ids are users who haven't redeemed a Telegram link yet —
+  // they can't be in any group, so the empty state nudges them to link.
+  // A linked user who legitimately has zero groups gets different copy
+  // (no "Link Telegram" CTA, since they're already linked) so we
+  // don't bounce them to a page that says "you're already linked".
+  const isLinked = !!profile && profile.id && !profile.id.startsWith('web_')
 
   useEffect(() => {
     apiFetch<GroupSummary[]>('/api/v1/me/groups')
@@ -60,16 +69,31 @@ export default function GroupsPage() {
 
       {groups && groups.length === 0 && (
         <section className="rounded-xl border border-dashed border-border p-6 text-center">
-          <h2 className="font-semibold text-fg">{t('groups.empty.heading')}</h2>
-          <p className="mt-2 text-sm text-muted-fg">
-            {t('groups.empty.description')}
-          </p>
-          <Link
-            to="/settings/link-telegram"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary-hover"
-          >
-            {t('groups.empty.cta')}
-          </Link>
+          {isLinked ? (
+            <>
+              <h2 className="font-semibold text-fg">
+                {t('groups.emptyLinked.heading')}
+              </h2>
+              <p className="mt-2 text-sm text-muted-fg">
+                {t('groups.emptyLinked.description')}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-semibold text-fg">
+                {t('groups.empty.heading')}
+              </h2>
+              <p className="mt-2 text-sm text-muted-fg">
+                {t('groups.empty.description')}
+              </p>
+              <Link
+                to="/settings/link-telegram"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary-hover"
+              >
+                {t('groups.empty.cta')}
+              </Link>
+            </>
+          )}
         </section>
       )}
 
