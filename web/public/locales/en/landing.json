@@ -74,24 +74,6 @@
     "rating": "Average rating",
     "bandLift": "Avg. band lift in 90d"
   },
-  "howItWorks": {
-    "heading": "How it works",
-    "subheading": "Three steps from first signup to walking into the exam confident.",
-    "steps": {
-      "goal": {
-        "title": "Set your IELTS goal",
-        "body": "Pick your target band and exam date. We use both to shape every plan, every reminder, every nudge."
-      },
-      "feedback": {
-        "title": "Daily plan + AI feedback",
-        "body": "Get a personalised daily routine. Submit writing — Cambridge 4-criterion AI scoring lands in seconds."
-      },
-      "readiness": {
-        "title": "Track readiness, nail the exam",
-        "body": "A 4-step readiness roadmap shows what to do next. Watch each skill climb toward your target band."
-      }
-    }
-  },
   "valueProps": {
     "heading": "Everything you need to climb the band",
     "subheading": "One streamlined loop: learn vocab, write essays, get AI feedback, repeat.",

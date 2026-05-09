@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Hero from './landing/Hero'
-import HowItWorks from './landing/HowItWorks'
 import StatsStrip from './landing/StatsStrip'
 import ValueProps from './landing/ValueProps'
 import Pricing from './landing/Pricing'
@@ -29,7 +28,6 @@ export default function LandingPage() {
       </a>
       <main id="main">
         <Hero />
-        <HowItWorks />
         <StatsStrip />
         <ValueProps />
         <section id="sample-screens" aria-hidden="true" />

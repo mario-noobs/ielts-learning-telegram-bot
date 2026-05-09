@@ -74,24 +74,6 @@
     "rating": "Đánh giá trung bình",
     "bandLift": "Tăng band TB trong 90 ngày"
   },
-  "howItWorks": {
-    "heading": "Quy trình ôn 3 bước",
-    "subheading": "Ba bước từ lần đầu đăng ký đến lúc bước vào phòng thi tự tin.",
-    "steps": {
-      "goal": {
-        "title": "Đặt mục tiêu IELTS",
-        "body": "Chọn band mục tiêu và ngày thi. Cả app sẽ định hướng kế hoạch, nhắc nhở, gợi ý theo đúng đó."
-      },
-      "feedback": {
-        "title": "Kế hoạch hằng ngày + AI chấm",
-        "body": "Nhận lịch học cá nhân hóa. Nộp bài Writing — AI chấm theo 4 tiêu chí Cambridge trong vài giây."
-      },
-      "readiness": {
-        "title": "Đo readiness, chốt kỳ thi",
-        "body": "Lộ trình 4 bước cho biết việc tiếp theo cần làm. Xem từng kỹ năng tiến gần band mục tiêu."
-      }
-    }
-  },
   "valueProps": {
     "heading": "Đủ công cụ để bứt phá band điểm",
     "subheading": "Một vòng lặp gọn: học từ → viết → AI chấm → lặp lại.",
