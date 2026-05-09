@@ -50,6 +50,10 @@ from bot.handlers.vocabulary import (
     word_command,
 )
 from bot.handlers.writing import share_callback, translate_command, write_command
+from services.reminders_service import (
+    restore_user_reminders,
+    setup_reminders_resync_schedule,
+)
 from services.scheduler_service import (
     restore_group_schedules,
     setup_greeting_schedule,
@@ -193,6 +197,8 @@ def main():
     restore_group_schedules(app.bot)
     setup_greeting_schedule(app.bot)
     setup_link_token_cleanup_schedule()
+    restore_user_reminders(app.bot)
+    setup_reminders_resync_schedule(app.bot)
 
     # ─── Run bot ──────────────────────────────────────────────
     logger.info("IELTS Bot starting...")

@@ -1,5 +1,6 @@
 """Unit tests for services/progress_service.py (US-5.1)."""
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from services import progress_service
@@ -171,3 +172,45 @@ class TestHistoryWindow:
             out = progress_service.history_window("u1", days=7)
         assert len(out) == 2
         assert out[0]["date"] < out[1]["date"]
+
+
+class TestWeeklyMinutesActual:
+    """Completion-event proxy (US-M14.3 AC8).
+
+    Seeds 3 writing + 5 quiz + 2 listening rows inside the current week
+    and verifies the helper returns 3*15 + 5*5 + 2*10 = 90 minutes.
+    """
+
+    def test_aggregates_minutes_per_feature_within_week(self):
+        # Pin "now" to Wednesday so Mon-of-week is unambiguous.
+        now = datetime(2026, 5, 13, 12, 0, tzinfo=timezone.utc)  # Wed
+        in_week = now - timedelta(days=1)
+        before_week = now - timedelta(days=10)
+
+        writings = [{"created_at": in_week} for _ in range(3)] + [
+            {"created_at": before_week}  # excluded
+        ]
+        quizzes = [{"created_at": in_week} for _ in range(5)]
+        listenings = [{"created_at": in_week} for _ in range(2)]
+
+        with patch.multiple(
+            "services.progress_service.firebase_service",
+            list_writing_submissions=lambda _uid, limit=50: writings,
+            list_listening_exercises=lambda _uid, limit=50: listenings,
+            list_reading_sessions=lambda _uid, limit=50: [],
+        ), patch(
+            "services.progress_service._count_quiz_history_since",
+            return_value=5,
+        ):
+            out = progress_service.weekly_minutes_actual("u1", now=now)
+
+        # 3*15 (writing) + 5*5 (quiz) + 2*10 (listening) + 0 + 0 = 90
+        assert out["minutes_actual"] == 90
+        by = {row["feature"]: row for row in out["by_feature"]}
+        assert by["writing"]["count"] == 3
+        assert by["writing"]["minutes"] == 45
+        assert by["quiz"]["count"] == 5
+        assert by["quiz"]["minutes"] == 25
+        assert by["listening"]["count"] == 2
+        assert by["listening"]["minutes"] == 20
+        assert out["week_start"].endswith("00:00:00+00:00")

@@ -50,7 +50,23 @@
     "dailyTime": "Giờ nhắc nhở hàng ngày",
     "dailyTimeHint": "Bot Telegram sẽ DM bạn lúc này ({tz}).",
     "synced": "Đã đồng bộ với Bot",
-    "notLinked": "Liên kết Telegram để đồng bộ →"
+    "notLinked": "Liên kết Telegram để đồng bộ →",
+    "reminderLinkCta": "Liên kết Telegram để nhận nhắc nhở"
+  },
+  "weeklyProgress": {
+    "heading": "Tiến độ tuần này",
+    "minutesOf": "{actual} / {goal} phút",
+    "onTrack": "Đúng tiến độ",
+    "behind": "Cần bứt tốc",
+    "perFeature": "Chi tiết theo kỹ năng",
+    "featureLine": "{count}× · {minutes} phút",
+    "feature": {
+      "writing": "Writing",
+      "quiz": "Quiz",
+      "listening": "Listening",
+      "reading": "Reading",
+      "vocab_review": "Ôn từ vựng"
+    }
   },
   "plan": {
     "heading": "Gói của bạn",

@@ -45,6 +45,101 @@ interface UserProfile {
   preferred_locale: 'en' | 'vi' | null
 }
 
+interface StudyWeek {
+  minutes_actual: number
+  minutes_goal: number
+  by_feature: { feature: string; count: number; minutes: number }[]
+  week_start: string
+}
+
+function WeeklyProgress({ data }: { data: StudyWeek }) {
+  const { t } = useTranslation('settings')
+  const pct = data.minutes_goal > 0
+    ? Math.min(100, Math.round((data.minutes_actual / data.minutes_goal) * 100))
+    : 0
+
+  // Pace check: how many minutes the user *should* have logged by now
+  // if they were on track (linear daily pace, Mon=day 1).
+  const now = new Date()
+  const day = now.getUTCDay() || 7  // Sun=0 → 7
+  const expected = (data.minutes_goal / 7) * day
+  const onTrack = data.minutes_actual >= expected
+
+  // Bar color tracks distance from goal — clearer than mixing the
+  // pct-bucket and the on-track signal.
+  const barCls = pct >= 80
+    ? 'bg-success'
+    : pct >= 50
+    ? 'bg-warning'
+    : 'bg-muted-fg/40'
+
+  const breakdown = data.by_feature.filter((f) => f.minutes > 0)
+
+  return (
+    <div className="rounded-lg border border-border p-3 space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold text-fg">
+          {t('weeklyProgress.heading')}
+        </h3>
+        <span
+          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+            onTrack
+              ? 'bg-success/10 text-success'
+              : 'bg-warning/10 text-warning'
+          }`}
+        >
+          {onTrack
+            ? t('weeklyProgress.onTrack')
+            : t('weeklyProgress.behind')}
+        </span>
+      </div>
+      <div>
+        <div className="flex justify-between text-xs text-muted-fg mb-1">
+          <span>
+            {t('weeklyProgress.minutesOf', {
+              actual: data.minutes_actual,
+              goal: data.minutes_goal,
+            })}
+          </span>
+          <span>{pct}%</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="h-2 rounded-full bg-surface overflow-hidden"
+        >
+          <div
+            className={`h-full rounded-full ${barCls} transition-all duration-base`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+      {breakdown.length > 0 && (
+        <details className="text-xs text-muted-fg">
+          <summary className="cursor-pointer hover:text-fg">
+            {t('weeklyProgress.perFeature')}
+          </summary>
+          <ul className="mt-2 space-y-1">
+            {breakdown.map((f) => (
+              <li key={f.feature} className="flex justify-between">
+                <span>{t(`weeklyProgress.feature.${f.feature}`)}</span>
+                <span>
+                  {t('weeklyProgress.featureLine', {
+                    count: f.count,
+                    minutes: f.minutes,
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  )
+}
+
 function ThemeToggle() {
   const { t } = useTranslation('settings')
   const { pref, setPref } = useTheme()
@@ -101,6 +196,7 @@ export default function SettingsPage() {
   const [targetBand, setTargetBand] = useState(7.0)
   const [examDate, setExamDate] = useState('')
   const [weeklyGoal, setWeeklyGoal] = useState(150)
+  const [studyWeek, setStudyWeek] = useState<StudyWeek | null>(null)
 
   // Practice-tab state
   const [topics, setTopics] = useState<string[]>([])
@@ -127,6 +223,22 @@ export default function SettingsPage() {
       })
       .catch((e) => setError((e as Error).message))
   }, [])
+
+  // Fetch the weekly study summary lazily when Goals tab is opened.
+  // Re-fetches on tab focus so a cross-device session reflects new
+  // completions without a hard reload.
+  useEffect(() => {
+    if (activeTab !== 'goals') return
+    const load = () => {
+      apiFetch<StudyWeek>('/api/v1/me/study-week')
+        .then(setStudyWeek)
+        .catch(() => {/* widget hides; not worth surfacing as error */})
+    }
+    load()
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [activeTab])
 
   // Persist active tab to hash for deep-linking.
   useEffect(() => {
@@ -302,6 +414,7 @@ export default function SettingsPage() {
               role="tabpanel"
               className="rounded-xl border border-border bg-surface-raised p-4 space-y-4"
             >
+              {studyWeek && <WeeklyProgress data={studyWeek} />}
               <div>
                 <label htmlFor="goals-band" className="text-sm font-semibold text-fg block mb-1">
                   {t('goals.targetBand')}: <span className="text-primary">{targetBand.toFixed(1)}</span>
@@ -467,11 +580,21 @@ export default function SettingsPage() {
                   type="time"
                   value={dailyTime}
                   onChange={(e) => setDailyTime(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none"
+                  disabled={!isLinked}
+                  className="px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-                <p className="text-xs text-muted-fg mt-1">
-                  {t('practice.dailyTimeHint', { tz: timezone })}
-                </p>
+                {isLinked ? (
+                  <p className="text-xs text-muted-fg mt-1">
+                    {t('practice.dailyTimeHint', { tz: timezone })}
+                  </p>
+                ) : (
+                  <Link
+                    to="/settings/link-telegram"
+                    className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-primary hover:underline"
+                  >
+                    {t('practice.reminderLinkCta')} →
+                  </Link>
+                )}
               </div>
 
               {/* topics chips auto-save on add/remove. The Save button
