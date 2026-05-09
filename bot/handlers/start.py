@@ -42,12 +42,38 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if user already exists
     existing = firebase_service.get_user(user.id)
     if existing:
+        # Existing user re-running /start. Whether they're in DM or in
+        # a group, send the welcome-back card. But if they're running
+        # this *in a group*, also re-bind their group_id to that chat
+        # — otherwise web `/settings/groups` won't see them as a member
+        # (US-#227 / #230 follow-up). Without this, a DM-registered
+        # user who joins a group later has group_id=NULL forever.
+        in_group = chat.type in ("group", "supergroup")
+        joined_msg = ""
+        if in_group:
+            existing_group = firebase_service.get_group_settings(chat.id)
+            if existing_group is None:
+                # Group not seen by the bot yet — create it and stamp
+                # this user as owner.
+                firebase_service.create_group(
+                    chat.id, owner_telegram_id=user.id,
+                )
+            elif existing_group.get("owner_telegram_id") is None:
+                # Legacy group with no owner — backfill on first
+                # /start by any member.
+                firebase_service.update_group_settings(
+                    chat.id, {"owner_telegram_id": int(user.id)},
+                )
+            current_group_id = existing.get("group_id")
+            if current_group_id != chat.id:
+                firebase_service.update_user(user.id, {"group_id": chat.id})
+                joined_msg = "\n\n\U0001f44b *Added you to this group.*"
         await update.message.reply_text(
             f"Welcome back, *{user.first_name}*! \U0001f44b\n\n"
             f"Target Band: *{existing.get('target_band', 7.0)}*\n"
             f"Words learned: *{existing.get('total_words', 0)}*\n"
             f"Streak: *{existing.get('streak', 0)} days*\n\n"
-            f"Use /help to see all commands.",
+            f"Use /help to see all commands.{joined_msg}",
             parse_mode="Markdown"
         )
         return ConversationHandler.END
