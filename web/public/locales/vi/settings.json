@@ -12,6 +12,14 @@
     "english": "English",
     "vietnamese": "Tiếng Việt"
   },
+  "tabs": {
+    "ariaLabel": "Mục cài đặt",
+    "profile": "Hồ sơ",
+    "goals": "Mục tiêu",
+    "practice": "Luyện tập",
+    "plan": "Gói",
+    "privacy": "Quyền riêng tư"
+  },
   "examDate": {
     "label": "Ngày thi IELTS",
     "daysLeft": "Còn {count} ngày nữa.",
@@ -27,6 +35,35 @@
     "name": "Tên",
     "email": "Email",
     "targetBand": "Band mục tiêu",
-    "streak": "Streak"
+    "streak": "Streak",
+    "timezone": "Múi giờ"
+  },
+  "goals": {
+    "targetBand": "Band mục tiêu"
+  },
+  "practice": {
+    "topics": "Chủ đề",
+    "topicsHint": "Tối đa 5 chủ đề. AI sẽ tạo vocab và đề writing theo các chủ đề này.",
+    "topicsFull": "Tối đa 5 chủ đề — xoá bớt 1 để thêm chủ đề mới.",
+    "topicsPlaceholder": "Thêm chủ đề (vd: environment)",
+    "removeTopic": "Xoá chủ đề {topic}",
+    "dailyTime": "Giờ nhắc nhở hàng ngày",
+    "dailyTimeHint": "Bot Telegram sẽ DM bạn lúc này ({tz}).",
+    "synced": "Đã đồng bộ với Bot",
+    "notLinked": "Liên kết Telegram để đồng bộ →"
+  },
+  "plan": {
+    "heading": "Gói của bạn",
+    "subtitle": "Quản lý gói đăng ký và mức sử dụng AI.",
+    "upgrade": "Nâng cấp lên Pro",
+    "tier": {
+      "free": "Free",
+      "pro": "Pro",
+      "team": "Team",
+      "org": "Org"
+    }
+  },
+  "privacy": {
+    "deferNote": "Xuất dữ liệu và xoá tài khoản sẽ có sớm. Liên hệ support nếu bạn cần ngay hôm nay."
   }
 }

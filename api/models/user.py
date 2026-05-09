@@ -41,6 +41,11 @@ class UserProfile(BaseModel):
     org_id: str | None = None
     quota_override: int | None = None
 
+    # US-M14.1: scheduling fields surfaced for /settings Practice tab.
+    # `daily_time` is local clock string `HH:MM`; `timezone` is IANA.
+    daily_time: str | None = None
+    timezone: str | None = None
+
 
 class AiUsageFeaturePoint(BaseModel):
     """One feature's count in today's per-user usage breakdown."""
@@ -81,6 +86,17 @@ class UserUpdate(BaseModel):
     )
     weekly_goal_minutes: int | None = Field(default=None, ge=30, le=2000)
     preferred_locale: Locale | None = None
+    # US-M14.1: editable from /settings Practice tab.
+    daily_time: str | None = Field(
+        default=None,
+        pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
+        description="HH:MM 24-hour local time, or empty string to clear",
+    )
+    timezone: str | None = Field(
+        default=None,
+        max_length=64,
+        description="IANA timezone, e.g. Asia/Ho_Chi_Minh",
+    )
 
 
 # ─── US-M12.2 token deep-link models ─────────────────────────────────

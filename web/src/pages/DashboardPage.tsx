@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '../lib/api'
+import { auth } from '../lib/firebase'
 import { DailyPlan } from '../lib/plan'
 import type { ProgressResponse } from '../lib/progress'
 import AiUsageWidget from '../components/AiUsageWidget'
@@ -36,10 +37,19 @@ async function getOrCreateProfile(): Promise<UserProfile> {
   try {
     return await apiFetch<UserProfile>('/api/v1/me')
   } catch {
+    // US-M14.1: don't hardcode "IELTS Learner". Backend prefers the
+    // Firebase token's `name` claim (Google SSO), so any value sent
+    // from here is a soft fallback the server overrides when it sees
+    // a placeholder. Try displayName first, then email local-part.
+    const fbUser = auth.currentUser
+    const fallbackName =
+      fbUser?.displayName?.trim() ||
+      fbUser?.email?.split('@')[0] ||
+      'Learner'
     return await apiFetch<UserProfile>('/api/v1/users', {
       method: 'POST',
       body: JSON.stringify({
-        name: 'IELTS Learner',
+        name: fallbackName,
         target_band: 7.0,
         topics: ['education', 'environment', 'technology'],
       }),

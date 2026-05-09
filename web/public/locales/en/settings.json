@@ -12,9 +12,17 @@
     "english": "English",
     "vietnamese": "Tiếng Việt"
   },
+  "tabs": {
+    "ariaLabel": "Settings sections",
+    "profile": "Profile",
+    "goals": "Goals",
+    "practice": "Practice",
+    "plan": "Plan",
+    "privacy": "Privacy"
+  },
   "examDate": {
     "label": "IELTS exam date",
-    "daysLeft": "{count, plural, one {# day} other {# days}} to go.{urgent, select, true {} other {}}",
+    "daysLeft": "{count, plural, one {# day} other {# days}} to go.",
     "urgentSuffix": " Your plan will intensify.",
     "past": "The date has passed.",
     "clear": "Clear exam date"
@@ -27,6 +35,35 @@
     "name": "Name",
     "email": "Email",
     "targetBand": "Target band",
-    "streak": "Streak"
+    "streak": "Streak",
+    "timezone": "Timezone"
+  },
+  "goals": {
+    "targetBand": "Target band"
+  },
+  "practice": {
+    "topics": "Topics",
+    "topicsHint": "Up to 5 topics. The AI tailors vocab and writing prompts to these.",
+    "topicsFull": "5 topics maximum — remove one to add another.",
+    "topicsPlaceholder": "Add a topic (e.g. environment)",
+    "removeTopic": "Remove topic {topic}",
+    "dailyTime": "Daily reminder time",
+    "dailyTimeHint": "Telegram bot will DM you at this time ({tz}).",
+    "synced": "Synced ⇄ Bot",
+    "notLinked": "Link Telegram to sync →"
+  },
+  "plan": {
+    "heading": "Your plan",
+    "subtitle": "Manage your subscription and AI usage.",
+    "upgrade": "Upgrade to Pro",
+    "tier": {
+      "free": "Free",
+      "pro": "Pro",
+      "team": "Team",
+      "org": "Org"
+    }
+  },
+  "privacy": {
+    "deferNote": "Data export and account deletion are coming soon. Contact support if you need them today."
   }
 }
