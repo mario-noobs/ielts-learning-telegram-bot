@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Badge, Button } from '../../components/ui'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
+import LogoMark from '../../components/brand/LogoMark'
 import { track } from '../../lib/analytics'
 
 const SOCIAL_PROOF_COUNT = 2000
@@ -31,6 +32,7 @@ export default function Hero() {
         className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-6"
       >
         <Link to="/" className="flex items-center gap-2 text-lg font-bold text-fg">
+          <LogoMark size="sm" />
           {t('common:brand.name')}
           <Badge variant="primary" aria-label={t('common:auth.brandBetaLabel')}>
             {t('common:brand.beta')}

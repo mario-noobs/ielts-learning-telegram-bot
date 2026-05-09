@@ -4,6 +4,7 @@ import { useAuth, useProfile } from '../contexts/AuthContext'
 import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
+import LogoMark from './brand/LogoMark'
 import QuotaExceededModal from './QuotaExceededModal'
 import UpgradeBanner from './UpgradeBanner'
 
@@ -59,8 +60,12 @@ export default function AppShell() {
           aria-label={t('nav.mainNav')}
           className="hidden md:flex md:flex-col md:w-20 lg:w-60 md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0"
         >
-          <div className="hidden lg:block px-3 py-2 mb-2">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-2">
+            <LogoMark size="sm" />
             <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
+          </div>
+          <div className="hidden md:flex lg:hidden items-center justify-center px-2 py-2 mb-2">
+            <LogoMark size="sm" />
           </div>
           <ul className="flex-1 space-y-1">
             {tabs.map((tab) => {

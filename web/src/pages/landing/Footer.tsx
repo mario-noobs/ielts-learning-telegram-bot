@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
+import LogoMark from '../../components/brand/LogoMark'
 
 type NavLink = {
   label: string
@@ -97,7 +98,8 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <Link to="/" className="text-lg font-bold text-fg">
+            <Link to="/" className="flex items-center gap-2 text-lg font-bold text-fg">
+              <LogoMark size="sm" />
               IELTS Coach
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-fg">
