@@ -31,7 +31,10 @@
       "dailyCalls": "{n} AI calls per day",
       "monthlyCalls": "{n} AI calls per month",
       "maxSeats": "Up to {n} seats",
-      "coachReview": "Personal coach review 2×/month"
+      "coachReview": "Personal coach review 2×/month",
+      "modelFast": "Fast AI feedback on every task",
+      "modelPremium": "Premium AI grader — closer to a human examiner",
+      "modelPremiumSeats": "Premium AI grader for every seat"
     },
     "tiers": {
       "free": {

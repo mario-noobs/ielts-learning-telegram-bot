@@ -106,7 +106,19 @@ export default function Pricing() {
               ? t('pricing.cadenceYearly')
               : t('pricing.cadenceMonthly')
 
+            // US-#221: lead with the model-quality differentiator —
+            // "premium AI grader" is the headline value of upgrading.
+            // Free advertises "fast" (Llama 3.1 8B is genuinely faster
+            // than 70B); paid tiers advertise "premium" + per-seat
+            // variant for Team/Org.
+            const modelLineKey =
+              tc.tier === 'free'
+                ? 'pricing.features.modelFast'
+                : (tc.tier === 'team' || tc.tier === 'org')
+                  ? 'pricing.features.modelPremiumSeats'
+                  : 'pricing.features.modelPremium'
             const features: string[] = [
+              t(modelLineKey),
               t('pricing.features.dailyCalls', { n: quota.daily }),
               t('pricing.features.monthlyCalls', { n: quota.monthly }),
             ]

@@ -31,7 +31,10 @@
       "dailyCalls": "{n} lượt AI mỗi ngày",
       "monthlyCalls": "{n} lượt AI mỗi tháng",
       "maxSeats": "Tối đa {n} thành viên",
-      "coachReview": "Coach review cá nhân 2 lần/tháng"
+      "coachReview": "Coach review cá nhân 2 lần/tháng",
+      "modelFast": "Phản hồi AI nhanh cho mọi bài tập",
+      "modelPremium": "AI grader cao cấp — gần với giám khảo thật",
+      "modelPremiumSeats": "AI grader cao cấp cho mọi seat"
     },
     "tiers": {
       "free": {
