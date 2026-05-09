@@ -328,8 +328,17 @@ async def challenge_answer_callback(update: Update,
 
     is_correct = (chosen_text.strip().lower() == correct_answer_text.strip().lower())
 
-    # Persist to Firestore
-    firebase_service.save_challenge_answer(group_id, date_str, user.id, q_idx, is_correct)
+    # Persist to Firestore. Pass the Telegram-side display name so the
+    # results post can attribute the score even when the user never
+    # /start'd the bot in DM (no PG profile row).
+    display_name = (
+        (user.first_name or "").strip()
+        or (f"@{user.username}" if user.username else None)
+    )
+    firebase_service.save_challenge_answer(
+        group_id, date_str, user.id, q_idx, is_correct,
+        display_name=display_name,
+    )
 
     explanation = q.get("explanation", "")
 
