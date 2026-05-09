@@ -39,7 +39,7 @@ EXAM_URGENT_DAYS = 7
 
 class SubTask(TypedDict, total=False):
     id: str
-    label_key: str  # i18n key under `dashboard.readinessTrack.subTasks.{id}`
+    label_key: str  # i18n key under `readinessTrack.subTasks.{id}`
     href: str
     done: bool
 
@@ -47,7 +47,7 @@ class SubTask(TypedDict, total=False):
 class Step(TypedDict):
     id: StepId
     status: Status
-    title_key: str  # i18n key under `dashboard.readinessTrack.steps.{id}.title`
+    title_key: str  # i18n key under `readinessTrack.steps.{id}.title`
     rationale_key: str  # i18n key (keys: free-form via params)
     rationale_params: dict
     sub_tasks: list[SubTask]
@@ -108,13 +108,13 @@ def _step_goal(user: dict) -> Step:
     sub_tasks: list[SubTask] = [
         {
             "id": "target_band",
-            "label_key": "dashboard.readinessTrack.subTasks.target_band",
+            "label_key": "readinessTrack.subTasks.target_band",
             "href": "/settings#target-band",
             "done": has_band,
         },
         {
             "id": "exam_date",
-            "label_key": "dashboard.readinessTrack.subTasks.exam_date",
+            "label_key": "readinessTrack.subTasks.exam_date",
             "href": "/settings#exam-date",
             "done": has_exam,
         },
@@ -122,8 +122,8 @@ def _step_goal(user: dict) -> Step:
     return {
         "id": "goal",
         "status": "done" if done else "active",
-        "title_key": "dashboard.readinessTrack.steps.goal.title",
-        "rationale_key": "dashboard.readinessTrack.steps.goal.rationale",
+        "title_key": "readinessTrack.steps.goal.title",
+        "rationale_key": "readinessTrack.steps.goal.rationale",
         "rationale_params": {},
         "sub_tasks": sub_tasks,
     }
@@ -142,13 +142,13 @@ def _step_daily_plan(user: dict, prev_done: bool) -> Step:
     sub_tasks: list[SubTask] = [
         {
             "id": "weekly_goal",
-            "label_key": "dashboard.readinessTrack.subTasks.weekly_goal",
+            "label_key": "readinessTrack.subTasks.weekly_goal",
             "href": "/settings#weekly-goal",
             "done": weekly_goal > 0,
         },
         {
             "id": "daily_time",
-            "label_key": "dashboard.readinessTrack.subTasks.daily_time",
+            "label_key": "readinessTrack.subTasks.daily_time",
             "href": "/settings#daily-time",
             "done": bool(user.get("daily_time")),
         },
@@ -156,8 +156,8 @@ def _step_daily_plan(user: dict, prev_done: bool) -> Step:
     return {
         "id": "daily_plan",
         "status": status,
-        "title_key": "dashboard.readinessTrack.steps.daily_plan.title",
-        "rationale_key": "dashboard.readinessTrack.steps.daily_plan.rationale",
+        "title_key": "readinessTrack.steps.daily_plan.title",
+        "rationale_key": "readinessTrack.steps.daily_plan.rationale",
         "rationale_params": {"min": weekly_goal // 7 if weekly_goal else 20},
         "sub_tasks": sub_tasks,
     }
@@ -176,8 +176,8 @@ def _step_skills(user: dict, progress: dict, prev_done: bool) -> Step:
     return {
         "id": "skills",
         "status": status,
-        "title_key": "dashboard.readinessTrack.steps.skills.title",
-        "rationale_key": "dashboard.readinessTrack.steps.skills.rationale",
+        "title_key": "readinessTrack.steps.skills.title",
+        "rationale_key": "readinessTrack.steps.skills.rationale",
         "rationale_params": {"done": at_target, "total": 4, "target": target},
         # Sub-tasks here are the 4 skill cards themselves — frontend
         # nests SkillBandCard components per AC1, so we don't echo
@@ -199,8 +199,8 @@ def _step_mock_test(user: dict, progress: dict, days_until: Optional[int]) -> St
         return {
             "id": "mock_test",
             "status": "locked",
-            "title_key": "dashboard.readinessTrack.steps.mock_test.title",
-            "rationale_key": "dashboard.readinessTrack.steps.mock_test.locked_no_date",
+            "title_key": "readinessTrack.steps.mock_test.title",
+            "rationale_key": "readinessTrack.steps.mock_test.locked_no_date",
             "rationale_params": {},
             "sub_tasks": [],
         }
@@ -208,8 +208,8 @@ def _step_mock_test(user: dict, progress: dict, days_until: Optional[int]) -> St
         return {
             "id": "mock_test",
             "status": "locked",
-            "title_key": "dashboard.readinessTrack.steps.mock_test.title",
-            "rationale_key": "dashboard.readinessTrack.steps.mock_test.locked",
+            "title_key": "readinessTrack.steps.mock_test.title",
+            "rationale_key": "readinessTrack.steps.mock_test.locked",
             "rationale_params": {"days": MOCK_TEST_UNLOCK_DAYS},
             "sub_tasks": [],
         }
@@ -217,16 +217,16 @@ def _step_mock_test(user: dict, progress: dict, days_until: Optional[int]) -> St
         return {
             "id": "mock_test",
             "status": "done",
-            "title_key": "dashboard.readinessTrack.steps.mock_test.title",
-            "rationale_key": "dashboard.readinessTrack.steps.mock_test.past",
+            "title_key": "readinessTrack.steps.mock_test.title",
+            "rationale_key": "readinessTrack.steps.mock_test.past",
             "rationale_params": {},
             "sub_tasks": [],
         }
     return {
         "id": "mock_test",
         "status": "active",
-        "title_key": "dashboard.readinessTrack.steps.mock_test.title",
-        "rationale_key": "dashboard.readinessTrack.steps.mock_test.rationale",
+        "title_key": "readinessTrack.steps.mock_test.title",
+        "rationale_key": "readinessTrack.steps.mock_test.rationale",
         "rationale_params": {"days": days_until},
         "sub_tasks": [],
     }
