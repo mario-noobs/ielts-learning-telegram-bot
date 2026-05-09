@@ -49,6 +49,9 @@ describe('<SettingsPage>', () => {
   beforeEach(() => {
     apiFetchMock.mockReset()
     apiFetchMock.mockResolvedValue(PROFILE)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', '/settings')
+    }
   })
 
   it('renders Profile tab by default with name + email + timezone fields', async () => {
@@ -74,7 +77,7 @@ describe('<SettingsPage>', () => {
     renderPage()
     await waitFor(() => screen.getByDisplayValue('Mario Bùi'))
     await userEvent.click(screen.getByRole('tab', { name: 'tabs.plan' }))
-    expect(screen.getByText('plan.tier.free')).toBeInTheDocument()
+    expect(screen.getByText('plan.badge.free')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'plan.upgrade' })).toBeInTheDocument()
   })
 })

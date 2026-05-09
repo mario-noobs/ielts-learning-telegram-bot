@@ -55,13 +55,7 @@
   "plan": {
     "heading": "Gói của bạn",
     "subtitle": "Quản lý gói đăng ký và mức sử dụng AI.",
-    "upgrade": "Nâng cấp lên Pro",
-    "tier": {
-      "free": "Free",
-      "pro": "Pro",
-      "team": "Team",
-      "org": "Org"
-    }
+    "upgrade": "Nâng cấp lên Pro"
   },
   "privacy": {
     "deferNote": "Xuất dữ liệu và xoá tài khoản sẽ có sớm. Liên hệ support nếu bạn cần ngay hôm nay."

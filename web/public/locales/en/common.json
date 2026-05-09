@@ -56,6 +56,19 @@
       "writing": "Writing",
       "listening": "Listening",
       "reading": "Reading"
+    },
+    "sidebar": {
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar"
+    }
+  },
+  "plan": {
+    "badge": {
+      "free": "Free",
+      "pro": "Pro",
+      "team": "Team",
+      "org": "Org",
+      "upgrade": "Upgrade"
     }
   },
   "auth": {

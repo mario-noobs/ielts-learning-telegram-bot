@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useProfile } from '../contexts/AuthContext'
@@ -5,8 +6,11 @@ import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
 import LogoMark from './brand/LogoMark'
+import PlanBadge from './PlanBadge'
 import QuotaExceededModal from './QuotaExceededModal'
 import UpgradeBanner from './UpgradeBanner'
+
+const SIDEBAR_COLLAPSED_KEY = 'ui.sidebar.collapsed'
 
 interface Tab {
   to: string
@@ -71,9 +75,25 @@ export default function AppShell() {
   const profile = useProfile()
   useProfileLocaleSync(!!user)
 
+  // Sidebar collapse — only takes effect at lg+ where the rail is wide
+  // (md is already icon-only). Persisted across reloads.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0')
+  }, [collapsed])
+
   const tabs = TABS
   const showAdminEntry =
     profile?.role !== undefined && ADMIN_ROLES.includes(profile.role)
+  const planId = profile?.plan ?? 'free'
+
+  // Width + label visibility — when collapsed, force icon-only on lg too.
+  const railWidthCls = collapsed ? 'md:w-20' : 'md:w-20 lg:w-60'
+  const showLabels = !collapsed
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -88,13 +108,15 @@ export default function AppShell() {
         {/* Desktop side rail (≥md) */}
         <nav
           aria-label={t('nav.mainNav')}
-          className="hidden md:flex md:flex-col md:w-20 lg:w-60 md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0"
+          className={`hidden md:flex md:flex-col ${railWidthCls} md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0`}
         >
-          <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-2">
-            <LogoMark size="sm" />
-            <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
-          </div>
-          <div className="hidden md:flex lg:hidden items-center justify-center px-2 py-2 mb-2">
+          {showLabels ? (
+            <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-2">
+              <LogoMark size="sm" />
+              <p className="text-lg font-bold text-primary">{t('brand.name')}</p>
+            </div>
+          ) : null}
+          <div className={`flex items-center justify-center px-2 py-2 mb-2 ${showLabels ? 'lg:hidden' : ''}`}>
             <LogoMark size="sm" />
           </div>
           <ul className="flex-1 space-y-1">
@@ -105,6 +127,7 @@ export default function AppShell() {
                   <NavLink
                     to={tab.to}
                     aria-current={active ? 'page' : undefined}
+                    title={collapsed ? t(tab.labelKey) : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-fast ${
                       active
                         ? 'bg-primary/10 text-primary'
@@ -112,32 +135,65 @@ export default function AppShell() {
                     }`}
                   >
                     <Icon name={tab.icon} size="lg" variant={active ? 'primary' : 'muted'} />
-                    <span className="hidden lg:inline font-medium">{t(tab.labelKey)}</span>
+                    {showLabels && (
+                      <span className="hidden lg:inline font-medium">{t(tab.labelKey)}</span>
+                    )}
                   </NavLink>
                 </li>
               )
             })}
           </ul>
-          {/* Account-level controls — Admin entry sits directly above
-              Sign Out (US-M11.6), visually separated from learner tabs. */}
+          {/* Account-level controls — Plan badge → Admin → Sign out → Collapse.
+              Plan badge is always visible (compact letter chip when collapsed,
+              full pill + Upgrade CTA for free users when expanded). */}
           <div className="border-t border-border pt-2 mt-2 space-y-1">
+            {/* Full pill + Upgrade CTA — only at lg when expanded. */}
+            {!collapsed && (
+              <div className="hidden lg:flex px-3 py-2">
+                <PlanBadge plan={planId} />
+              </div>
+            )}
+            {/* Compact letter chip — at md always, at lg when collapsed. */}
+            <div
+              className={`flex justify-center px-2 py-2 ${
+                collapsed ? '' : 'lg:hidden'
+              }`}
+            >
+              <PlanBadge plan={planId} compact />
+            </div>
             {showAdminEntry && (
               <NavLink
                 to="/admin"
+                title={collapsed ? t('nav.tabs.admin') : undefined}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-primary transition-colors duration-fast"
               >
                 <Icon name="ShieldCheck" size="lg" variant="muted" />
-                <span className="hidden lg:inline font-medium">
-                  {t('nav.tabs.admin')}
-                </span>
+                {showLabels && (
+                  <span className="hidden lg:inline font-medium">
+                    {t('nav.tabs.admin')}
+                  </span>
+                )}
               </NavLink>
             )}
             <button
               onClick={logout}
-              className="hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors duration-fast"
+              title={collapsed ? t('nav.signOut') : undefined}
+              className={`w-full items-center gap-3 px-3 py-2.5 rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors duration-fast ${
+                collapsed ? 'flex justify-center' : 'hidden lg:flex'
+              }`}
             >
               <Icon name="LogOut" size="lg" variant="muted" />
-              <span>{t('nav.signOut')}</span>
+              {showLabels && <span className="hidden lg:inline">{t('nav.signOut')}</span>}
+            </button>
+            {/* Collapse toggle — only shown ≥lg where the wide rail exists. */}
+            <button
+              type="button"
+              onClick={() => setCollapsed((c) => !c)}
+              aria-label={collapsed ? t('nav.sidebar.expand') : t('nav.sidebar.collapse')}
+              aria-pressed={collapsed}
+              className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-muted-fg hover:bg-surface hover:text-fg transition-colors duration-fast"
+            >
+              <Icon name={collapsed ? 'ChevronRight' : 'ChevronLeft'} size="md" variant="muted" />
             </button>
           </div>
         </nav>
