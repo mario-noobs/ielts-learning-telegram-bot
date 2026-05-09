@@ -1,11 +1,98 @@
 import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 import config
 from services import ai_service, firebase_service
 from services.ai_service import BackgroundDisabled, RateLimitError
 
 logger = logging.getLogger(__name__)
+
+
+# US-#231 — manual mastery override.
+#
+# Each tier maps to an SRS interval target (days) + reps count. Manual
+# override re-initialises SRS state so the user's quiz history continues
+# from the chosen tier. Choosing a tier whose interval is *higher* than
+# the current state preserves the current state — we never roll back
+# real quiz progress just because the user clicked a chip. Choosing
+# *lower* (e.g. user explicitly resets a Mastered word to Weak) does
+# apply, since that's an intentional act.
+StrengthLiteral = Literal["Weak", "Learning", "Good", "Mastered"]
+
+STRENGTH_TARGETS: dict[StrengthLiteral, dict] = {
+    "Weak":     {"srs_interval": 1,  "srs_reps": 0},
+    "Learning": {"srs_interval": 5,  "srs_reps": 1},
+    "Good":     {"srs_interval": 14, "srs_reps": 3},
+    "Mastered": {"srs_interval": 30, "srs_reps": 5},
+}
+
+# Order used to compare "is the chosen tier higher than current?"
+_STRENGTH_RANK: dict[str, int] = {
+    "New": 0, "Weak": 1, "Learning": 2, "Good": 3, "Mastered": 4,
+}
+
+
+def _current_strength(word_data: dict) -> str:
+    """Mirror of services.srs_service.get_word_strength — kept here to
+    avoid a circular import if srs_service ever depends on word_service."""
+    reps = int(word_data.get("srs_reps") or 0)
+    interval = int(word_data.get("srs_interval") or 1)
+    if reps == 0:
+        return "New"
+    if interval <= 1:
+        return "Weak"
+    if interval <= 7:
+        return "Learning"
+    if interval <= 30:
+        return "Good"
+    return "Mastered"
+
+
+def set_word_strength_manual(
+    telegram_id: int, word_id: str, target: StrengthLiteral,
+) -> dict:
+    """Apply a manual strength override (US-#231).
+
+    Returns the updated word dict. Raises ``ValueError`` if the word
+    doesn't exist for this user.
+
+    Behaviour:
+      - target=Weak/Learning/Good: only writes when the new tier is
+        ≥ current tier (no accidental regression of quiz progress).
+        Exception: target=Weak overrides regardless — user explicitly
+        wants to reset.
+      - target=Mastered: writes if current tier < Mastered. If user
+        already reached Mastered through quizzing (e.g. interval=60d),
+        we keep the larger interval — clicking Mastered is a no-op.
+      - Always updates ``srs_next_review`` to ``now + interval days``
+        so the SRS engine schedules the word correctly going forward.
+    """
+    word = firebase_service.get_word_by_id(telegram_id, word_id)
+    if not word:
+        raise ValueError(f"Word {word_id} not found for user {telegram_id}")
+
+    current = _current_strength(word)
+    target_rank = _STRENGTH_RANK[target]
+    current_rank = _STRENGTH_RANK[current]
+
+    # The "don't roll back" rule: only Weak target is allowed to lower
+    # the rank. Other downward transitions are no-ops.
+    if target_rank < current_rank and target != "Weak":
+        return word
+
+    targets = STRENGTH_TARGETS[target]
+    now = datetime.now(timezone.utc)
+    next_review = now + timedelta(days=targets["srs_interval"])
+
+    update = {
+        "srs_interval": targets["srs_interval"],
+        "srs_reps": targets["srs_reps"],
+        "srs_next_review": next_review,
+    }
+    firebase_service.update_word_srs(telegram_id, word_id, update)
+    return {**word, **update}
 
 
 def normalize_word(raw: str) -> str:
