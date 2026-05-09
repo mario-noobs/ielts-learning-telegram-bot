@@ -189,14 +189,23 @@ export default function SettingsPage() {
     }
   }
 
-  const addTopic = () => {
+  // Auto-save on add/remove: chip-mutations are deterministic single
+  // actions, so persist immediately instead of stranding the change
+  // until the user finds the bottom Save button.
+  const addTopic = async () => {
     const v = topicDraft.trim().toLowerCase()
     if (!v || topics.includes(v) || topics.length >= 5) return
-    setTopics([...topics, v])
+    const next = [...topics, v]
+    setTopics(next)
     setTopicDraft('')
+    await save({ topics: next })
   }
 
-  const removeTopic = (t: string) => setTopics(topics.filter((x) => x !== t))
+  const removeTopic = async (t: string) => {
+    const next = topics.filter((x) => x !== t)
+    setTopics(next)
+    await save({ topics: next })
+  }
 
   const isLinked = !!profile && profile.id && !profile.id.startsWith('web_')
 
@@ -477,13 +486,10 @@ export default function SettingsPage() {
                 </p>
               </div>
 
+              {/* topics chips auto-save on add/remove. The Save button
+                  on this tab persists daily_time only. */}
               <button
-                onClick={() =>
-                  save({
-                    topics,
-                    daily_time: dailyTime || '',
-                  })
-                }
+                onClick={() => save({ daily_time: dailyTime || '' })}
                 disabled={saving}
                 className="w-full py-2 bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
               >
