@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
 import { apiFetch } from '../../lib/api'
+import { localizeError } from '../../lib/apiError'
 
 interface GroupDetail {
   id: string
@@ -60,7 +61,7 @@ export default function GroupDetailPage() {
         setQuestionCount(g.challenge_question_count)
         setDeadlineMin(g.challenge_deadline_minutes)
       })
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [id])
 
   useEffect(() => {
@@ -133,7 +134,7 @@ export default function GroupDetailPage() {
       setGroup(updated)
       setSaved(true)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSaving(false)
     }

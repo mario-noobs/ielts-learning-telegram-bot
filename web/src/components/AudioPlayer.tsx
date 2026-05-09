@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
 import { fetchListeningAudioUrl, formatDuration } from '../lib/listening'
+import { localizeError } from '../lib/apiError'
 
 const SPEEDS = [0.75, 1.0, 1.25, 1.5] as const
 
@@ -22,7 +23,7 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
         if (!cancelled) setObjectUrl(url)
       })
       .catch((e) => {
-        if (!cancelled) setError((e as Error).message)
+        if (!cancelled) setError(localizeError(e))
       })
     return () => {
       cancelled = true

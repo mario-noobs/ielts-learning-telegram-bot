@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import { auth } from '../lib/firebase'
 import { DailyPlan } from '../lib/plan'
 import type { ProgressResponse } from '../lib/progress'
@@ -68,13 +69,13 @@ export default function DashboardPage() {
   const loadProfile = useCallback(() => {
     getOrCreateProfile()
       .then(setProfile)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   const loadPlan = useCallback(() => {
     apiFetch<DailyPlan>('/api/v1/plan/today')
       .then(setPlan)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   const loadProgress = useCallback(() => {
@@ -99,7 +100,7 @@ export default function DashboardPage() {
       )
       setPlan(updated)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setBusyId(null)
     }

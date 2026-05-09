@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import AudioPlayer from '../components/AudioPlayer'
 import Icon from '../components/Icon'
 import DictationExercise from '../components/DictationExercise'
@@ -24,7 +25,7 @@ export default function ListeningExercisePage() {
     if (!id) return
     apiFetch<ListeningExerciseView>(`/api/v1/listening/${id}`)
       .then(setExercise)
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [id])
 
   if (error) {

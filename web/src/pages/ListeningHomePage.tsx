@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import {
   EXERCISE_ICONS,
   ListeningExerciseView,
@@ -44,7 +45,7 @@ export default function ListeningHomePage() {
       )
       navigate(`/listening/${res.id}`)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setStarting(null)
     }

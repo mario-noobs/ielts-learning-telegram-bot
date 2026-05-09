@@ -54,6 +54,20 @@ export class ApiError extends Error {
 }
 
 /**
+ * Resolve any caught error into the user-facing prose.
+ *
+ * Replaces the `(e as Error).message` pattern that scattered throughout
+ * page-level catch blocks. Without this helper, an `ApiError`'s
+ * `.message` returns the raw server code (`common.upstream_error`),
+ * which leaks into UI banners. Always route catches through here.
+ */
+export function localizeError(e: unknown): string {
+  if (e instanceof ApiError) return e.localize()
+  if (e instanceof Error) return e.message
+  return String(e)
+}
+
+/**
  * Accepts either the new `{error: {code,...}}` shape or the legacy
  * `{error: {code, message}}` / plain-text / no-body cases, and returns
  * an ApiError. Preserves the original message in `params.message` when

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
+import { localizeError } from '../lib/apiError'
 import {
   BAND_TIERS,
   PassageSummary,
@@ -19,7 +20,7 @@ export default function ReadingHomePage() {
   useEffect(() => {
     listPassages({ band: band ?? undefined, topic: topic || undefined })
       .then((r) => setItems(r.items))
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [band, topic])
 
   const topics = useMemo(() => {

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import { EXERCISE_ICONS, ListeningHistoryItem } from '../lib/listening'
 
 function formatDate(iso: string | null, lang: string): string {
@@ -28,7 +29,7 @@ export default function ListeningHistoryPage() {
   useEffect(() => {
     apiFetch<{ items: ListeningHistoryItem[] }>('/api/v1/listening/history')
       .then((r) => setItems(r.items))
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   return (

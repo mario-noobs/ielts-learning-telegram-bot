@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon, { IconName } from './Icon'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 
 interface CoachingTip {
   id: string
@@ -38,7 +39,7 @@ export default function CoachingPanel() {
   useEffect(() => {
     apiFetch<RecommendationsResponse>('/api/v1/progress/recommendations')
       .then(setData)
-      .catch((e) => setError((e as Error).message))
+      .catch((e) => setError(localizeError(e)))
   }, [])
 
   const isVi = i18n.language.startsWith('vi')

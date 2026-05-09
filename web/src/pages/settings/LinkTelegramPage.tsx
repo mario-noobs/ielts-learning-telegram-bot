@@ -6,7 +6,7 @@ import GroupJoinCTA from '../../components/GroupJoinCTA'
 import Icon from '../../components/Icon'
 import TelegramIcon from '../../components/icons/Telegram'
 import { useAuth } from '../../contexts/AuthContext'
-import { ApiError } from '../../lib/apiError'
+import { localizeError } from '../../lib/apiError'
 import { startLink, unlinkTelegram } from '../../lib/link'
 
 /**
@@ -99,7 +99,7 @@ function NotLinkedState() {
       const res = await startLink()
       window.location.href = res.bot_deep_link
     } catch (e) {
-      const message = e instanceof ApiError ? e.localize() : (e as Error).message
+      const message = localizeError(e)
       setError(message)
     } finally {
       setBusy(false)
@@ -157,7 +157,7 @@ function LinkedState({ onChanged }: { onChanged: () => Promise<void> }) {
       await onChanged()
       setConfirmOpen(false)
     } catch (e) {
-      const message = e instanceof ApiError ? e.localize() : (e as Error).message
+      const message = localizeError(e)
       setError(message)
     } finally {
       setBusy(false)

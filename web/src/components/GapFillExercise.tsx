@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { localizeError } from '../lib/apiError'
 import {
   GapFillResultItem,
   ListeningExerciseResult,
@@ -60,7 +61,7 @@ export default function GapFillExercise({ exercise, onSubmitted }: Props) {
       setResult(res)
       onSubmitted?.(res)
     } catch (e) {
-      setError((e as Error).message)
+      setError(localizeError(e))
     } finally {
       setSubmitting(false)
     }
