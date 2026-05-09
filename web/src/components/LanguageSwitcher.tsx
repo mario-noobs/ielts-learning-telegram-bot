@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import Flag from './Flag'
 import Icon from './Icon'
 import { apiFetch } from '../lib/api'
 import {
@@ -98,7 +99,7 @@ export default function LanguageSwitcher({
         aria-label={label}
         className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-sm font-medium text-fg hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        <Icon name="Globe" size="sm" variant="muted" />
+        <Flag code={active} />
         {variant === 'compact' && (
           <span className="hidden sm:inline">{LABELS[active]}</span>
         )}
@@ -128,7 +129,10 @@ export default function LanguageSwitcher({
                     : 'text-fg hover:bg-surface'
                 }`}
               >
-                <span>{LABELS[code]}</span>
+                <span className="flex items-center gap-2">
+                  <Flag code={code} />
+                  {LABELS[code]}
+                </span>
                 {isActive && <Icon name="Check" size="sm" variant="primary" />}
               </button>
             )
