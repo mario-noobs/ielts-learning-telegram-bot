@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
@@ -61,6 +61,158 @@ interface StudyWeek {
   minutes_goal: number
   by_feature: { feature: string; count: number; minutes: number }[]
   week_start: string
+}
+
+type ExamPhase =
+  | 'past'
+  | 'examDay'
+  | 'examWeek'
+  | 'final'
+  | 'sharpen'
+  | 'build'
+  | 'foundation'
+
+interface PhaseStyle {
+  key: ExamPhase
+  cardCls: string
+  chipCls: string
+}
+
+function phaseFromDays(days: number): PhaseStyle {
+  if (days < 0) {
+    return {
+      key: 'past',
+      cardCls: 'border-border bg-surface',
+      chipCls: 'bg-muted-fg/10 text-muted-fg',
+    }
+  }
+  if (days === 0) {
+    return {
+      key: 'examDay',
+      cardCls: 'border-primary/40 bg-primary/5',
+      chipCls: 'bg-primary/15 text-primary',
+    }
+  }
+  if (days <= 6) {
+    return {
+      key: 'examWeek',
+      cardCls: 'border-danger/30 bg-danger/5',
+      chipCls: 'bg-danger/15 text-danger',
+    }
+  }
+  if (days <= 29) {
+    return {
+      key: 'final',
+      cardCls: 'border-warning/30 bg-warning/5',
+      chipCls: 'bg-warning/15 text-warning',
+    }
+  }
+  if (days <= 89) {
+    return {
+      key: 'sharpen',
+      cardCls: 'border-warning/20 bg-warning/5',
+      chipCls: 'bg-warning/10 text-warning',
+    }
+  }
+  if (days <= 179) {
+    return {
+      key: 'build',
+      cardCls: 'border-primary/20 bg-primary/5',
+      chipCls: 'bg-primary/10 text-primary',
+    }
+  }
+  return {
+    key: 'foundation',
+    cardCls: 'border-success/20 bg-success/5',
+    chipCls: 'bg-success/10 text-success',
+  }
+}
+
+interface ExamCountdownCardProps {
+  examDate: string
+  weeklyGoalMinutes: number
+  onClear: () => void
+  locale: string
+}
+
+function ExamCountdownCard({
+  examDate,
+  weeklyGoalMinutes,
+  onClear,
+  locale,
+}: ExamCountdownCardProps) {
+  const { t } = useTranslation('settings')
+
+  const parsed = new Date(examDate + 'T00:00:00')
+  if (Number.isNaN(parsed.getTime())) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const msPerDay = 86_400_000
+  const days = Math.round((parsed.getTime() - today.getTime()) / msPerDay)
+
+  const phase = phaseFromDays(days)
+  const formatted = new Intl.DateTimeFormat(
+    locale === 'vi' ? 'vi-VN' : 'en-US',
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' },
+  ).format(parsed)
+
+  // Breakdown is only meaningful for future dates.
+  const weeks = days > 0 ? Math.round(days / 7) : 0
+  const months = days > 0 ? Math.max(1, Math.round(days / 30)) : 0
+  const studyHours =
+    days > 0 ? Math.round((weeks * weeklyGoalMinutes) / 60) : 0
+
+  return (
+    <div className={`rounded-lg border p-4 space-y-3 ${phase.cardCls}`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm text-muted-fg leading-tight">{formatted}</p>
+        <span
+          className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${phase.chipCls}`}
+        >
+          {t(`examDate.phase.${phase.key}`)}
+        </span>
+      </div>
+
+      {days >= 0 ? (
+        <div className="flex items-baseline gap-4">
+          <div>
+            <div className="text-3xl font-bold text-fg leading-none">{days}</div>
+            <div className="text-xs text-muted-fg mt-1">
+              {t('examDate.daysUnit', { count: days })}
+            </div>
+          </div>
+          {days > 0 && (
+            <div className="text-xs text-muted-fg space-y-1">
+              <div>
+                {t('examDate.weeksMonths', { weeks, months })}
+              </div>
+              {studyHours > 0 && (
+                <div>
+                  {t('examDate.studyHoursProjection', {
+                    hours: studyHours,
+                    min: weeklyGoalMinutes,
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <p className="text-sm text-fg">
+        {t(`examDate.phase.${phase.key}Copy`)}
+      </p>
+
+      <button
+        type="button"
+        onClick={onClear}
+        className="text-xs text-muted-fg hover:text-fg underline"
+      >
+        {t('examDate.clear')}
+      </button>
+    </div>
+  )
 }
 
 function WeeklyProgress({ data }: { data: StudyWeek }) {
@@ -190,7 +342,7 @@ function ThemeToggle() {
 }
 
 export default function SettingsPage() {
-  const { t } = useTranslation(['settings', 'common', 'link', 'usage'])
+  const { t, i18n } = useTranslation(['settings', 'common', 'link', 'usage'])
   const [profile, setProfile] = useState<UserProfile | null>(null)
 
   // Field-level deep-link (e.g. /settings#exam-date) routes the user
@@ -300,15 +452,6 @@ export default function SettingsPage() {
     const to = setTimeout(() => setSaved(false), 3000)
     return () => clearTimeout(to)
   }, [saved])
-
-  const daysLeft = useMemo(() => {
-    if (!examDate) return null
-    const d = new Date(examDate + 'T00:00:00')
-    if (Number.isNaN(d.getTime())) return null
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-    return Math.round((d.getTime() - now.getTime()) / 86_400_000)
-  }, [examDate])
 
   const save = async (patch: Record<string, unknown>) => {
     setSaving(true)
@@ -479,8 +622,8 @@ export default function SettingsPage() {
                   <span>9.0</span>
                 </div>
               </div>
-              <div>
-                <label htmlFor="goals-exam" className="text-sm font-semibold text-fg block mb-1">
+              <div className="space-y-2">
+                <label htmlFor="goals-exam" className="text-sm font-semibold text-fg block">
                   {t('examDate.label')}
                 </label>
                 <input
@@ -490,19 +633,17 @@ export default function SettingsPage() {
                   onChange={(e) => setExamDate(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none"
                 />
-                {daysLeft !== null && daysLeft >= 0 && (
-                  <p className={`text-xs mt-1 font-medium ${daysLeft <= 30 ? 'text-danger' : 'text-warning'}`}>
-                    {t('examDate.daysLeft', { count: daysLeft })}
-                    {daysLeft <= 30 && t('examDate.urgentSuffix')}
+                {examDate ? (
+                  <ExamCountdownCard
+                    examDate={examDate}
+                    weeklyGoalMinutes={weeklyGoal}
+                    onClear={() => setExamDate('')}
+                    locale={i18n.language}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-fg">
+                    {t('examDate.unsetHint')}
                   </p>
-                )}
-                {examDate && (
-                  <button
-                    onClick={() => setExamDate('')}
-                    className="text-xs text-muted-fg hover:text-fg mt-1 underline"
-                  >
-                    {t('examDate.clear')}
-                  </button>
                 )}
               </div>
               <div>
