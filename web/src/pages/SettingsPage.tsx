@@ -18,6 +18,17 @@ import { ThemePref, useTheme } from '../lib/theme'
 const TABS = ['profile', 'goals', 'practice', 'plan', 'privacy'] as const
 type TabKey = (typeof TABS)[number]
 
+// Deep-link fragments coming from outside (Dashboard PersonalizationCTA,
+// emails, blog links) point at a *field*, not a tab. We resolve those
+// to the tab that owns the field + the input id to focus on mount.
+// Add new entries here when surfacing a field as a deep-link target.
+const FRAGMENT_TO_FOCUS: Record<string, { tab: TabKey; elementId: string }> = {
+  'exam-date': { tab: 'goals', elementId: 'goals-exam' },
+  'target-band': { tab: 'goals', elementId: 'goals-band' },
+  'weekly-goal': { tab: 'goals', elementId: 'goals-weekly' },
+  'daily-time': { tab: 'practice', elementId: 'practice-time' },
+}
+
 const COMMON_TZ = [
   'Asia/Ho_Chi_Minh',
   'Asia/Bangkok',
@@ -181,12 +192,22 @@ function ThemeToggle() {
 export default function SettingsPage() {
   const { t } = useTranslation(['settings', 'common', 'link', 'usage'])
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [activeTab, setActiveTab] = useState<TabKey>(() => {
-    const hash = (typeof window !== 'undefined'
+
+  // Field-level deep-link (e.g. /settings#exam-date) routes the user
+  // to the tab that owns the field; we keep `pendingFocusId` so an
+  // effect can focus the input after the tab content actually mounts.
+  const initialHash =
+    typeof window !== 'undefined'
       ? window.location.hash.replace('#', '')
-      : '') as TabKey
-    return TABS.includes(hash) ? hash : 'profile'
+      : ''
+  const fieldRoute = FRAGMENT_TO_FOCUS[initialHash]
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (fieldRoute) return fieldRoute.tab
+    return TABS.includes(initialHash as TabKey) ? (initialHash as TabKey) : 'profile'
   })
+  const [pendingFocusId, setPendingFocusId] = useState<string | null>(
+    fieldRoute ? fieldRoute.elementId : null,
+  )
 
   // Profile-tab state
   const [name, setName] = useState('')
@@ -248,6 +269,30 @@ export default function SettingsPage() {
       window.history.replaceState(null, '', newHash)
     }
   }, [activeTab])
+
+  // After a field-level deep-link routes us to the right tab, scroll
+  // the target input into view and focus it. Waits for the profile
+  // load + tab content to mount via requestAnimationFrame so the node
+  // is in the DOM. One-shot — clears `pendingFocusId` after firing.
+  useEffect(() => {
+    if (!pendingFocusId || !profile) return
+    const id = pendingFocusId
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(id)
+      if (el) {
+        // jsdom doesn't implement scrollIntoView; guard so unit tests
+        // exercising the deep-link path don't blow up.
+        if (typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+        if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) {
+          el.focus({ preventScroll: true })
+        }
+      }
+      setPendingFocusId(null)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [pendingFocusId, profile])
 
   // Auto-clear "saved" toast after 3s.
   useEffect(() => {
