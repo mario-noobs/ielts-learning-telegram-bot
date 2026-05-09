@@ -28,6 +28,8 @@ import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
 import LinkRedeemPage from './pages/LinkRedeemPage'
 import LinkTelegramPage from './pages/settings/LinkTelegramPage'
+import GroupsPage from './pages/settings/GroupsPage'
+import GroupDetailPage from './pages/settings/GroupDetailPage'
 import UsagePage from './pages/settings/UsagePage'
 
 // Admin subtree — lazy-loaded so end-user bundles don't carry it.
@@ -159,6 +161,8 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/link-telegram" element={<LinkTelegramPage />} />
             <Route path="/settings/usage" element={<UsagePage />} />
+            <Route path="/settings/groups" element={<GroupsPage />} />
+            <Route path="/settings/groups/:id" element={<GroupDetailPage />} />
           </Route>
           {/* Admin subtree — its own shell, no consumer chrome (US-M11.6). */}
           <Route element={<ProtectedAdminShell />}>

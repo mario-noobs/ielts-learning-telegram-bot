@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
 import GroupJoinCTA from '../../components/GroupJoinCTA'
+import Icon from '../../components/Icon'
+import TelegramIcon from '../../components/icons/Telegram'
 import { useAuth } from '../../contexts/AuthContext'
 import { ApiError } from '../../lib/apiError'
 import { startLink, unlinkTelegram } from '../../lib/link'
@@ -118,8 +120,9 @@ function NotLinkedState() {
         type="button"
         onClick={open}
         disabled={busy}
-        className="mt-5 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-5 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
+        <TelegramIcon size={16} />
         {busy
           ? t('settings.notLinked.creatingToken')
           : t('settings.notLinked.openBotCta')}
@@ -170,8 +173,9 @@ function LinkedState({ onChanged }: { onChanged: () => Promise<void> }) {
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
-        className="mt-4 inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-fg hover:bg-surface-raised"
+        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-danger/40 bg-danger/5 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 hover:border-danger/60"
       >
+        <Icon name="X" size="sm" />
         {t('settings.linked.unlinkCta')}
       </button>
       {confirmOpen ? (

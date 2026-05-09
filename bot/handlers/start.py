@@ -7,6 +7,27 @@ from services import firebase_service
 
 logger = logging.getLogger(__name__)
 
+
+async def _is_group_creator(bot, chat_id: int, user_id: int) -> bool:
+    """True iff the Telegram user is the chat's creator (US-#227 owner rule).
+
+    "Owner" on the web `/settings/groups` page maps to the actual
+    Telegram group creator — not "first /start". Admins don't auto-
+    qualify because there can be many admins. If the API call fails
+    (network, bot kicked, etc.), default to False so we don't stamp
+    bad ownership.
+    """
+    try:
+        member = await bot.get_chat_member(chat_id, user_id)
+        # python-telegram-bot exposes the literal "creator" string.
+        return getattr(member, "status", "") == "creator"
+    except Exception:  # noqa: BLE001 — network / permission errors
+        logger.warning(
+            "get_chat_member failed chat=%s user=%s — assuming non-creator",
+            chat_id, user_id, exc_info=True,
+        )
+        return False
+
 # Conversation states
 BAND, TOPICS = range(2)
 
@@ -42,21 +63,64 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if user already exists
     existing = firebase_service.get_user(user.id)
     if existing:
+        # Existing user re-running /start. Whether they're in DM or in
+        # a group, send the welcome-back card. But if they're running
+        # this *in a group*, also re-bind their group_id to that chat
+        # — otherwise web `/settings/groups` won't see them as a member
+        # (US-#227 / #230 follow-up). Without this, a DM-registered
+        # user who joins a group later has group_id=NULL forever.
+        in_group = chat.type in ("group", "supergroup")
+        joined_msg = ""
+        if in_group:
+            existing_group = firebase_service.get_group_settings(chat.id)
+            # Owner = Telegram group creator. Resolved once via
+            # `get_chat_member` so we don't double-call the API on the
+            # legacy-backfill path below.
+            owner_id: int | None = None
+            if existing_group is None or existing_group.get("owner_telegram_id") is None:
+                if await _is_group_creator(context.bot, chat.id, user.id):
+                    owner_id = user.id
+
+            if existing_group is None:
+                firebase_service.create_group(chat.id, owner_telegram_id=owner_id)
+            elif (
+                existing_group.get("owner_telegram_id") is None
+                and owner_id is not None
+            ):
+                # Legacy group with no owner — backfill the moment
+                # the actual Telegram creator runs /start.
+                firebase_service.update_group_settings(
+                    chat.id, {"owner_telegram_id": int(owner_id)},
+                )
+            current_group_id = existing.get("group_id")
+            if current_group_id != chat.id:
+                firebase_service.update_user(user.id, {"group_id": chat.id})
+                joined_msg = "\n\n\U0001f44b *Added you to this group.*"
         await update.message.reply_text(
             f"Welcome back, *{user.first_name}*! \U0001f44b\n\n"
             f"Target Band: *{existing.get('target_band', 7.0)}*\n"
             f"Words learned: *{existing.get('total_words', 0)}*\n"
             f"Streak: *{existing.get('streak', 0)} days*\n\n"
-            f"Use /help to see all commands.",
+            f"Use /help to see all commands.{joined_msg}",
             parse_mode="Markdown"
         )
         return ConversationHandler.END
 
-    # Ensure group is registered
+    # Ensure group is registered. Owner = Telegram group creator
+    # (resolved via get_chat_member, US-#227). If the running user
+    # isn't the creator, the new doc is stamped without an owner —
+    # the actual creator's eventual /start will backfill.
     if chat.type in ("group", "supergroup"):
         group = firebase_service.get_group_settings(chat.id)
         if not group:
-            firebase_service.create_group(chat.id)
+            owner_id = (
+                user.id
+                if await _is_group_creator(context.bot, chat.id, user.id)
+                else None
+            )
+            firebase_service.create_group(
+                chat.id, owner_telegram_id=owner_id,
+            )
 
     # Ask for target band
     keyboard = [

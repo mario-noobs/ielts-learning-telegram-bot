@@ -435,7 +435,16 @@ def get_group_settings(group_id: int) -> Optional[dict]:
     return None
 
 
-def create_group(group_id: int, settings: dict = None):
+def create_group(group_id: int, settings: dict = None,
+                  owner_telegram_id: Optional[int] = None):
+    """Create a new group doc with default settings.
+
+    ``owner_telegram_id`` is stamped at creation so the web group-edit
+    page (US-#227) can permission-gate the PATCH route. Legacy groups
+    created before this argument was added land with no owner; they
+    stay member-readable but are PATCH-locked from the web until
+    someone backfills the field.
+    """
     default = {
         "daily_time": config.DEFAULT_DAILY_TIME,
         "challenge_time": config.DEFAULT_CHALLENGE_TIME,
@@ -447,6 +456,8 @@ def create_group(group_id: int, settings: dict = None):
         "challenge_deadline_minutes": config.DEFAULT_CHALLENGE_DEADLINE_MINUTES,
         "created_at": datetime.now(timezone.utc),
     }
+    if owner_telegram_id is not None:
+        default["owner_telegram_id"] = int(owner_telegram_id)
     if settings:
         default.update(settings)
     _get_db().collection("groups").document(str(group_id)).set(default)
@@ -460,6 +471,40 @@ def get_all_groups() -> list[dict]:
     """Return all registered groups."""
     docs = _get_db().collection("groups").stream()
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def list_groups_for_user(telegram_id: int) -> list[dict]:
+    """Return groups this user is a member of (US-#227).
+
+    The ``users.group_id`` field is unreliable as a membership marker —
+    it's only set when the user runs ``/start`` *inside* a group chat.
+    A typical Telegram flow has users DM the bot first to /start, then
+    join one or more groups; their group_id stays NULL the whole time
+    even after they're active in a group.
+
+    So we walk ``groups/*`` and check membership via
+    ``get_all_users_in_group(g.id)``. With a small group count (<100
+    in the foreseeable future) this is cheap; if it grows we'll add a
+    membership index doc instead.
+    """
+    if telegram_id is None:
+        return []
+    target_id = int(telegram_id)
+    out: list[dict] = []
+    for group in get_all_groups():
+        try:
+            group_id = int(group.get("id"))
+        except (TypeError, ValueError):
+            continue
+        members = get_all_users_in_group(group_id)
+        member_ids: set[int] = set()
+        for m in members:
+            raw = str(m.get("id", ""))
+            if raw.isdigit():
+                member_ids.add(int(raw))
+        if target_id in member_ids:
+            out.append({**group, "id": str(group_id)})
+    return out
 
 
 # ─── Daily Words (Group) ──────────────────────────────────────────

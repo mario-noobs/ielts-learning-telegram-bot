@@ -68,7 +68,55 @@
     "dailyTimeHint": "Telegram bot will DM you at this time ({tz}).",
     "synced": "Synced ⇄ Bot",
     "notLinked": "Link Telegram to sync →",
-    "reminderLinkCta": "Link Telegram to receive reminders"
+    "reminderLinkCta": "Link Telegram to receive reminders",
+    "groupsLinkTitle": "Manage your groups",
+    "groupsLinkDescription": "View settings for groups you're a member of."
+  },
+  "groups": {
+    "heading": "Your groups",
+    "subheading": "Manage settings for IELTS groups you're a member of.",
+    "empty": {
+      "heading": "No groups yet",
+      "description": "Join a group via Telegram and link your account to manage it from the web.",
+      "cta": "Link Telegram"
+    },
+    "emptyLinked": {
+      "heading": "You're not in any group yet",
+      "description": "Add the bot to a Telegram group and run /start there. The group will show up here automatically."
+    },
+    "card": {
+      "unnamed": "Group {id}",
+      "memberCount": "{count, plural, one {# member} other {# members}}",
+      "dailyTime": "Daily {time}",
+      "band": "Band {band}+"
+    },
+    "role": {
+      "owner": "Owner",
+      "member": "Member"
+    },
+    "roleBanner": {
+      "owner": {
+        "title": "You're the group owner",
+        "description": "You can edit any setting below. Members see this group as read-only."
+      },
+      "member": {
+        "title": "View-only — you're a member",
+        "description": "Only the group owner can change these settings. You can still see what's configured."
+      }
+    },
+    "readonlyBanner": "Only the group owner can edit settings.",
+    "saved": "Group settings saved.",
+    "fields": {
+      "band": "Default band",
+      "topics": "Topics",
+      "topicsPlaceholder": "Add a topic (e.g. environment)",
+      "removeTopic": "Remove topic {topic}",
+      "dailyTime": "Daily vocab time",
+      "challengeTime": "Challenge time",
+      "wordCount": "Words per day",
+      "questionCount": "Challenge questions",
+      "deadlineMinutes": "Challenge deadline (minutes)"
+    }
   },
   "weeklyProgress": {
     "heading": "This week's progress",

@@ -236,7 +236,18 @@ async def groupsettings_command(update: Update,
 
     group = firebase_service.get_group_settings(chat.id)
     if not group:
-        firebase_service.create_group(chat.id)
+        # Owner = Telegram group creator (US-#227). If the running user
+        # isn't the creator, leave owner null — the actual creator's
+        # eventual /start or /groupsettings will backfill.
+        from bot.handlers.start import _is_group_creator
+        owner_id = (
+            update.effective_user.id
+            if await _is_group_creator(
+                context.bot, chat.id, update.effective_user.id,
+            )
+            else None
+        )
+        firebase_service.create_group(chat.id, owner_telegram_id=owner_id)
         group = firebase_service.get_group_settings(chat.id)
 
     band = group.get("default_band", 7.0)

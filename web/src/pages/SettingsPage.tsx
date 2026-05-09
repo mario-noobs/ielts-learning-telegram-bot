@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import Icon from '../components/Icon'
+import Icon, { IconName } from '../components/Icon'
+import TelegramIcon from '../components/icons/Telegram'
 import PlanBadge from '../components/PlanBadge'
 import { apiFetch } from '../lib/api'
 import { ThemePref, useTheme } from '../lib/theme'
+
 
 /**
  * 5-tab Settings page (US-M14.1):
@@ -17,6 +19,17 @@ import { ThemePref, useTheme } from '../lib/theme'
 
 const TABS = ['profile', 'goals', 'practice', 'plan', 'privacy'] as const
 type TabKey = (typeof TABS)[number]
+
+// Tab → icon mapping. Icons make the tab list scannable on mobile
+// where the labels truncate, and pair well with the active-tab
+// underline indicator below.
+const TAB_ICONS: Record<TabKey, IconName> = {
+  profile: 'User',
+  goals: 'Target',
+  practice: 'PenLine',
+  plan: 'Sparkles',
+  privacy: 'ShieldCheck',
+}
 
 // Deep-link fragments coming from outside (Dashboard PersonalizationCTA,
 // emails, blog links) point at a *field*, not a tab. We resolve those
@@ -524,12 +537,13 @@ export default function SettingsPage() {
             aria-selected={activeTab === key}
             aria-controls={`settings-tab-${key}`}
             onClick={() => setActiveTab(key)}
-            className={`shrink-0 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors duration-fast ${
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors duration-fast ${
               activeTab === key
                 ? 'text-primary border-primary'
                 : 'text-muted-fg border-transparent hover:text-fg'
             }`}
           >
+            <Icon name={TAB_ICONS[key]} size="sm" />
             {t(`tabs.${key}`)}
           </button>
         ))}
@@ -702,6 +716,31 @@ export default function SettingsPage() {
                 )}
               </div>
 
+              {/* US-#227 — entry point to /settings/groups. Only worth
+                  showing when the user is linked to Telegram (otherwise
+                  they have no groups). */}
+              {isLinked && (
+                <Link
+                  to="/settings/groups"
+                  className="block rounded-lg border border-border bg-surface p-3 hover:bg-surface-raised"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Icon name="Crown" size="md" variant="primary" />
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-fg">
+                        {t('practice.groupsLinkTitle')}
+                      </p>
+                      <p className="text-xs text-muted-fg mt-0.5">
+                        {t('practice.groupsLinkDescription')}
+                      </p>
+                    </div>
+                    <span aria-hidden className="text-muted-fg">→</span>
+                  </div>
+                </Link>
+              )}
+
               <div>
                 <label className="text-sm font-semibold text-fg block mb-1">
                   {t('practice.topics')}
@@ -813,8 +852,13 @@ export default function SettingsPage() {
                 to="/settings/usage"
                 className="block rounded-lg border border-border bg-surface p-3 hover:bg-surface-raised"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-fg">{t('usage:page.settingsLink')}</span>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name="Zap" size="md" variant="primary" />
+                  </span>
+                  <span className="flex-1 text-sm text-fg">
+                    {t('usage:page.settingsLink')}
+                  </span>
                   <span aria-hidden className="text-muted-fg">→</span>
                 </div>
               </Link>
@@ -846,10 +890,13 @@ export default function SettingsPage() {
                 to="/settings/link-telegram"
                 className="block rounded-lg border border-border bg-surface p-3 hover:bg-surface-raised"
               >
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <TelegramIcon size={20} />
+                  </span>
+                  <div className="flex-1">
                     <p className="font-medium text-fg">{t('link:settings.heading')}</p>
-                    <p className="text-xs text-muted-fg mt-1">
+                    <p className="text-xs text-muted-fg mt-0.5">
                       {t('link:settings.linked.description')}
                     </p>
                   </div>
