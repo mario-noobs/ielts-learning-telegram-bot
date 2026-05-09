@@ -15,7 +15,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { ApiError } from '../lib/apiError'
 import EmptyState from '../components/EmptyState'
+
+// Errors thrown by apiFetch carry the server's error code as
+// `.message` for legacy compatibility — `.localize()` turns it into
+// the user-facing prose from the `errors` i18n bundle. Without this
+// the user sees raw "common.upstream_error" / "common.not_found".
+function describeError(e: unknown): string {
+  return e instanceof ApiError ? e.localize() : (e as Error).message
+}
 
 interface TopicSummary {
   id: string
@@ -86,7 +95,7 @@ export default function VocabHomePage() {
     let cancelled = false
     apiFetch<TopicsResponse>('/api/v1/topics')
       .then((res) => !cancelled && setTopics(res.items))
-      .catch((e) => !cancelled && setError((e as Error).message))
+      .catch((e) => !cancelled && setError(describeError(e)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
