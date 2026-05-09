@@ -702,6 +702,28 @@ export default function SettingsPage() {
                 )}
               </div>
 
+              {/* US-#227 — entry point to /settings/groups. Only worth
+                  showing when the user is linked to Telegram (otherwise
+                  they have no groups). */}
+              {isLinked && (
+                <Link
+                  to="/settings/groups"
+                  className="block rounded-lg border border-border bg-surface p-3 hover:bg-surface-raised"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-fg">
+                        {t('practice.groupsLinkTitle')}
+                      </p>
+                      <p className="text-xs text-muted-fg mt-0.5">
+                        {t('practice.groupsLinkDescription')}
+                      </p>
+                    </div>
+                    <span aria-hidden className="text-muted-fg">→</span>
+                  </div>
+                </Link>
+              )}
+
               <div>
                 <label className="text-sm font-semibold text-fg block mb-1">
                   {t('practice.topics')}

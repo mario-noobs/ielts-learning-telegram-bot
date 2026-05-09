@@ -68,7 +68,41 @@
     "dailyTimeHint": "Bot Telegram sẽ DM bạn lúc này ({tz}).",
     "synced": "Đã đồng bộ với Bot",
     "notLinked": "Liên kết Telegram để đồng bộ →",
-    "reminderLinkCta": "Liên kết Telegram để nhận nhắc nhở"
+    "reminderLinkCta": "Liên kết Telegram để nhận nhắc nhở",
+    "groupsLinkTitle": "Quản lý group của bạn",
+    "groupsLinkDescription": "Xem setting của các group bạn đang join."
+  },
+  "groups": {
+    "heading": "Group của bạn",
+    "subheading": "Quản lý setting cho các group IELTS bạn đang là thành viên.",
+    "empty": {
+      "heading": "Chưa có group nào",
+      "description": "Tham gia 1 group qua Telegram và link tài khoản để quản lý từ web.",
+      "cta": "Liên kết Telegram"
+    },
+    "card": {
+      "unnamed": "Group {id}",
+      "memberCount": "{count} thành viên",
+      "dailyTime": "Học lúc {time}",
+      "band": "Band {band}+"
+    },
+    "role": {
+      "owner": "Chủ group",
+      "member": "Thành viên"
+    },
+    "readonlyBanner": "Chỉ chủ group mới sửa được setting.",
+    "saved": "Đã lưu setting group.",
+    "fields": {
+      "band": "Band mặc định",
+      "topics": "Chủ đề",
+      "topicsPlaceholder": "Thêm chủ đề (vd: environment)",
+      "removeTopic": "Xoá chủ đề {topic}",
+      "dailyTime": "Giờ post từ vựng hằng ngày",
+      "challengeTime": "Giờ challenge",
+      "wordCount": "Số từ mỗi ngày",
+      "questionCount": "Số câu trong challenge",
+      "deadlineMinutes": "Deadline challenge (phút)"
+    }
   },
   "weeklyProgress": {
     "heading": "Tiến độ tuần này",
