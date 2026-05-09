@@ -1,6 +1,11 @@
 GENERATE_VOCABULARY = """Generate {count} IELTS words for Band {band}+ on topic "{topic}".
 {exclude_clause}
 
+CRITICAL UNIQUENESS RULE:
+- Every word in the response MUST be unique (no duplicates among the {count} entries).
+- If an exclude list is given above, every word you output MUST NOT appear in it (case-insensitive).
+- Before returning the JSON, scan the exclude list once more — if any of your chosen words match, REPLACE them with different IELTS Band {band}+ words from the same topic.
+
 STRICT RULES:
 - ipa: standard IPA transcription, e.g. /juːˈbɪkwɪtəs/
 - syllable_stress: syllables separated by " · ", stressed syllable in CAPS, e.g. "u · BIQ · ui · tous"

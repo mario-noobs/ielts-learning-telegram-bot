@@ -1,0 +1,106 @@
+"""Daily vocab dedup + topic rotation (US-#226).
+
+Pure-functional helpers in `services.vocab_service`. AI calls are
+mocked via `ai_service.generate_vocabulary` so the suite runs without
+network or Gemini/Groq keys.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from services import vocab_service
+
+
+# ─── Topic rotation ────────────────────────────────────────────────────
+
+
+def test_pick_topic_avoids_recent_n():
+    """Recent A,B,C → must pick from {D,E,...}."""
+    topics = ["A", "B", "C", "D", "E"]
+    recent = ["A", "B", "C"]
+    pick = vocab_service._pick_topic_avoiding_recent(topics, recent)
+    assert pick in ("D", "E")
+
+
+def test_pick_topic_falls_back_when_all_recent():
+    """Group has 3 topics, all recently used → fall back to full list."""
+    topics = ["A", "B", "C"]
+    recent = ["A", "B", "C", "A"]  # all topics in recent
+    pick = vocab_service._pick_topic_avoiding_recent(topics, recent)
+    assert pick in topics  # whatever — just don't raise
+
+
+def test_push_recent_topic_caps_fifo():
+    """List is bounded to RECENT_TOPICS_KEEP — oldest entry drops."""
+    recent = ["A", "B", "C", "D", "E"]
+    out = vocab_service._push_recent_topic(recent, "F")
+    assert out == ["B", "C", "D", "E", "F"]
+    assert len(out) == vocab_service.RECENT_TOPICS_KEEP
+
+
+# ─── Dedup ─────────────────────────────────────────────────────────────
+
+
+def test_filter_dupes_drops_existing_and_intra_batch_dupes():
+    existing = {"hello", "world"}
+    words = [
+        {"word": "Hello"},      # case-insensitive match → drop
+        {"word": " world  "},   # whitespace → drop
+        {"word": "fresh"},      # keep
+        {"word": "fresh"},      # intra-batch dupe → drop
+        {"word": ""},           # empty → drop
+    ]
+    out = vocab_service._filter_dupes_lc(words, existing)
+    assert [w["word"] for w in out] == ["fresh"]
+
+
+@pytest.mark.asyncio
+async def test_generate_with_dedup_tops_up_when_short():
+    """AI returns 3 words but 2 are dupes → top-up retry fills the gap."""
+    existing = {"alpha", "beta"}
+    primary = [
+        {"word": "alpha"},      # dupe
+        {"word": "beta"},       # dupe
+        {"word": "gamma"},      # fresh
+    ]
+    topup = [{"word": "delta"}, {"word": "epsilon"}]
+
+    # Two distinct calls → two return values.
+    mock = AsyncMock(side_effect=[primary, topup])
+    with patch.object(vocab_service.ai_service, "generate_vocabulary", mock):
+        out = await vocab_service._generate_with_dedup(
+            count=3, band=7.0, topic="education", existing_lc=existing,
+        )
+    words = [w["word"] for w in out]
+    # Should land at exactly 3, no dupes against existing or each other.
+    assert len(words) == 3
+    assert "gamma" in words
+    assert "delta" in words or "epsilon" in words
+    # AI was called twice (primary + one top-up)
+    assert mock.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_generate_with_dedup_returns_short_when_topup_fails():
+    """AI's top-up call raises → return what we have rather than blowing up."""
+    existing: set[str] = set()
+    primary = [{"word": "only_one"}]
+
+    async def first_then_raise(**kwargs):
+        if not first_then_raise.called:
+            first_then_raise.called = True
+            return primary
+        raise RuntimeError("AI down")
+    first_then_raise.called = False
+
+    with patch.object(
+        vocab_service.ai_service, "generate_vocabulary",
+        side_effect=first_then_raise,
+    ):
+        out = await vocab_service._generate_with_dedup(
+            count=5, band=7.0, topic="education", existing_lc=existing,
+        )
+    assert [w["word"] for w in out] == ["only_one"]
