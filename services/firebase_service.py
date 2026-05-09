@@ -435,7 +435,16 @@ def get_group_settings(group_id: int) -> Optional[dict]:
     return None
 
 
-def create_group(group_id: int, settings: dict = None):
+def create_group(group_id: int, settings: dict = None,
+                  owner_telegram_id: Optional[int] = None):
+    """Create a new group doc with default settings.
+
+    ``owner_telegram_id`` is stamped at creation so the web group-edit
+    page (US-#227) can permission-gate the PATCH route. Legacy groups
+    created before this argument was added land with no owner; they
+    stay member-readable but are PATCH-locked from the web until
+    someone backfills the field.
+    """
     default = {
         "daily_time": config.DEFAULT_DAILY_TIME,
         "challenge_time": config.DEFAULT_CHALLENGE_TIME,
@@ -447,6 +456,8 @@ def create_group(group_id: int, settings: dict = None):
         "challenge_deadline_minutes": config.DEFAULT_CHALLENGE_DEADLINE_MINUTES,
         "created_at": datetime.now(timezone.utc),
     }
+    if owner_telegram_id is not None:
+        default["owner_telegram_id"] = int(owner_telegram_id)
     if settings:
         default.update(settings)
     _get_db().collection("groups").document(str(group_id)).set(default)
@@ -460,6 +471,26 @@ def get_all_groups() -> list[dict]:
     """Return all registered groups."""
     docs = _get_db().collection("groups").stream()
     return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def list_groups_for_user(telegram_id: int) -> list[dict]:
+    """Return groups this user is a member of (US-#227).
+
+    Current data model: ``users.group_id`` is a single field, so a user
+    is in at most one group at a time. Returns a list-of-dicts shape so
+    the API can grow into multi-group later without a contract change.
+    Each dict has the full group settings + ``id``.
+    """
+    user = get_user(telegram_id)
+    if not user:
+        return []
+    group_id = user.get("group_id")
+    if group_id is None:
+        return []
+    group = get_group_settings(int(group_id))
+    if not group:
+        return []
+    return [{"id": str(group_id), **group}]
 
 
 # ─── Daily Words (Group) ──────────────────────────────────────────

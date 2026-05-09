@@ -52,11 +52,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    # Ensure group is registered
+    # Ensure group is registered. The first user to /start in a group
+    # becomes its owner — stamped on the doc so the web group-edit page
+    # (US-#227) can permission-gate PATCH to only that user.
     if chat.type in ("group", "supergroup"):
         group = firebase_service.get_group_settings(chat.id)
         if not group:
-            firebase_service.create_group(chat.id)
+            firebase_service.create_group(
+                chat.id, owner_telegram_id=update.effective_user.id,
+            )
 
     # Ask for target band
     keyboard = [

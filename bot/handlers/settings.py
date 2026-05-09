@@ -236,7 +236,12 @@ async def groupsettings_command(update: Update,
 
     group = firebase_service.get_group_settings(chat.id)
     if not group:
-        firebase_service.create_group(chat.id)
+        # The first /groupsettings caller stamps owner — same rule as
+        # /start. Avoids legacy null-owner groups where no one can edit
+        # via the web (US-#227).
+        firebase_service.create_group(
+            chat.id, owner_telegram_id=update.effective_user.id,
+        )
         group = firebase_service.get_group_settings(chat.id)
 
     band = group.get("default_band", 7.0)

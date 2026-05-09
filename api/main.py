@@ -13,6 +13,7 @@ from api.middleware import RequestIDMiddleware
 from api.routes.admin import router as admin_router
 from api.routes.audio import router as audio_router
 from api.routes.auth import router as auth_router
+from api.routes.groups import router as groups_router
 from api.routes.health import router as health_router
 from api.routes.listening import router as listening_router
 from api.routes.me import router as me_router
@@ -164,6 +165,7 @@ def create_app() -> FastAPI:
     app.include_router(reading_router)
     app.include_router(readiness_router)
     app.include_router(me_router)
+    app.include_router(groups_router)
     app.include_router(admin_router)
 
     return app

@@ -186,6 +186,16 @@ class _Registry:
         "All AI providers in the chain are unavailable. Please try again.",
     )
 
+    # ─── Group management (US-#227) ───────────────────────────────────
+    groups_not_member = ErrorCode(
+        "groups.not_member", 404,
+        "Group not found or you are not a member.",
+    )
+    groups_forbidden_not_owner = ErrorCode(
+        "groups.forbidden_not_owner", 403,
+        "Only the group owner can edit settings.",
+    )
+
 
 ERR = _Registry()
 
