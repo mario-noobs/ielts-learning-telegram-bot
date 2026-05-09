@@ -46,6 +46,15 @@
       "progress": "Tiến độ",
       "profile": "Tôi",
       "admin": "Quản trị"
+    },
+    "subnav": {
+      "ariaLabel": "Điều hướng mục",
+      "daily": "Hàng ngày",
+      "vocab": "Từ vựng",
+      "review": "Ôn tập",
+      "writing": "Writing",
+      "listening": "Listening",
+      "reading": "Reading"
     }
   },
   "auth": {

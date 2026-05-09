@@ -141,7 +141,7 @@ export default function ReadingExercisePage() {
   if (status === 'error' || !passage || !session) {
     return (
       <div className="mx-auto max-w-2xl p-4">
-        <Link to="/reading" className="text-sm text-muted-fg hover:text-fg">
+        <Link to="/practice/reading" className="text-sm text-muted-fg hover:text-fg">
           {t('backLink')}
         </Link>
         <div className="mt-3 rounded border-l-4 border-danger bg-danger/10 p-3 text-sm text-danger">
@@ -161,7 +161,7 @@ export default function ReadingExercisePage() {
     <div className="mx-auto max-w-6xl p-4 md:p-6">
       {/* Header with timer + submit */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <Link to="/reading" className="text-sm text-muted-fg hover:text-fg">
+        <Link to="/practice/reading" className="text-sm text-muted-fg hover:text-fg">
           {t('backLink')}
         </Link>
         <div className="flex items-center gap-3">
@@ -443,7 +443,7 @@ function ReviewView({
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6 space-y-4">
-      <Link to="/reading" className="text-sm text-muted-fg hover:text-fg">
+      <Link to="/practice/reading" className="text-sm text-muted-fg hover:text-fg">
         {t('backLink')}
       </Link>
 
@@ -511,7 +511,7 @@ function ReviewView({
 
       <div className="flex justify-center gap-2">
         <Link
-          to="/reading"
+          to="/practice/reading"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-fg hover:bg-primary-hover"
         >
           {t('review.otherPassageBtn')}

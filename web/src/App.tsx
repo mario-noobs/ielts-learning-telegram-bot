@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AdminGate from './components/AdminGate'
 import AdminShell from './components/AdminShell'
@@ -71,6 +71,24 @@ function ProtectedAdminShell() {
   )
 }
 
+// Legacy `:id` route redirects — preserve the param when forwarding.
+function LegacyVocabRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/learn/vocab/${id}`} replace />
+}
+function LegacyWriteRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/practice/writing/${id}`} replace />
+}
+function LegacyListeningRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/practice/listening/${id}`} replace />
+}
+function LegacyReadingRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/practice/reading/${id}`} replace />
+}
+
 function RootRoute() {
   const { user, loading } = useAuth()
   if (loading) {
@@ -103,20 +121,40 @@ export default function App() {
             <Route index element={<DashboardPage />} />
           </Route>
           <Route element={<ProtectedShell />}>
-            <Route path="/vocab" element={<VocabHomePage />} />
-            <Route path="/vocab/:id" element={<WordDetailPage />} />
-            <Route path="/review" element={<FlashcardReviewPage />} />
-            <Route path="/daily" element={<DailyWordsPage />} />
-            <Route path="/daily/flip" element={<DailyFlipCardPage />} />
-            <Route path="/daily/quiz" element={<DailyFillBlankPage />} />
-            <Route path="/write" element={<WritingPage />} />
-            <Route path="/write/history" element={<WritingHistoryPage />} />
-            <Route path="/write/:id" element={<WritingDetailPage />} />
-            <Route path="/listening" element={<ListeningHomePage />} />
-            <Route path="/listening/history" element={<ListeningHistoryPage />} />
-            <Route path="/listening/:id" element={<ListeningExercisePage />} />
-            <Route path="/reading" element={<ReadingHomePage />} />
-            <Route path="/reading/:id" element={<ReadingExercisePage />} />
+            {/* New paths under /learn/* and /practice/* (US-#211 IA). */}
+            <Route path="/learn" element={<Navigate to="/learn/daily" replace />} />
+            <Route path="/learn/vocab" element={<VocabHomePage />} />
+            <Route path="/learn/vocab/:id" element={<WordDetailPage />} />
+            <Route path="/learn/review" element={<FlashcardReviewPage />} />
+            <Route path="/learn/daily" element={<DailyWordsPage />} />
+            <Route path="/learn/daily/flip" element={<DailyFlipCardPage />} />
+            <Route path="/learn/daily/quiz" element={<DailyFillBlankPage />} />
+            <Route path="/practice" element={<Navigate to="/practice/writing" replace />} />
+            <Route path="/practice/writing" element={<WritingPage />} />
+            <Route path="/practice/writing/history" element={<WritingHistoryPage />} />
+            <Route path="/practice/writing/:id" element={<WritingDetailPage />} />
+            <Route path="/practice/listening" element={<ListeningHomePage />} />
+            <Route path="/practice/listening/history" element={<ListeningHistoryPage />} />
+            <Route path="/practice/listening/:id" element={<ListeningExercisePage />} />
+            <Route path="/practice/reading" element={<ReadingHomePage />} />
+            <Route path="/practice/reading/:id" element={<ReadingExercisePage />} />
+
+            {/* Legacy redirects — keep bookmarks alive. Drop after 30 days. */}
+            <Route path="/vocab" element={<Navigate to="/learn/vocab" replace />} />
+            <Route path="/vocab/:id" element={<LegacyVocabRedirect />} />
+            <Route path="/review" element={<Navigate to="/learn/review" replace />} />
+            <Route path="/daily" element={<Navigate to="/learn/daily" replace />} />
+            <Route path="/daily/flip" element={<Navigate to="/learn/daily/flip" replace />} />
+            <Route path="/daily/quiz" element={<Navigate to="/learn/daily/quiz" replace />} />
+            <Route path="/write" element={<Navigate to="/practice/writing" replace />} />
+            <Route path="/write/history" element={<Navigate to="/practice/writing/history" replace />} />
+            <Route path="/write/:id" element={<LegacyWriteRedirect />} />
+            <Route path="/listening" element={<Navigate to="/practice/listening" replace />} />
+            <Route path="/listening/history" element={<Navigate to="/practice/listening/history" replace />} />
+            <Route path="/listening/:id" element={<LegacyListeningRedirect />} />
+            <Route path="/reading" element={<Navigate to="/practice/reading" replace />} />
+            <Route path="/reading/:id" element={<LegacyReadingRedirect />} />
+
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/link-telegram" element={<LinkTelegramPage />} />

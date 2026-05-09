@@ -46,6 +46,15 @@
       "progress": "Progress",
       "profile": "Me",
       "admin": "Admin"
+    },
+    "subnav": {
+      "ariaLabel": "Section navigation",
+      "daily": "Daily",
+      "vocab": "Vocab",
+      "review": "Review",
+      "writing": "Writing",
+      "listening": "Listening",
+      "reading": "Reading"
     }
   },
   "auth": {

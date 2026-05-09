@@ -107,7 +107,7 @@ function TopicCard({
 function WordCard({ word, t }: { word: VocabularyWord; t: (k: string) => string }) {
   return (
     <Link
-      to={`/vocab/${encodeURIComponent(word.word)}`}
+      to={`/learn/vocab/${encodeURIComponent(word.word)}`}
       className="bg-surface-raised rounded-xl shadow-sm p-4 border border-transparent hover:border-primary/30 transition block"
     >
       <div className="flex items-start justify-between gap-2">
