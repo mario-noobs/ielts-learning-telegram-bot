@@ -538,21 +538,33 @@ def update_challenge_score(group_id: int, date_str: str,
 # OUT OF SCOPE — group data stays on Firestore.
 
 def save_challenge_answer(group_id: int, date_str: str, user_id: int,
-                          q_idx: int, is_correct: bool):
+                          q_idx: int, is_correct: bool,
+                          display_name: Optional[str] = None):
     """Persist a single answer for a user in the challenge answers subcollection.
 
     Creates the answer doc on first call; merges subsequent answers.
+
+    ``display_name`` is the Telegram-side name shown on the answer doc
+    so the closing/results flow can fall back to it when the user has
+    no PG profile row (e.g. they only ever clicked challenge buttons in
+    the group, never DM'd the bot to /start). Without this, the results
+    post degraded to "🥇 Unknown — 2/10" — see fix for #228 follow-up.
     """
     doc_ref = (_get_db().collection("groups").document(str(group_id))
                .collection("challenges").document(date_str)
                .collection("answers").document(str(user_id)))
 
     now = datetime.now(timezone.utc)
-    doc_ref.set({
+    payload: dict = {
         "responses": {str(q_idx): is_correct},
         "started_at": now,
         "completed_at": None,
-    }, merge=True)
+    }
+    if display_name:
+        # Only set on write (don't clobber a name from an earlier answer
+        # if this call somehow doesn't carry one).
+        payload["display_name"] = display_name
+    doc_ref.set(payload, merge=True)
 
 
 def mark_challenge_answer_complete(group_id: int, date_str: str, user_id: int):
@@ -607,12 +619,19 @@ def close_challenge_atomic(group_id: int, date_str: str) -> Optional[dict]:
         answers = get_all_challenge_answers(group_id, date_str)
 
         participants = {}
+        # uid → Telegram-side display name captured when the user
+        # answered. Used by the results post when the user has no PG
+        # profile row to look up — see save_challenge_answer.
+        display_names: dict[str, str] = {}
         for ans in answers:
             uid = ans["id"]
             responses = ans.get("responses", {})
             # D6 REVISED: score = count of correct answers regardless of completion
             score = sum(1 for v in responses.values() if v)
             participants[uid] = score
+            name = (ans.get("display_name") or "").strip()
+            if name:
+                display_names[uid] = name
 
         # Determine winner (highest score; tie-break: earliest completed_at)
         winner_id = None
@@ -639,6 +658,7 @@ def close_challenge_atomic(group_id: int, date_str: str) -> Optional[dict]:
         # Write final scores and close
         txn.update(challenge_ref, {
             "participants": participants,
+            "display_names": display_names,
             "status": "closed",
         })
 

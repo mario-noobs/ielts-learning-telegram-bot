@@ -138,8 +138,15 @@ def format_challenge_results(group_id: int, date_str: str) -> str:
 
 
 def _build_results_text(challenge: dict, date_str: str) -> str:
-    """Build the formatted results text from a closed challenge."""
+    """Build the formatted results text from a closed challenge.
+
+    Name resolution prefers the user's PG profile (so a user-set name
+    from /settings wins) but falls back to the Telegram display name
+    captured at answer-time. Final fallback is "User {uid}" \u2014 never
+    the legacy "Unknown" which gave no signal at all.
+    """
     participants = challenge.get("participants", {})
+    display_names = challenge.get("display_names") or {}
     total_q = len(challenge.get("questions", []))
 
     if not participants:
@@ -154,9 +161,32 @@ def _build_results_text(challenge: dict, date_str: str) -> str:
 
     medals = ["\U0001f947", "\U0001f948", "\U0001f949"]
     for i, (user_id, score) in enumerate(sorted_p):
-        user = firebase_service.get_user(int(user_id))
-        name = user.get("name", "Unknown") if user else "Unknown"
+        name = _resolve_participant_name(user_id, display_names)
         medal = medals[i] if i < 3 else f"  {i + 1}."
         lines.append(f"{medal} *{name}* \u2014 {score}/{total_q}")
 
     return "\n".join(lines)
+
+
+def _resolve_participant_name(
+    user_id: str, display_names: dict[str, str],
+) -> str:
+    """Resolve the best display name for a challenge participant.
+
+    Order:
+      1. PG profile name (set via /settings \u2014 user-curated, preferred)
+      2. Telegram display name captured at answer-time
+      3. ``User {uid}`` last-resort so we never show a literal "Unknown"
+    """
+    try:
+        user = firebase_service.get_user(int(user_id))
+    except (TypeError, ValueError):
+        user = None
+    if user:
+        name = (user.get("name") or "").strip()
+        if name:
+            return name
+    fallback = (display_names.get(str(user_id)) or "").strip()
+    if fallback:
+        return fallback
+    return f"User {user_id}"
