@@ -43,6 +43,10 @@
       "cta": "Xem tiến độ"
     }
   },
+  "readiness": {
+    "heading": "Mức độ sẵn sàng",
+    "details": "Xem chi tiết →"
+  },
   "recent": {
     "heading": "Từ vừa học gần đây",
     "viewAll": "Xem tất cả →"
@@ -64,53 +68,6 @@
       "bandDelta30d": "Đổi band 30 ngày"
     },
     "beta": "Beta"
-  },
-  "readinessTrack": {
-    "heading": "Lộ trình ôn thi",
-    "header": {
-      "pct": "Hoàn thành {pct}%",
-      "ready": "Đã sẵn sàng đi thi",
-      "urgent": "Còn {n} ngày — tăng tốc nhé"
-    },
-    "empty": {
-      "heading": "Đặt ngày thi để mở lộ trình ôn",
-      "description": "Mở lộ trình 4 bước được cá nhân hóa theo band mục tiêu và ngày thi của bạn.",
-      "cta": "Đặt ngày thi"
-    },
-    "stepAria": "Bước {n} / {total}, {status}, {title}",
-    "status": {
-      "done": "hoàn tất",
-      "active": "hiện tại",
-      "upcoming": "sắp tới",
-      "locked": "đã khoá"
-    },
-    "steps": {
-      "goal": {
-        "title": "Đặt mục tiêu",
-        "rationale": "Chọn band mục tiêu và ngày thi để app lên lịch ôn quanh đó."
-      },
-      "daily_plan": {
-        "title": "Khoá lịch học hằng ngày",
-        "rationale": "Cố gắng học ~{min} phút mỗi ngày — đều đặn hơn dồn cuối tuần."
-      },
-      "skills": {
-        "title": "Luyện 4 kỹ năng",
-        "rationale": "{done}/{total} kỹ năng đạt band {target}. Bấm vào kỹ năng để luyện tiếp."
-      },
-      "mock_test": {
-        "title": "Tuần thi thử",
-        "rationale": "Làm mock test có canh giờ. Còn {days} ngày.",
-        "locked": "Mở khi còn {days} ngày trước kỳ thi.",
-        "locked_no_date": "Đặt ngày thi để mở khoá bước này.",
-        "past": "Ngày thi đã qua. Đặt mục tiêu mới chứ?"
-      }
-    },
-    "subTasks": {
-      "target_band": "Chọn band mục tiêu",
-      "exam_date": "Thêm ngày thi",
-      "weekly_goal": "Đặt mục tiêu phút/tuần",
-      "daily_time": "Chọn giờ nhắc học"
-    }
   },
   "aiUsage": {
     "title": "Sử dụng AI hôm nay",

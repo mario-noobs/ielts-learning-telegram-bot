@@ -14,7 +14,7 @@ import ProgressRing from '../components/ProgressRing'
 import DashboardGreeting from './dashboard/DashboardGreeting'
 import QuickActions from './dashboard/QuickActions'
 import PersonalizationCTA from './dashboard/PersonalizationCTA'
-import ReadinessTrack from './dashboard/ReadinessTrack'
+import ReadinessStrip from './dashboard/ReadinessStrip'
 import RecentContent from './dashboard/RecentContent'
 import ProfilePanel from './dashboard/ProfilePanel'
 
@@ -212,7 +212,7 @@ export default function DashboardPage() {
               </section>
             )}
 
-            <ReadinessTrack progress={progress} />
+            <ReadinessStrip progress={progress} />
 
             {/* Profile panel stacks between readiness and recent on <lg per AC7 */}
             <div className="lg:hidden space-y-6">
