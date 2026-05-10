@@ -44,3 +44,4 @@ ui-debug.log
 
 # Migration script runtime artifacts
 .backfill_users.cursor
+.fs_export/
