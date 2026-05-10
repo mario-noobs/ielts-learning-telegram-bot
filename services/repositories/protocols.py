@@ -168,6 +168,23 @@ class DailyWordsRepo(Protocol):
 
 
 @runtime_checkable
+class ListeningHistoryRepo(Protocol):
+    """Listening exercise history (M8 cutover — promoted to repo).
+
+    Returns dicts (not DTOs) to match the legacy
+    ``firebase_service.list_listening_exercises`` shape callers depend on.
+    """
+
+    def save(self, user_id: UserId, exercise_data: dict) -> str: ...
+
+    def get(self, user_id: UserId, exercise_id: str) -> Optional[dict]: ...
+
+    def update(self, user_id: UserId, exercise_id: str, data: dict) -> None: ...
+
+    def list(self, user_id: UserId, limit: int = 50) -> list[dict]: ...
+
+
+@runtime_checkable
 class PlanRepo(Protocol):
     """Subscription plan definitions (Postgres-only, M11)."""
 
@@ -329,6 +346,7 @@ __all__ = [
     "QuizHistoryRepo",
     "WritingHistoryRepo",
     "DailyWordsRepo",
+    "ListeningHistoryRepo",
     "PlanRepo",
     "TeamRepo",
     "OrgRepo",

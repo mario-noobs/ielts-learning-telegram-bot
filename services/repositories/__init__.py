@@ -1,9 +1,8 @@
 """Repository package — Protocol + DTO layer over user-scoped storage.
 
-This package is the seam between application code and the persistence
-backend. Today the only implementation is Firestore (see the ``firestore``
-subpackage). M8 (#130) will add a Postgres implementation behind the
-same Protocols.
+Post-M8-cutover (#234): the canonical implementations are Postgres for
+all user-scoped data. The Firestore impls are kept import-able for the
+30-day read-only archive but no factory returns them by default.
 
 Typical usage::
 
@@ -14,9 +13,6 @@ Typical usage::
 The factories below return module-level singletons — they match the
 lazy-init style already used by ``services.firebase_service._get_db``
 and avoid introducing a DI framework for this refactor.
-
-Scope reminder: group data (``groups/*`` and all subcollections) is NOT
-covered here and stays on Firestore via ``services.firebase_service``.
 """
 
 from __future__ import annotations
@@ -49,6 +45,7 @@ from .protocols import (
     AuditLogRepo,
     DailyWordsRepo,
     LinkTokenRepo,
+    ListeningHistoryRepo,
     MetricsRepo,
     OrgRepo,
     PlanRepo,
@@ -67,6 +64,7 @@ _vocab_repo: VocabRepo | None = None
 _quiz_history_repo: QuizHistoryRepo | None = None
 _writing_history_repo: WritingHistoryRepo | None = None
 _daily_words_repo: DailyWordsRepo | None = None
+_listening_history_repo: ListeningHistoryRepo | None = None
 _plan_repo: PlanRepo | None = None
 _team_repo: TeamRepo | None = None
 _org_repo: OrgRepo | None = None
@@ -77,15 +75,7 @@ _link_token_repo: LinkTokenRepo | None = None
 
 
 def get_user_repo() -> UserRepo:
-    """Return the process-wide ``UserRepo`` singleton.
-
-    US-M8.6 cutover: returns ``PostgresUserRepo``. Postgres is the
-    authoritative store for the user core doc (`role`, `plan`,
-    `team_id`, `org_id`, counters, …). Firestore ``users/`` and
-    ``auth_mapping/`` collections are a 30-day read-only archive.
-    Subcollections (``vocabulary``, ``quiz_history``,
-    ``writing_history``, ``daily_words``) stay on Firestore.
-    """
+    """Postgres-backed user core doc repo."""
     global _user_repo
     if _user_repo is None:
         from .postgres.user_repo import PostgresUserRepo
@@ -94,35 +84,48 @@ def get_user_repo() -> UserRepo:
 
 
 def get_vocab_repo() -> VocabRepo:
-    """Return the process-wide ``VocabRepo`` singleton."""
+    """Postgres-backed vocab repo (M8 cutover)."""
     global _vocab_repo
     if _vocab_repo is None:
-        _vocab_repo = FirestoreVocabRepo()
+        from .postgres.vocab_repo import PostgresVocabRepo
+        _vocab_repo = PostgresVocabRepo()
     return _vocab_repo
 
 
 def get_quiz_history_repo() -> QuizHistoryRepo:
-    """Return the process-wide ``QuizHistoryRepo`` singleton."""
+    """Postgres-backed quiz history repo (M8 cutover)."""
     global _quiz_history_repo
     if _quiz_history_repo is None:
-        _quiz_history_repo = FirestoreQuizHistoryRepo()
+        from .postgres.quiz_history_repo import PostgresQuizHistoryRepo
+        _quiz_history_repo = PostgresQuizHistoryRepo()
     return _quiz_history_repo
 
 
 def get_writing_history_repo() -> WritingHistoryRepo:
-    """Return the process-wide ``WritingHistoryRepo`` singleton."""
+    """Postgres-backed writing history repo (M8 cutover)."""
     global _writing_history_repo
     if _writing_history_repo is None:
-        _writing_history_repo = FirestoreWritingHistoryRepo()
+        from .postgres.writing_history_repo import PostgresWritingHistoryRepo
+        _writing_history_repo = PostgresWritingHistoryRepo()
     return _writing_history_repo
 
 
 def get_daily_words_repo() -> DailyWordsRepo:
-    """Return the process-wide ``DailyWordsRepo`` singleton."""
+    """Postgres-backed personal daily words repo (M8 cutover)."""
     global _daily_words_repo
     if _daily_words_repo is None:
-        _daily_words_repo = FirestoreDailyWordsRepo()
+        from .postgres.daily_words_repo import PostgresDailyWordsRepo
+        _daily_words_repo = PostgresDailyWordsRepo()
     return _daily_words_repo
+
+
+def get_listening_history_repo() -> ListeningHistoryRepo:
+    """Postgres-backed listening history repo (M8 cutover, new in #234)."""
+    global _listening_history_repo
+    if _listening_history_repo is None:
+        from .postgres.listening_history_repo import PostgresListeningHistoryRepo
+        _listening_history_repo = PostgresListeningHistoryRepo()
+    return _listening_history_repo
 
 
 def get_plan_repo() -> PlanRepo:
@@ -193,7 +196,7 @@ def get_link_token_repo() -> LinkTokenRepo:
 def _reset_singletons_for_tests() -> None:
     """Test-only hook to clear cached repos. Don't call from app code."""
     global _user_repo, _vocab_repo, _quiz_history_repo
-    global _writing_history_repo, _daily_words_repo
+    global _writing_history_repo, _daily_words_repo, _listening_history_repo
     global _plan_repo, _team_repo, _org_repo, _audit_log_repo
     global _ai_usage_repo, _metrics_repo, _link_token_repo
     _user_repo = None
@@ -201,6 +204,7 @@ def _reset_singletons_for_tests() -> None:
     _quiz_history_repo = None
     _writing_history_repo = None
     _daily_words_repo = None
+    _listening_history_repo = None
     _plan_repo = None
     _team_repo = None
     _org_repo = None
@@ -218,6 +222,7 @@ __all__ = [
     "QuizHistoryRepo",
     "WritingHistoryRepo",
     "DailyWordsRepo",
+    "ListeningHistoryRepo",
     "PlanRepo",
     "TeamRepo",
     "OrgRepo",
@@ -240,7 +245,7 @@ __all__ = [
     "AiUsageDoc",
     "PlatformMetricDoc",
     "LinkTokenDoc",
-    # Firestore impls
+    # Firestore impls (kept for the 30-day archive — never returned by factories)
     "FirestoreUserRepo",
     "FirestoreVocabRepo",
     "FirestoreQuizHistoryRepo",
@@ -252,6 +257,7 @@ __all__ = [
     "get_quiz_history_repo",
     "get_writing_history_repo",
     "get_daily_words_repo",
+    "get_listening_history_repo",
     "get_plan_repo",
     "get_team_repo",
     "get_org_repo",
