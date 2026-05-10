@@ -1,8 +1,11 @@
 """Tests for services/feature_flag_service.py.
 
-Mocks Firestore via the `_fetch_flag` / `_get_db` seam and freezes
-`time.monotonic` via the module-level `_now` hook so TTL expiry can be
-exercised deterministically.
+Post-M8 cutover: feature flags persist in Postgres (``feature_flags``
+table). Tests run against the local dev DB and isolate via a per-test
+``fake_db`` fixture that wipes the table before/after.
+
+The legacy ``_FakeDB`` class is retained for fail-closed coverage where
+the repo is patched with a side-effect-raising mock.
 """
 
 from __future__ import annotations
@@ -11,8 +14,10 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy import text
 
 from services import feature_flag_service as ffs
+from services.db import get_sync_session
 
 
 @pytest.fixture(autouse=True)
@@ -80,11 +85,17 @@ class _FakeDB:
 
 @pytest.fixture
 def fake_db():
-    db = _FakeDB()
-    # Patch the firebase_service._get_db seam. feature_flag_service imports
-    # firebase_service lazily inside each function, so this works.
-    with patch("services.firebase_service._get_db", return_value=db):
-        yield db
+    """Clean ``feature_flags`` PG table before & after the test.
+
+    Post-M8 the service routes through ``services.repositories``; the
+    legacy ``_FakeDB`` Firestore mock would no longer intercept.
+    Wiping the table gives the same isolation with a real backend.
+    """
+    with get_sync_session() as s, s.begin():
+        s.execute(text("DELETE FROM feature_flags"))
+    yield None
+    with get_sync_session() as s, s.begin():
+        s.execute(text("DELETE FROM feature_flags"))
 
 
 # ─── Evaluation rules ────────────────────────────────────────────────
@@ -255,10 +266,12 @@ class TestDTOAndAdmin:
 
 
 class TestFailClosed:
-    def test_firestore_exception_returns_false(self):
-        # No fake_db fixture — we raise from _get_db directly.
-        broken = MagicMock(side_effect=RuntimeError("firestore down"))
-        with patch("services.firebase_service._get_db", broken):
+    def test_repo_exception_returns_false(self):
+        """Service must fail closed when the repo raises (DB down)."""
+        broken = MagicMock()
+        broken.get.side_effect = RuntimeError("postgres down")
+        broken.list_all.side_effect = RuntimeError("postgres down")
+        with patch("services.repositories.get_feature_flags_repo", return_value=broken):
             assert ffs.is_enabled("any_flag", "u") is False
             # list_flags should swallow and return empty, not raise.
             assert ffs.list_flags() == []

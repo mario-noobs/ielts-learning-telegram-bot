@@ -119,20 +119,19 @@ def _doc_to_flag(name: str, data: dict) -> FeatureFlag:
 
 
 def _fetch_flag(name: str) -> Optional[FeatureFlag]:
-    """Read a single flag from Firestore. Returns None if the doc is missing."""
-    # Imported lazily so tests can patch `services.firebase_service._get_db`.
-    from services import firebase_service
+    """Read a single flag from Postgres. Returns None if the row is missing."""
+    from services.repositories import get_feature_flags_repo
 
     try:
-        doc = firebase_service._get_db().collection("feature_flags").document(name).get()
+        row = get_feature_flags_repo().get(name)
     except Exception as e:
-        # Fail closed — a Firestore outage must not crash every feature check.
+        # Fail closed — a DB outage must not crash every feature check.
         logger.warning("feature_flag fetch failed for %r: %s", name, e)
         return None
 
-    if not doc.exists:
+    if row is None:
         return None
-    return _doc_to_flag(name, doc.to_dict() or {})
+    return _doc_to_flag(name, row)
 
 
 def _get_with_cache(name: str) -> Optional[FeatureFlag]:
@@ -197,18 +196,16 @@ def get_flag(flag: str) -> Optional[FeatureFlag]:
 
 
 def list_flags() -> list[FeatureFlag]:
-    """List every flag in Firestore. Bypasses the cache — intended for admin UIs."""
-    from services import firebase_service
+    """List every flag from Postgres. Bypasses the cache — intended for admin UIs."""
+    from services.repositories import get_feature_flags_repo
 
     try:
-        docs = firebase_service._get_db().collection("feature_flags").stream()
+        rows = get_feature_flags_repo().list_all()
     except Exception as e:
         logger.warning("feature_flag list failed: %s", e)
         return []
 
-    out: list[FeatureFlag] = []
-    for doc in docs:
-        out.append(_doc_to_flag(doc.id, doc.to_dict() or {}))
+    out = [_doc_to_flag(r["name"], r) for r in rows]
     # Stable ordering for CLI output.
     out.sort(key=lambda f: f.name)
     return out
@@ -227,44 +224,38 @@ def set_flag(
     Rollout percentage is clamped to [0, 100]. Allowlist entries are
     coerced to strings (Firebase Auth UIDs are strings).
     """
-    from firebase_admin import firestore as _fs
-
-    from services import firebase_service
+    from services.repositories import get_feature_flags_repo
 
     pct = max(0, min(100, int(rollout_pct)))
     allow = [str(u) for u in (uid_allowlist or [])]
 
-    payload = {
-        "enabled": bool(enabled),
-        "rollout_pct": pct,
-        "uid_allowlist": allow,
-        "description": description or "",
-        "updated_at": _fs.SERVER_TIMESTAMP,
-    }
-    firebase_service._get_db().collection("feature_flags").document(flag).set(payload)
+    row = get_feature_flags_repo().upsert(
+        flag,
+        enabled=bool(enabled),
+        rollout_pct=pct,
+        uid_allowlist=allow,
+        description=description or "",
+    )
 
     # Invalidate the single entry — next read re-populates.
     with _cache_lock:
         _cache.pop(flag, None)
 
-    # Return a locally-constructed DTO (the SERVER_TIMESTAMP sentinel is
-    # not yet resolved). The caller can re-read via get_flag() to see the
-    # resolved timestamp.
     return FeatureFlag(
         name=flag,
         enabled=bool(enabled),
         rollout_pct=pct,
         uid_allowlist=tuple(allow),
         description=description or "",
-        updated_at=None,
+        updated_at=row.get("updated_at"),
     )
 
 
 def delete_flag(flag: str) -> None:
-    """Delete a feature flag document and invalidate its cache entry."""
-    from services import firebase_service
+    """Delete a feature flag row and invalidate its cache entry."""
+    from services.repositories import get_feature_flags_repo
 
-    firebase_service._get_db().collection("feature_flags").document(flag).delete()
+    get_feature_flags_repo().delete(flag)
     with _cache_lock:
         _cache.pop(flag, None)
 

@@ -74,6 +74,10 @@ _reading_sessions_repo = None
 _daily_plans_repo = None
 _progress_snapshots_repo = None
 _progress_recommendations_repo = None
+_reading_questions_repo = None
+_enriched_words_repo = None
+_feature_flags_repo = None
+_auth_link_codes_repo = None
 _plan_repo: PlanRepo | None = None
 _team_repo: TeamRepo | None = None
 _org_repo: OrgRepo | None = None
@@ -218,6 +222,42 @@ def get_progress_recommendations_repo():
     return _progress_recommendations_repo
 
 
+def get_reading_questions_repo():
+    """Postgres-backed AI question cache (M8 Block E)."""
+    global _reading_questions_repo
+    if _reading_questions_repo is None:
+        from .postgres.content_repo import PostgresReadingQuestionsRepo
+        _reading_questions_repo = PostgresReadingQuestionsRepo()
+    return _reading_questions_repo
+
+
+def get_enriched_words_repo():
+    """Postgres-backed shared word metadata cache (M8 Block E)."""
+    global _enriched_words_repo
+    if _enriched_words_repo is None:
+        from .postgres.content_repo import PostgresEnrichedWordsRepo
+        _enriched_words_repo = PostgresEnrichedWordsRepo()
+    return _enriched_words_repo
+
+
+def get_feature_flags_repo():
+    """Postgres-backed feature flag store (M8 Block E)."""
+    global _feature_flags_repo
+    if _feature_flags_repo is None:
+        from .postgres.content_repo import PostgresFeatureFlagsRepo
+        _feature_flags_repo = PostgresFeatureFlagsRepo()
+    return _feature_flags_repo
+
+
+def get_auth_link_codes_repo():
+    """Postgres-backed DM↔web link code repo (M8 Block F)."""
+    global _auth_link_codes_repo
+    if _auth_link_codes_repo is None:
+        from .postgres.content_repo import PostgresAuthLinkCodesRepo
+        _auth_link_codes_repo = PostgresAuthLinkCodesRepo()
+    return _auth_link_codes_repo
+
+
 def get_plan_repo() -> PlanRepo:
     """Return the process-wide ``PlanRepo`` singleton (Postgres-backed)."""
     global _plan_repo
@@ -291,6 +331,8 @@ def _reset_singletons_for_tests() -> None:
     global _group_challenges_repo, _group_challenge_answers_repo
     global _quiz_sessions_repo, _reading_sessions_repo
     global _daily_plans_repo, _progress_snapshots_repo, _progress_recommendations_repo
+    global _reading_questions_repo, _enriched_words_repo
+    global _feature_flags_repo, _auth_link_codes_repo
     global _plan_repo, _team_repo, _org_repo, _audit_log_repo
     global _ai_usage_repo, _metrics_repo, _link_token_repo
     _user_repo = None
@@ -308,6 +350,10 @@ def _reset_singletons_for_tests() -> None:
     _daily_plans_repo = None
     _progress_snapshots_repo = None
     _progress_recommendations_repo = None
+    _reading_questions_repo = None
+    _enriched_words_repo = None
+    _feature_flags_repo = None
+    _auth_link_codes_repo = None
     _plan_repo = None
     _team_repo = None
     _org_repo = None
@@ -370,6 +416,10 @@ __all__ = [
     "get_daily_plans_repo",
     "get_progress_snapshots_repo",
     "get_progress_recommendations_repo",
+    "get_reading_questions_repo",
+    "get_enriched_words_repo",
+    "get_feature_flags_repo",
+    "get_auth_link_codes_repo",
     "get_plan_repo",
     "get_team_repo",
     "get_org_repo",

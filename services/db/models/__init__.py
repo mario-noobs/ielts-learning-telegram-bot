@@ -3,6 +3,12 @@
 from services.db.models.ai_routing import AiProviderUsage, AiRoutingConfig
 from services.db.models.ai_usage import AiUsage
 from services.db.models.audit_log import AuditLog
+from services.db.models.content import (
+    AuthLinkCode,
+    EnrichedWord,
+    FeatureFlag,
+    ReadingQuestion,
+)
 from services.db.models.groups import (
     Group,
     GroupChallenge,
@@ -36,8 +42,11 @@ __all__ = [
     "AiRoutingConfig",
     "AiUsage",
     "AuditLog",
+    "AuthLinkCode",
     "DailyPlan",
     "DailyReviewSnapshot",
+    "EnrichedWord",
+    "FeatureFlag",
     "Group",
     "GroupChallenge",
     "GroupChallengeAnswer",
@@ -54,6 +63,7 @@ __all__ = [
     "ProgressSnapshot",
     "QuizHistory",
     "QuizSession",
+    "ReadingQuestion",
     "ReadingSession",
     "ReviewEvent",
     "Team",
