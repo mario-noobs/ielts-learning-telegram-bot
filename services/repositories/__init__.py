@@ -65,6 +65,10 @@ _quiz_history_repo: QuizHistoryRepo | None = None
 _writing_history_repo: WritingHistoryRepo | None = None
 _daily_words_repo: DailyWordsRepo | None = None
 _listening_history_repo: ListeningHistoryRepo | None = None
+_groups_repo = None
+_group_daily_words_repo = None
+_group_challenges_repo = None
+_group_challenge_answers_repo = None
 _plan_repo: PlanRepo | None = None
 _team_repo: TeamRepo | None = None
 _org_repo: OrgRepo | None = None
@@ -126,6 +130,42 @@ def get_listening_history_repo() -> ListeningHistoryRepo:
         from .postgres.listening_history_repo import PostgresListeningHistoryRepo
         _listening_history_repo = PostgresListeningHistoryRepo()
     return _listening_history_repo
+
+
+def get_groups_repo():
+    """Postgres-backed group settings + membership repo (M8 Block B)."""
+    global _groups_repo
+    if _groups_repo is None:
+        from .postgres.groups_repo import PostgresGroupsRepo
+        _groups_repo = PostgresGroupsRepo()
+    return _groups_repo
+
+
+def get_group_daily_words_repo():
+    """Postgres-backed group daily-words repo (M8 Block B)."""
+    global _group_daily_words_repo
+    if _group_daily_words_repo is None:
+        from .postgres.groups_repo import PostgresGroupDailyWordsRepo
+        _group_daily_words_repo = PostgresGroupDailyWordsRepo()
+    return _group_daily_words_repo
+
+
+def get_group_challenges_repo():
+    """Postgres-backed group challenges repo (M8 Block B)."""
+    global _group_challenges_repo
+    if _group_challenges_repo is None:
+        from .postgres.groups_repo import PostgresGroupChallengesRepo
+        _group_challenges_repo = PostgresGroupChallengesRepo()
+    return _group_challenges_repo
+
+
+def get_group_challenge_answers_repo():
+    """Postgres-backed group challenge answers repo (M8 Block B)."""
+    global _group_challenge_answers_repo
+    if _group_challenge_answers_repo is None:
+        from .postgres.groups_repo import PostgresGroupChallengeAnswersRepo
+        _group_challenge_answers_repo = PostgresGroupChallengeAnswersRepo()
+    return _group_challenge_answers_repo
 
 
 def get_plan_repo() -> PlanRepo:
@@ -197,6 +237,8 @@ def _reset_singletons_for_tests() -> None:
     """Test-only hook to clear cached repos. Don't call from app code."""
     global _user_repo, _vocab_repo, _quiz_history_repo
     global _writing_history_repo, _daily_words_repo, _listening_history_repo
+    global _groups_repo, _group_daily_words_repo
+    global _group_challenges_repo, _group_challenge_answers_repo
     global _plan_repo, _team_repo, _org_repo, _audit_log_repo
     global _ai_usage_repo, _metrics_repo, _link_token_repo
     _user_repo = None
@@ -205,6 +247,10 @@ def _reset_singletons_for_tests() -> None:
     _writing_history_repo = None
     _daily_words_repo = None
     _listening_history_repo = None
+    _groups_repo = None
+    _group_daily_words_repo = None
+    _group_challenges_repo = None
+    _group_challenge_answers_repo = None
     _plan_repo = None
     _team_repo = None
     _org_repo = None
@@ -258,6 +304,10 @@ __all__ = [
     "get_writing_history_repo",
     "get_daily_words_repo",
     "get_listening_history_repo",
+    "get_groups_repo",
+    "get_group_daily_words_repo",
+    "get_group_challenges_repo",
+    "get_group_challenge_answers_repo",
     "get_plan_repo",
     "get_team_repo",
     "get_org_repo",
