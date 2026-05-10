@@ -85,6 +85,8 @@ def _to_profile(user: dict) -> UserProfile:
         timezone=user.get("timezone"),
         daily_words_count=int(user.get("daily_words_count") or 5),
         dismissed_onboarding=bool(user.get("dismissed_onboarding") or False),
+        target_band_set=bool(user.get("target_band_set") or False),
+        weekly_goal_set=bool(user.get("weekly_goal_set") or False),
     )
 
 
@@ -100,10 +102,16 @@ async def update_me(
         updates["name"] = body.name.strip()
     if body.target_band is not None:
         updates["target_band"] = float(body.target_band)
+        # #dashboard-polish: stamp the configured-by-user flag whenever
+        # the user actively submits this field. The flag never flips
+        # back to false (we don't expose a "clear" path for these
+        # unclearable fields).
+        updates["target_band_set"] = True
     if body.topics is not None:
         updates["topics"] = [t.strip() for t in body.topics if t and t.strip()]
     if body.weekly_goal_minutes is not None:
         updates["weekly_goal_minutes"] = int(body.weekly_goal_minutes)
+        updates["weekly_goal_set"] = True
     if body.exam_date is not None:
         if body.exam_date == "":
             updates["exam_date"] = None
