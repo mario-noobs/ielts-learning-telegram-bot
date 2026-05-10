@@ -145,6 +145,34 @@ dev: install postgres emulators seed  ## One-command dev environment: postgres +
 test:  ## Run pytest (Postgres tests skip unless DATABASE_URL is set)
 	@$(EMULATOR_ENV) $(PY) -m pytest -q
 
+# ─── M8 production cutover (#234) ─────────────────────────────────────
+
+.PHONY: cutover
+cutover:  ## M8 production cutover: alembic + FS export + migrate + parity + smoke
+	@echo "=== M8 cutover sequence (#234) ==="
+	@echo
+	@echo "Step 1/5: Alembic migrations to head (0006 + 0007 + 0008)"
+	@$(VENV)/bin/alembic upgrade head
+	@echo
+	@echo "Step 2/5: Firestore export → .fs_export/"
+	@$(PY) scripts/export_firestore.py --out-dir .fs_export
+	@echo
+	@echo "Step 3/5: migrate_firestore_to_pg --block=all"
+	@$(PY) scripts/migrate_firestore_to_pg.py --block=all
+	@echo
+	@echo "Step 4/5: verify_parity --threshold=0"
+	@$(PY) scripts/verify_parity.py --block=all --threshold=0
+	@echo
+	@echo "Step 5/5: pytest smoke (skip slow integration)"
+	@$(VENV)/bin/pytest tests/test_repositories/test_pg_block_a.py \
+	    tests/test_repositories/test_pg_block_b.py \
+	    tests/test_repositories/test_pg_block_c.py \
+	    tests/test_repositories/test_pg_block_d.py \
+	    tests/test_repositories/test_pg_block_ef.py -q
+	@echo
+	@echo "✓ Cutover sequence complete. Now restart services + disable Firestore"
+	@echo "  product in Firebase Console (KEEP Firebase project — Auth stays)."
+
 .PHONY: clean
 clean:  ## Remove venv, caches, node_modules, and stop dev containers (prompts first)
 	@read -p "This removes venv/, web/node_modules/, __pycache__, .pytest_cache, and stops emulators+postgres. Continue? [y/N] " ans; \
