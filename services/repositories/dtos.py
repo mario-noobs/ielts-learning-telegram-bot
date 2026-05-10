@@ -102,6 +102,9 @@ class UserDoc(_FirestoreDTO):
     last_active_date: Optional[_date] = None
     signup_cohort: Optional[str] = None
 
+    # FIFO ring (cap RECENT_TOPICS_KEEP) used by personal /daily topic rotation.
+    recent_personal_topics: list[str] = Field(default_factory=list)
+
 
 class QuizStats(BaseModel):
     """Aggregate quiz stats derived from the user profile counters."""

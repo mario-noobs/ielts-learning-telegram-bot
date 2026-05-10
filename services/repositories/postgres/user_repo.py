@@ -48,6 +48,7 @@ def _row_to_doc(u: User) -> UserDoc:
         quota_override=u.quota_override,
         last_active_date=u.last_active_date,
         signup_cohort=u.signup_cohort,
+        recent_personal_topics=list(u.recent_personal_topics or []),
     )
 
 

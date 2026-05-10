@@ -35,6 +35,7 @@ from firebase_admin import firestore
 import config
 from services.repositories import (
     get_daily_words_repo,
+    get_listening_history_repo,
     get_quiz_history_repo,
     get_user_repo,
     get_vocab_repo,
@@ -382,37 +383,22 @@ def complete_plan_activity(
 
 
 # ─── Listening Exercises ──────────────────────────────────────────
-# Not migrated — listening_history is out of scope for US-P.1.
+# M8 cutover (#234): now delegated to PostgresListeningHistoryRepo.
 
 def save_listening_exercise(telegram_id, exercise_data: dict) -> str:
-    now = datetime.now(timezone.utc)
-    doc = {**exercise_data, "created_at": now}
-    ref = (_get_db().collection("users").document(str(telegram_id))
-           .collection("listening_history").document())
-    ref.set(doc)
-    return ref.id
+    return get_listening_history_repo().save(telegram_id, exercise_data)
 
 
 def get_listening_exercise(telegram_id, exercise_id: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("listening_history").document(exercise_id).get())
-    if not doc.exists:
-        return None
-    return {"id": doc.id, **doc.to_dict()}
+    return get_listening_history_repo().get(telegram_id, exercise_id)
 
 
 def update_listening_exercise(telegram_id, exercise_id: str, data: dict) -> None:
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("listening_history").document(exercise_id).update(data))
+    get_listening_history_repo().update(telegram_id, exercise_id, data)
 
 
 def list_listening_exercises(telegram_id, limit: int = 50) -> list[dict]:
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("listening_history")
-            .order_by("created_at", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-            .stream())
-    return [{"id": d.id, **d.to_dict()} for d in docs]
+    return get_listening_history_repo().list(telegram_id, limit)
 
 
 # ─── Progress Snapshots (US-5.1) ──────────────────────────────────
