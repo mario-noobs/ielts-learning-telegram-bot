@@ -33,28 +33,25 @@ def _truncate():
 
 
 @pytest.fixture(autouse=True)
-def _stub_firestore():
-    """Block Firestore client init across the whole test for safety."""
-    class _StubFirestoreRepo:
-        """No-op stand-in so merge_web_into_telegram doesn't touch
-        Firestore in the redeem-test fixtures (we don't seed any
-        subcollection docs here)."""
-        def copy_subcollections(self, source_id, target_id):
-            return {
-                "vocab_merged": 0, "vocab_dropped": 0,
-                "quiz_merged": 0, "writing_merged": 0,
-                "daily_merged": 0, "daily_skipped": 0,
-            }
+def _stub_firebase_init():
+    """Skip the Firebase Admin Auth init across the whole redeem-test.
 
+    Post-decommission (#234) the merge orchestrator only touches
+    Postgres for subcollection moves; the Firebase Admin SDK is needed
+    only for ID-token verification, which the redeem tests stub at the
+    auth layer rather than reaching the real service. Patching the
+    init helpers to no-ops keeps tests hermetic.
+    """
     with patch(
-        "services.firebase_service._get_db", return_value=object(),
+        "services.firebase_auth.ensure_admin_initialized", return_value=None,
     ), patch(
-        "api.routes.auth.firebase_service._get_db", return_value=object(),
-    ), patch(
-        "services.firebase_service._firestore_user_repo_instance",
-        return_value=_StubFirestoreRepo(),
-    ), patch(
-        "services.firebase_service._delete_source_subcollections",
+        "services.firebase_service._copy_subcollections_pg",
+        return_value={
+            "vocab_merged": 0, "vocab_dropped": 0,
+            "quiz_merged": 0, "writing_merged": 0,
+            "listening_merged": 0,
+            "daily_merged": 0, "daily_skipped": 0,
+        },
     ):
         yield
 

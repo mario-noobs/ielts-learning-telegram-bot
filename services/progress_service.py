@@ -326,21 +326,26 @@ def weekly_minutes_actual(
 
 
 def _count_quiz_history_since(user_id, since: datetime, limit: int) -> int:
-    """Quiz repo only exposes ``get_latest`` — count manually via raw
-    Firestore. Cheap (one capped query, no fanout) and keeps repo API
-    small."""
+    """Count quiz_history rows newer than ``since`` (capped at ``limit``).
+
+    Post-cutover: single PG query, no fan-out. Replaces the legacy
+    Firestore stream + client-side filter.
+    """
+    from sqlalchemy import select
+
+    from services.db import get_sync_session
+    from services.db.models import QuizHistory
+
     try:
-        from firebase_admin import firestore as fs  # local import: optional dep
-        db = firebase_service._get_db()
-        docs = (
-            db.collection("users").document(str(user_id))
-            .collection("quiz_history")
-            .order_by("created_at", direction=fs.Query.DESCENDING)
-            .limit(limit)
-            .stream()
-        )
-        return _count_since([d.to_dict() for d in docs], since)
-    except Exception:  # noqa: BLE001 — degrade gracefully if collection missing
+        with get_sync_session() as s:
+            n = s.execute(
+                select(QuizHistory).where(
+                    QuizHistory.user_id == str(user_id),
+                    QuizHistory.created_at >= since,
+                ).limit(limit)
+            ).all()
+        return len(n)
+    except Exception:  # noqa: BLE001 — degrade gracefully on DB error
         return 0
 
 

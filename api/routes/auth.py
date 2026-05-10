@@ -140,7 +140,8 @@ async def create_user(
     rather than raising 409. Same effect either way; the client doesn't
     need to special-case "already there".
     """
-    firebase_service._get_db()  # Ensure Firebase Admin is initialized
+    from services.firebase_auth import ensure_admin_initialized
+    ensure_admin_initialized()  # Firebase Admin SDK boot for Auth verify
 
     try:
         decoded_token = firebase_admin.auth.verify_id_token(credentials.credentials)
@@ -196,7 +197,8 @@ async def link_telegram(
     response.headers["Sunset"] = "Sun, 07 Jun 2026 00:00:00 GMT"
     response.headers["Deprecation"] = "true"
     response.headers["Link"] = '</api/v1/link/redeem>; rel="successor-version"'
-    firebase_service._get_db()
+    from services.firebase_auth import ensure_admin_initialized
+    ensure_admin_initialized()
 
     try:
         decoded_token = firebase_admin.auth.verify_id_token(credentials.credentials)
@@ -371,7 +373,8 @@ async def link_redeem(
       merge stats so the web UI can show "We merged X words and Y quizzes".
     - **C — already_linked**: idempotent.
     """
-    firebase_service._get_db()
+    from services.firebase_auth import ensure_admin_initialized
+    ensure_admin_initialized()
 
     try:
         decoded = firebase_admin.auth.verify_id_token(credentials.credentials)

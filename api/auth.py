@@ -48,7 +48,8 @@ async def get_current_user(
     Raises 401 for invalid/expired tokens, 404 when no user record is linked.
     """
     # Ensure Firebase Admin SDK is initialized before verifying tokens
-    firebase_service._get_db()
+    from services.firebase_auth import ensure_admin_initialized
+    ensure_admin_initialized()
 
     try:
         decoded_token = firebase_admin.auth.verify_id_token(credentials.credentials)

@@ -370,6 +370,73 @@ def setup_metrics_schedule():
     logger.info("Platform metrics aggregation scheduled at 00:30 ICT")
 
 
+# ─── M8 cutover crons (#234) ─────────────────────────────────────────
+
+
+def _cleanup_expired_sessions_daily() -> None:
+    """Nightly TTL cleanup for ephemeral PG tables — wraps the script."""
+    try:
+        from services.repositories import (
+            get_quiz_sessions_repo,
+            get_reading_sessions_repo,
+        )
+        from sqlalchemy import text as _text
+
+        from services.db import get_sync_session
+
+        qs = get_quiz_sessions_repo().cleanup_older_than(days=7)
+        rs = get_reading_sessions_repo().cleanup_older_than(days=7)
+        with get_sync_session() as s, s.begin():
+            lc = s.execute(
+                _text("DELETE FROM auth_link_codes WHERE expires_at < now()"),
+            ).rowcount or 0
+        logger.info(
+            "cleanup_expired: quiz_sessions=%d reading_sessions=%d auth_link_codes=%d",
+            qs, rs, lc,
+        )
+    except Exception as e:  # noqa: BLE001 — never crash the scheduler
+        logger.exception(f"cleanup_expired failed: {e}")
+
+
+def _rollup_review_snapshots_daily() -> None:
+    """Nightly review_events → daily_review_snapshots rollup — wraps script."""
+    from datetime import datetime as _dt
+    from datetime import timedelta as _td
+    from datetime import timezone as _tz
+
+    try:
+        from scripts.rollup_daily_review_snapshots import rollup
+        yesterday = (_dt.now(_tz.utc) - _td(days=1)).date()
+        n = rollup(yesterday)
+        logger.info("rollup_daily_review_snapshots: upserted %d row(s) for %s", n, yesterday)
+    except Exception as e:  # noqa: BLE001
+        logger.exception(f"rollup_daily_review_snapshots failed: {e}")
+
+
+def setup_m8_cutover_schedule():
+    """Register the M8 cutover daily cleanup + rollup crons (#234).
+
+    Both fire at 01:00 Asia/Ho_Chi_Minh — after metrics aggregation at
+    00:30 has settled, well before users wake up.
+    """
+    scheduler = get_scheduler()
+    for job_id, fn in (
+        ("cleanup_expired_sessions_daily", _cleanup_expired_sessions_daily),
+        ("rollup_review_snapshots_daily", _rollup_review_snapshots_daily),
+    ):
+        existing = scheduler.get_job(job_id)
+        if existing:
+            existing.remove()
+        scheduler.add_job(
+            fn,
+            "cron",
+            hour=1, minute=0,
+            id=job_id,
+            replace_existing=True,
+        )
+    logger.info("M8 cutover crons scheduled at 01:00 ICT (cleanup + rollup)")
+
+
 def cleanup_link_tokens_hourly() -> None:
     """Hourly cleanup of expired US-M12.2 link_tokens rows.
 
