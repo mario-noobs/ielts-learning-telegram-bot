@@ -69,6 +69,8 @@ _groups_repo = None
 _group_daily_words_repo = None
 _group_challenges_repo = None
 _group_challenge_answers_repo = None
+_quiz_sessions_repo = None
+_reading_sessions_repo = None
 _plan_repo: PlanRepo | None = None
 _team_repo: TeamRepo | None = None
 _org_repo: OrgRepo | None = None
@@ -168,6 +170,24 @@ def get_group_challenge_answers_repo():
     return _group_challenge_answers_repo
 
 
+def get_quiz_sessions_repo():
+    """Postgres-backed bot quiz session repo (M8 Block C)."""
+    global _quiz_sessions_repo
+    if _quiz_sessions_repo is None:
+        from .postgres.sessions_repo import PostgresQuizSessionsRepo
+        _quiz_sessions_repo = PostgresQuizSessionsRepo()
+    return _quiz_sessions_repo
+
+
+def get_reading_sessions_repo():
+    """Postgres-backed reading-lab session repo (M8 Block C)."""
+    global _reading_sessions_repo
+    if _reading_sessions_repo is None:
+        from .postgres.sessions_repo import PostgresReadingSessionsRepo
+        _reading_sessions_repo = PostgresReadingSessionsRepo()
+    return _reading_sessions_repo
+
+
 def get_plan_repo() -> PlanRepo:
     """Return the process-wide ``PlanRepo`` singleton (Postgres-backed)."""
     global _plan_repo
@@ -239,6 +259,7 @@ def _reset_singletons_for_tests() -> None:
     global _writing_history_repo, _daily_words_repo, _listening_history_repo
     global _groups_repo, _group_daily_words_repo
     global _group_challenges_repo, _group_challenge_answers_repo
+    global _quiz_sessions_repo, _reading_sessions_repo
     global _plan_repo, _team_repo, _org_repo, _audit_log_repo
     global _ai_usage_repo, _metrics_repo, _link_token_repo
     _user_repo = None
@@ -251,6 +272,8 @@ def _reset_singletons_for_tests() -> None:
     _group_daily_words_repo = None
     _group_challenges_repo = None
     _group_challenge_answers_repo = None
+    _quiz_sessions_repo = None
+    _reading_sessions_repo = None
     _plan_repo = None
     _team_repo = None
     _org_repo = None
@@ -308,6 +331,8 @@ __all__ = [
     "get_group_daily_words_repo",
     "get_group_challenges_repo",
     "get_group_challenge_answers_repo",
+    "get_quiz_sessions_repo",
+    "get_reading_sessions_repo",
     "get_plan_repo",
     "get_team_repo",
     "get_org_repo",

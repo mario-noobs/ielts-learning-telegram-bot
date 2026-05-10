@@ -41,6 +41,8 @@ from services.repositories import (
     get_groups_repo,
     get_listening_history_repo,
     get_quiz_history_repo,
+    get_quiz_sessions_repo,
+    get_reading_sessions_repo,
     get_user_repo,
     get_vocab_repo,
     get_writing_history_repo,
@@ -179,33 +181,23 @@ def invalidate_topic_mastery_cache(telegram_id) -> None:
 
 
 # ─── Quiz Sessions (Web) ──────────────────────────────────────────
-# Not migrated — quiz_sessions is a short-lived cache, not core user data.
+# M8 Block C (#234): now delegated to PostgresQuizSessionsRepo.
 
 def save_quiz_session(telegram_id, session_id: str, questions: list[dict]) -> None:
     """Persist a quiz session with full (unsanitized) question docs."""
-    doc = {
-        "questions": questions,
-        "answered_ids": [],
-        "created_at": datetime.now(timezone.utc),
-    }
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("quiz_sessions").document(session_id).set(doc))
+    get_quiz_sessions_repo().save(telegram_id, session_id, questions)
 
 
 def get_quiz_session(telegram_id, session_id: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("quiz_sessions").document(session_id).get())
-    if doc.exists:
-        return doc.to_dict()
-    return None
+    return get_quiz_sessions_repo().get(telegram_id, session_id)
 
 
 def mark_session_question_answered(telegram_id, session_id: str,
                                     question_id: str) -> None:
-    """Append question_id to the session's answered_ids array."""
-    ref = (_get_db().collection("users").document(str(telegram_id))
-           .collection("quiz_sessions").document(session_id))
-    ref.update({"answered_ids": firestore.ArrayUnion([question_id])})
+    """Append question_id to the session's answered_ids array (idempotent)."""
+    get_quiz_sessions_repo().mark_question_answered(
+        telegram_id, session_id, question_id,
+    )
 
 
 def get_mastered_words(telegram_id: int) -> list[dict]:
@@ -268,37 +260,23 @@ def list_writing_submissions(telegram_id, limit: int = 50) -> list[dict]:
 
 
 # ─── Reading Sessions (US-M9.2) ───────────────────────────────────
-# Kept on Firestore; will move behind the repositories Protocol if/when
-# Reading grows enough state to justify it.
+# M8 Block C (#234): now delegated to PostgresReadingSessionsRepo.
 
 def save_reading_session(telegram_id, session_id: str, data: dict) -> None:
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("reading_sessions").document(session_id)
-     .set({**data, "updated_at": datetime.now(timezone.utc)}))
+    get_reading_sessions_repo().save(telegram_id, session_id, data)
 
 
 def get_reading_session(telegram_id, session_id: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("reading_sessions").document(session_id).get())
-    if not doc.exists:
-        return None
-    return {"id": doc.id, **(doc.to_dict() or {})}
+    return get_reading_sessions_repo().get(telegram_id, session_id)
 
 
 def update_reading_session(telegram_id, session_id: str, data: dict) -> None:
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("reading_sessions").document(session_id)
-     .update({**data, "updated_at": datetime.now(timezone.utc)}))
+    get_reading_sessions_repo().update(telegram_id, session_id, data)
 
 
 def list_reading_sessions(telegram_id, limit: int = 10) -> list[dict]:
     """Return recent reading sessions newest-first, submitted + in-progress."""
-    docs = (_get_db().collection("users").document(str(telegram_id))
-            .collection("reading_sessions")
-            .order_by("updated_at", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-            .stream())
-    return [{"id": d.id, **d.to_dict()} for d in docs]
+    return get_reading_sessions_repo().list_for_user(telegram_id, limit)
 
 
 # Global (not user-scoped) cache for AI-generated question sets. Keyed
