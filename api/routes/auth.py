@@ -83,6 +83,8 @@ def _to_profile(user: dict) -> UserProfile:
         quota_override=user.get("quota_override"),
         daily_time=user.get("daily_time"),
         timezone=user.get("timezone"),
+        daily_words_count=int(user.get("daily_words_count") or 5),
+        dismissed_onboarding=bool(user.get("dismissed_onboarding") or False),
     )
 
 
@@ -117,6 +119,15 @@ async def update_me(
         updates["daily_time"] = body.daily_time or None
     if body.timezone is not None:
         updates["timezone"] = body.timezone.strip() or None
+    if body.daily_words_count is not None:
+        if not 5 <= body.daily_words_count <= 50:
+            raise ApiError(
+                ERR.users_daily_words_invalid,
+                got=body.daily_words_count,
+            )
+        updates["daily_words_count"] = int(body.daily_words_count)
+    if body.dismissed_onboarding is not None:
+        updates["dismissed_onboarding"] = bool(body.dismissed_onboarding)
 
     if updates:
         await asyncio.to_thread(

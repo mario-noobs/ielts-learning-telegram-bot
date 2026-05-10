@@ -384,13 +384,16 @@ async def mydaily_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Generate new words using user's personal settings
     band = user_data.get("target_band", config.DEFAULT_BAND_TARGET)
     topics = user_data.get("topics", ["education", "environment", "technology"])
+    # #242: per-user override; falls back to the global default when the
+    # row predates migration 0009 or stores an explicit None.
+    count = int(user_data.get("daily_words_count") or config.DEFAULT_WORD_COUNT)
 
     await update.message.reply_text("\u23f3 Generating your personal vocabulary...")
 
     try:
         words, topic = await vocab_service.generate_personal_daily_words(
             telegram_id=user.id,
-            count=config.DEFAULT_WORD_COUNT,
+            count=count,
             band=band,
             topics=topics,
         )

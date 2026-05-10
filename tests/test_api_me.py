@@ -153,3 +153,49 @@ class TestPatchMe:
         # Unchanged fields still reflect original
         assert body["name"] == "Alice"
         assert "exam_date" not in captured
+
+
+class TestDailyWordsCount:
+    """#242: per-user daily_words_count round-trip + range validation."""
+
+    def test_round_trip_persists_and_returns(self, client):
+        captured: dict = {}
+
+        def upd(_uid, data):
+            captured.update(data)
+
+        with patch(
+            "api.routes.auth.firebase_service.update_user",
+            side_effect=upd,
+        ):
+            res = client.patch("/api/v1/me", json={"daily_words_count": 7})
+        assert res.status_code == 200
+        assert res.json()["daily_words_count"] == 7
+        assert captured["daily_words_count"] == 7
+
+    def test_out_of_range_returns_domain_error_code(self, client):
+        # Outside the dropdown set's bounding range (5..50). Must surface
+        # as ApiError 400 with the registered code so the web UI can
+        # localize via errors.json — not a generic Pydantic 422.
+        res = client.patch("/api/v1/me", json={"daily_words_count": 51})
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == (
+            "users.daily_words_count.out_of_range"
+        )
+
+    def test_dismissed_onboarding_round_trip(self, client):
+        captured: dict = {}
+
+        def upd(_uid, data):
+            captured.update(data)
+
+        with patch(
+            "api.routes.auth.firebase_service.update_user",
+            side_effect=upd,
+        ):
+            res = client.patch(
+                "/api/v1/me", json={"dismissed_onboarding": True},
+            )
+        assert res.status_code == 200
+        assert res.json()["dismissed_onboarding"] is True
+        assert captured["dismissed_onboarding"] is True
