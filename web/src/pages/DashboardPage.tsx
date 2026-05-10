@@ -9,7 +9,6 @@ import AiUsageWidget from '../components/AiUsageWidget'
 import EmptyState from '../components/EmptyState'
 import ErrorBanner from '../components/ErrorBanner'
 import Icon from '../components/Icon'
-import LinkTelegramCard from '../components/LinkTelegramCard'
 import PlanTaskCard from '../components/PlanTaskCard'
 import ProgressRing from '../components/ProgressRing'
 import DashboardGreeting from './dashboard/DashboardGreeting'
@@ -18,6 +17,7 @@ import PersonalizationCTA from './dashboard/PersonalizationCTA'
 import ReadinessTrack from './dashboard/ReadinessTrack'
 import RecentContent from './dashboard/RecentContent'
 import ProfilePanel from './dashboard/ProfilePanel'
+import TelegramOnboarding from './dashboard/TelegramOnboarding'
 
 interface UserProfile {
   id: string
@@ -28,10 +28,6 @@ interface UserProfile {
   topics: string[]
   streak: number
   total_words: number
-}
-
-function isWebPlaceholder(profile: UserProfile): boolean {
-  return profile.id.startsWith('web_')
 }
 
 async function getOrCreateProfile(): Promise<UserProfile> {
@@ -213,6 +209,8 @@ export default function DashboardPage() {
               </section>
             )}
 
+            <TelegramOnboarding />
+
             <ReadinessTrack progress={progress} />
 
             {/* Profile panel stacks between readiness and recent on <lg per AC7 */}
@@ -222,10 +220,6 @@ export default function DashboardPage() {
             </div>
 
             <RecentContent />
-
-            {isWebPlaceholder(profile) && (
-              <LinkTelegramCard onLinked={loadProfile} />
-            )}
           </div>
 
           {/* Right column — desktop only. Sticky so ProfilePanel +

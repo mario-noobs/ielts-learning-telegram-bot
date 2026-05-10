@@ -138,5 +138,20 @@
       "primaryPaid": "Contact admin",
       "secondary": "Got it"
     }
+  },
+  "telegramOnboarding": {
+    "heading": "Connect Telegram",
+    "subheading": "Get daily vocab in chat — and study together with a group.",
+    "progress": "{done} of {total} done",
+    "step1": {
+      "title": "Link your Telegram account",
+      "description": "Open the bot in Telegram once to connect your accounts.",
+      "cta": "Open the link page"
+    },
+    "step2": {
+      "title": "Use it with a group",
+      "description": "Add the bot to a Telegram group and send /start there.",
+      "cta": "See group instructions"
+    }
   }
 }

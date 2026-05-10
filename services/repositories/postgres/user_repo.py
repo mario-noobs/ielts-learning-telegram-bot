@@ -49,6 +49,8 @@ def _row_to_doc(u: User) -> UserDoc:
         last_active_date=u.last_active_date,
         signup_cohort=u.signup_cohort,
         recent_personal_topics=list(u.recent_personal_topics or []),
+        daily_words_count=u.daily_words_count,
+        dismissed_onboarding=u.dismissed_onboarding,
     )
 
 

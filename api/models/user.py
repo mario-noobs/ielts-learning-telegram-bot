@@ -46,6 +46,10 @@ class UserProfile(BaseModel):
     daily_time: str | None = None
     timezone: str | None = None
 
+    # #242: editable from /settings Practice tab + dismissable onboarding.
+    daily_words_count: int = 5
+    dismissed_onboarding: bool = False
+
 
 class AiUsageFeaturePoint(BaseModel):
     """One feature's count in today's per-user usage breakdown."""
@@ -118,6 +122,11 @@ class UserUpdate(BaseModel):
         max_length=64,
         description="IANA timezone, e.g. Asia/Ho_Chi_Minh",
     )
+    # #242: not validated at the Pydantic layer so an out-of-range value
+    # surfaces as a domain ApiError (`users.daily_words_count.out_of_range`)
+    # the web UI can localize, instead of a generic 422.
+    daily_words_count: int | None = None
+    dismissed_onboarding: bool | None = None
 
 
 # ─── US-M12.2 token deep-link models ─────────────────────────────────

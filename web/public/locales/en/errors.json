@@ -69,5 +69,10 @@
   },
   "quota": {
     "daily_exceeded": "You've used {used} of {plan_quota} AI calls today on this plan. Resets at midnight UTC."
+  },
+  "users": {
+    "daily_words_count": {
+      "out_of_range": "Daily words must be between 5 and 50."
+    }
   }
 }

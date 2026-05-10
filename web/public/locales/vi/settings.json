@@ -70,7 +70,9 @@
     "notLinked": "Liên kết Telegram để đồng bộ →",
     "reminderLinkCta": "Liên kết Telegram để nhận nhắc nhở",
     "groupsLinkTitle": "Quản lý group của bạn",
-    "groupsLinkDescription": "Xem setting của các group bạn đang join."
+    "groupsLinkDescription": "Xem setting của các group bạn đang join.",
+    "dailyWordsCount": "Số từ mới mỗi ngày",
+    "dailyWordsCountHint": "Số từ vựng mới mỗi ngày. Chọn 5, 10, 20, 30 hoặc 50 để phù hợp tốc độ học của bạn."
   },
   "groups": {
     "heading": "Group của bạn",

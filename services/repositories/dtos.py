@@ -105,6 +105,11 @@ class UserDoc(_FirestoreDTO):
     # FIFO ring (cap RECENT_TOPICS_KEEP) used by personal /daily topic rotation.
     recent_personal_topics: list[str] = Field(default_factory=list)
 
+    # #242: editable from /settings Practice tab; consumed by
+    # bot.handlers.vocabulary.mydaily_command.
+    daily_words_count: int = 5
+    dismissed_onboarding: bool = False
+
 
 class QuizStats(BaseModel):
     """Aggregate quiz stats derived from the user profile counters."""

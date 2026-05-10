@@ -138,5 +138,20 @@
       "primaryPaid": "Liên hệ admin",
       "secondary": "Đã hiểu"
     }
+  },
+  "telegramOnboarding": {
+    "heading": "Liên kết Telegram",
+    "subheading": "Nhận từ mới trong chat — và học cùng nhóm bạn.",
+    "progress": "Hoàn thành {done}/{total}",
+    "step1": {
+      "title": "Liên kết tài khoản Telegram",
+      "description": "Mở bot trong Telegram một lần để kết nối tài khoản.",
+      "cta": "Mở trang liên kết"
+    },
+    "step2": {
+      "title": "Dùng với nhóm",
+      "description": "Mời bot vào group Telegram rồi gõ /start trong group đó.",
+      "cta": "Xem hướng dẫn nhóm"
+    }
   }
 }

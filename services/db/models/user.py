@@ -7,6 +7,7 @@ from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Date,
     DateTime,
     Float,
@@ -63,6 +64,16 @@ class User(Base):
     # RECENT_TOPICS_KEEP=5 entries.
     recent_personal_topics: Mapped[list[str]] = mapped_column(
         JSONB, nullable=False, default=list, server_default="[]",
+    )
+
+    # #242: per-user setting for /mydaily generation count. CHECK 3..10
+    # is enforced at the DB layer in migration 0009.
+    daily_words_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=5, server_default="5",
+    )
+    # #242: gates the first-login quick-tour dialog on the web app.
+    dismissed_onboarding: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
     )
 
     __table_args__ = (

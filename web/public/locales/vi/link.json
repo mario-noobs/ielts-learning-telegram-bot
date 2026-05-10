@@ -68,6 +68,17 @@
       "unlinkConfirm": "Huỷ liên kết",
       "unlinkCancel": "Bỏ qua",
       "unlinkErrorTitle": "Không huỷ liên kết được"
+    },
+    "step1Label": "Bước 1 — Tài khoản cá nhân",
+    "step2Label": "Bước 2 — Dùng với nhóm (tuỳ chọn)",
+    "groupInvite": {
+      "title": "Mời bot vào group Telegram của bạn",
+      "subtitle": "Mọi thành viên trong group sẽ cùng nhận từ vựng và challenge mỗi ngày.",
+      "step1": "Mở group trong Telegram và bấm vào tên group để quản lý thành viên.",
+      "step2": "Thêm bot bên dưới làm thành viên.",
+      "step3": "Gõ /start trong group để đăng ký group với IELTS Coach.",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép!"
     }
   },
   "group": {

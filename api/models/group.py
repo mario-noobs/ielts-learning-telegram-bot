@@ -55,6 +55,6 @@ class GroupUpdate(BaseModel):
         default=None,
         pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
     )
-    word_count: Optional[int] = Field(default=None, ge=5, le=20)
+    word_count: Optional[int] = Field(default=None, ge=5, le=50)
     challenge_question_count: Optional[int] = Field(default=None, ge=3, le=10)
     challenge_deadline_minutes: Optional[int] = Field(default=None, ge=15, le=180)

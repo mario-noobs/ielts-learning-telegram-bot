@@ -141,6 +141,10 @@ class _Registry:
     settings_invalid_exam_date = ErrorCode(
         "settings.exam_date.invalid", 400, "exam_date must be YYYY-MM-DD.",
     )
+    users_daily_words_invalid = ErrorCode(
+        "users.daily_words_count.out_of_range", 400,
+        "daily_words_count must be between 5 and 50.",
+    )
 
     # ─── Admin (US-M11.2 / US-M11.3) ──────────────────────────────────
     admin_forbidden_role = ErrorCode(

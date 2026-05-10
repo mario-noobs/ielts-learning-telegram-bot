@@ -8,6 +8,11 @@ vi.mock('../lib/api', () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }))
 
+const useProfileMock = vi.fn(() => null as unknown)
+vi.mock('../contexts/AuthContext', () => ({
+  useProfile: () => useProfileMock(),
+}))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (k: string, vars?: Record<string, unknown>) =>
@@ -17,6 +22,8 @@ vi.mock('react-i18next', () => ({
 
 beforeEach(() => {
   apiFetchMock.mockReset()
+  useProfileMock.mockReset()
+  useProfileMock.mockReturnValue(null)
 })
 
 function render_() {
@@ -88,5 +95,29 @@ describe('<VocabHomePage>', () => {
     await waitFor(() =>
       expect(screen.getByText('empty.noWords.title')).toBeInTheDocument(),
     )
+  })
+
+  // #242: Telegram-link prompt banner.
+  it('shows the link banner when profile.id starts with web_ and hides when linked', async () => {
+    apiFetchMock.mockResolvedValue({ items: [], total_words: 0 })
+
+    useProfileMock.mockReturnValue({ id: 'web_abc', role: 'user', plan: 'free' })
+    const { unmount } = render_()
+    await waitFor(() => {
+      const banner = screen.getByRole('region', { name: 'linkPrompt.title' })
+      expect(banner).toBeInTheDocument()
+    })
+    expect(screen.getByText('linkPrompt.cta').closest('a'))
+      .toHaveAttribute('href', '/settings/link-telegram')
+    unmount()
+
+    useProfileMock.mockReturnValue({ id: '4242', role: 'user', plan: 'free' })
+    render_()
+    await waitFor(() =>
+      expect(apiFetchMock).toHaveBeenLastCalledWith('/api/v1/topics'),
+    )
+    expect(
+      screen.queryByRole('region', { name: 'linkPrompt.title' }),
+    ).not.toBeInTheDocument()
   })
 })
