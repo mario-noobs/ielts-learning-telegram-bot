@@ -20,6 +20,7 @@ from services.db.models.link_token import LinkToken
 from services.db.models.org import Org, OrgAdmin, OrgTeam
 from services.db.models.plan import Plan
 from services.db.models.platform_metric import PlatformMetric
+from services.db.models.sessions import QuizSession, ReadingSession
 from services.db.models.team import Team, TeamMember
 from services.db.models.user import User
 from services.db.models.vocabulary import ReviewEvent, Topic, UserVocabulary
@@ -42,6 +43,8 @@ __all__ = [
     "Plan",
     "PlatformMetric",
     "QuizHistory",
+    "QuizSession",
+    "ReadingSession",
     "ReviewEvent",
     "Team",
     "TeamMember",
