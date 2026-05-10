@@ -76,6 +76,16 @@ class User(Base):
         Boolean, nullable=False, default=False, server_default="false",
     )
 
+    # #dashboard-polish: explicit "user configured this" signal so the
+    # readiness sub-tasks can tick on save rather than from the
+    # unclearable default values (target_band 7.0, weekly_goal 150).
+    target_band_set: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
+    )
+    weekly_goal_set: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
+    )
+
     __table_args__ = (
         Index("ix_users_role_plan", "role", "plan"),
     )
