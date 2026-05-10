@@ -70,7 +70,9 @@
     "notLinked": "Link Telegram to sync →",
     "reminderLinkCta": "Link Telegram to receive reminders",
     "groupsLinkTitle": "Manage your groups",
-    "groupsLinkDescription": "View settings for groups you're a member of."
+    "groupsLinkDescription": "View settings for groups you're a member of.",
+    "dailyWordsCount": "Daily words count",
+    "dailyWordsCountHint": "How many new words you receive per day. Choose 5, 10, 20, 30, or 50 to match your pace."
   },
   "groups": {
     "heading": "Your groups",

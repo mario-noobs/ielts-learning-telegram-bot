@@ -41,6 +41,7 @@ const FRAGMENT_TO_FOCUS: Record<string, { tab: TabKey; elementId: string }> = {
   'target-band': { tab: 'goals', elementId: 'goals-band' },
   'weekly-goal': { tab: 'goals', elementId: 'goals-weekly' },
   'daily-time': { tab: 'practice', elementId: 'practice-time' },
+  'daily-words': { tab: 'practice', elementId: 'practice-words' },
 }
 
 const COMMON_TZ = [
@@ -66,6 +67,8 @@ interface UserProfile {
   weekly_goal_minutes: number
   daily_time: string | null
   timezone: string | null
+  daily_words_count: number
+  dismissed_onboarding: boolean
   plan: string
   preferred_locale: 'en' | 'vi' | null
 }
@@ -389,6 +392,7 @@ export default function SettingsPage() {
   const [topics, setTopics] = useState<string[]>([])
   const [topicDraft, setTopicDraft] = useState('')
   const [dailyTime, setDailyTime] = useState('')
+  const [dailyWordsCount, setDailyWordsCount] = useState(5)
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -407,6 +411,9 @@ export default function SettingsPage() {
         // coerce non-arrays to [] so `topics.length` reflects actual chips.
         setTopics(Array.isArray(p.topics) ? p.topics : [])
         setDailyTime(p.daily_time ?? '')
+        setDailyWordsCount(
+          typeof p.daily_words_count === 'number' ? p.daily_words_count : 5,
+        )
       })
       .catch((e) => setError(localizeError(e)))
   }, [])
@@ -823,10 +830,36 @@ export default function SettingsPage() {
                 )}
               </div>
 
+              <div>
+                <label htmlFor="practice-words" className="text-sm font-semibold text-fg block mb-1">
+                  {t('practice.dailyWordsCount')}
+                </label>
+                <select
+                  id="practice-words"
+                  value={dailyWordsCount}
+                  onChange={(e) => setDailyWordsCount(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none"
+                >
+                  {[5, 10, 20, 30, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-fg mt-1">
+                  {t('practice.dailyWordsCountHint')}
+                </p>
+              </div>
+
               {/* topics chips auto-save on add/remove. The Save button
-                  on this tab persists daily_time only. */}
+                  on this tab persists daily_time + daily_words_count. */}
               <button
-                onClick={() => save({ daily_time: dailyTime || '' })}
+                onClick={() =>
+                  save({
+                    daily_time: dailyTime || '',
+                    daily_words_count: dailyWordsCount,
+                  })
+                }
                 disabled={saving}
                 className="w-full py-2 bg-primary text-primary-fg rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50"
               >
