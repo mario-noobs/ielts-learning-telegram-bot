@@ -141,3 +141,37 @@ def test_close_atomic_is_idempotent(fresh_group):
     assert first["status"] == "closed"
     second = firebase_service.close_challenge_atomic(fresh_group, "2099-03-01")
     assert second["status"] == "closed"
+
+
+def test_save_daily_words_auto_stubs_missing_group(fresh_group):
+    """FK guard: bot can write daily words for a legacy group that was
+    never explicitly ``create_group()``'d (pre-cutover Firestore tolerated
+    this; post-cutover the FK rejects it without the stub).
+    """
+    # No explicit create_group() — repo must auto-create the stub.
+    firebase_service.save_daily_words(
+        fresh_group, "2099-09-09", [{"word": "demo"}], "Environment",
+    )
+    g = firebase_service.get_group_settings(fresh_group)
+    assert g is not None  # stub was created
+    assert g["owner_telegram_id"] is None  # stub has no owner
+
+    out = firebase_service.get_daily_words(fresh_group, "2099-09-09")
+    assert out["topic"] == "Environment"
+
+
+def test_save_challenge_answer_auto_stubs_missing_group_and_challenge(
+    fresh_group,
+):
+    """FK guard for the answer-arrives-before-challenge path."""
+    firebase_service.save_challenge_answer(
+        fresh_group, "2099-09-09", 11111, 0, True, display_name="Alice",
+    )
+    g = firebase_service.get_group_settings(fresh_group)
+    assert g is not None
+    ch = firebase_service.get_challenge(fresh_group, "2099-09-09")
+    assert ch is not None and ch["status"] == "active"
+    ans = firebase_service.get_user_challenge_answers(
+        fresh_group, "2099-09-09", 11111,
+    )
+    assert ans["display_name"] == "Alice"

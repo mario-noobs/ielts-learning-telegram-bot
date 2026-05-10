@@ -190,6 +190,34 @@ class PostgresGroupsRepo:
         return [_row_to_doc(r).model_dump() for r in rows]
 
 
+# ─── Helpers shared across child-table repos ───────────────────────────
+
+
+def _ensure_group_stub(session, group_id: int) -> None:
+    """Insert a minimal ``groups`` row if one doesn't exist (FK guard).
+
+    Pre-cutover, Firestore tolerated subcollections under groups that
+    were never explicitly created (legacy data, lazy creation flow,
+    bot-added groups missing the explicit ``create_group`` call). Post-
+    cutover the ``group_daily_words`` / ``group_challenges`` /
+    ``group_challenge_answers`` FKs reject those orphans.
+
+    The stub row is intentionally minimal — settings come from the
+    bot's first ``/start``-in-group call later. Idempotent (ON CONFLICT
+    DO NOTHING) so concurrent inserts don't race.
+    """
+    now = datetime.now(timezone.utc)
+    session.execute(
+        pg_insert(Group).values(
+            id=int(group_id),
+            topics=[],
+            recent_topics=[],
+            created_at=now,
+            updated_at=now,
+        ).on_conflict_do_nothing(index_elements=["id"]),
+    )
+
+
 # ─── PostgresGroupDailyWordsRepo ───────────────────────────────────────
 
 
@@ -201,18 +229,20 @@ class PostgresGroupDailyWordsRepo:
     ) -> None:
         d = _parse_date(date_str)
         now = datetime.now(timezone.utc)
-        stmt = pg_insert(GroupDailyWords).values(
-            group_id=int(group_id),
-            date=d,
-            words=words,
-            topic=topic,
-            generated_at=now,
-        ).on_conflict_do_update(
-            index_elements=["group_id", "date"],
-            set_={"words": words, "topic": topic, "generated_at": now},
-        )
         with get_sync_session() as s, s.begin():
-            s.execute(stmt)
+            _ensure_group_stub(s, group_id)  # FK guard for legacy groups
+            s.execute(
+                pg_insert(GroupDailyWords).values(
+                    group_id=int(group_id),
+                    date=d,
+                    words=words,
+                    topic=topic,
+                    generated_at=now,
+                ).on_conflict_do_update(
+                    index_elements=["group_id", "date"],
+                    set_={"words": words, "topic": topic, "generated_at": now},
+                ),
+            )
 
     def get(self, group_id: int, date_str: str) -> Optional[dict]:
         d = _parse_date(date_str)
@@ -255,18 +285,20 @@ class PostgresGroupChallengesRepo:
         if deadline_minutes is None:
             deadline_minutes = config.CHALLENGE_DEADLINE_MINUTES
         cid = challenge_id_for(int(group_id), date_str)
-        stmt = pg_insert(GroupChallenge).values(
-            id=cid,
-            group_id=int(group_id),
-            date=d,
-            status="active",
-            questions=questions,
-            participants={},
-            created_at=now,
-            expires_at=now + timedelta(minutes=deadline_minutes),
-        ).on_conflict_do_nothing(index_elements=["id"])
         with get_sync_session() as s, s.begin():
-            s.execute(stmt)
+            _ensure_group_stub(s, group_id)  # FK guard for legacy groups
+            s.execute(
+                pg_insert(GroupChallenge).values(
+                    id=cid,
+                    group_id=int(group_id),
+                    date=d,
+                    status="active",
+                    questions=questions,
+                    participants={},
+                    created_at=now,
+                    expires_at=now + timedelta(minutes=deadline_minutes),
+                ).on_conflict_do_nothing(index_elements=["id"]),
+            )
 
     def get(self, group_id: int, date_str: str) -> Optional[dict]:
         cid = challenge_id_for(int(group_id), date_str)
@@ -416,10 +448,32 @@ class PostgresGroupChallengeAnswersRepo:
         (avoids the jsonb_set + on-conflict bindparam shape that
         SQLAlchemy's ON CONFLICT helper doesn't accept). Race-safe
         because the row lock serializes concurrent answer-callbacks.
+
+        Auto-creates a stub group + challenge row for legacy groups
+        whose parent rows never made it into PG (FK guard).
         """
         cid = challenge_id_for(int(group_id), date_str)
+        d = _parse_date(date_str)
         now = datetime.now(timezone.utc)
         with get_sync_session() as s, s.begin():
+            _ensure_group_stub(s, group_id)
+            # Stub the challenge row too so the answer FK is satisfied.
+            # Empty questions list is a defensible fallback — the bot
+            # caller normally creates the row via ``save()`` first; this
+            # branch only fires for an answer arriving before the
+            # challenge row was set up (or for a never-migrated group).
+            s.execute(
+                pg_insert(GroupChallenge).values(
+                    id=cid,
+                    group_id=int(group_id),
+                    date=d,
+                    status="active",
+                    questions=[],
+                    participants={},
+                    created_at=now,
+                ).on_conflict_do_nothing(index_elements=["id"]),
+            )
+
             existing = s.execute(
                 select(GroupChallengeAnswer)
                 .where(
@@ -440,8 +494,6 @@ class PostgresGroupChallengeAnswersRepo:
                 merged = dict(existing.responses or {})
                 merged[str(q_idx)] = bool(is_correct)
                 existing.responses = merged
-                # Only set display_name on first save — don't clobber
-                # an earlier non-NULL value.
                 if display_name and not existing.display_name:
                     existing.display_name = display_name
 
