@@ -20,6 +20,12 @@ from services.db.models.link_token import LinkToken
 from services.db.models.org import Org, OrgAdmin, OrgTeam
 from services.db.models.plan import Plan
 from services.db.models.platform_metric import PlatformMetric
+from services.db.models.progress import (
+    DailyPlan,
+    DailyReviewSnapshot,
+    ProgressRecommendation,
+    ProgressSnapshot,
+)
 from services.db.models.sessions import QuizSession, ReadingSession
 from services.db.models.team import Team, TeamMember
 from services.db.models.user import User
@@ -30,6 +36,8 @@ __all__ = [
     "AiRoutingConfig",
     "AiUsage",
     "AuditLog",
+    "DailyPlan",
+    "DailyReviewSnapshot",
     "Group",
     "GroupChallenge",
     "GroupChallengeAnswer",
@@ -42,6 +50,8 @@ __all__ = [
     "OrgTeam",
     "Plan",
     "PlatformMetric",
+    "ProgressRecommendation",
+    "ProgressSnapshot",
     "QuizHistory",
     "QuizSession",
     "ReadingSession",
