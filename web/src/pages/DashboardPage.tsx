@@ -134,7 +134,10 @@ export default function DashboardPage() {
             <QuickActions />
 
             {showPersonalizationCta && (
-              <PersonalizationCTA focusField={ctaFocusField} />
+              <PersonalizationCTA
+                focusField={ctaFocusField}
+                onSaved={loadProfile}
+              />
             )}
 
             {plan && plan.days_until_exam !== null && plan.days_until_exam >= 0 && (

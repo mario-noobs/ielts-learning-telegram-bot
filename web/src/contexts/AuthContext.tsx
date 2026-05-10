@@ -32,6 +32,10 @@ export interface BackendProfile {
   // #242: drives /vocab linking banner + first-login onboarding dialog.
   daily_words_count?: number
   dismissed_onboarding?: boolean
+  // #dashboard-polish: ReadinessTrack sub-tasks tick off these flags
+  // rather than the underlying default-bearing fields.
+  target_band_set?: boolean
+  weekly_goal_set?: boolean
 }
 
 interface AuthContextType {
@@ -67,6 +71,10 @@ function normalize(raw: unknown): BackendProfile | null {
       typeof r.dismissed_onboarding === 'boolean'
         ? r.dismissed_onboarding
         : undefined,
+    target_band_set:
+      typeof r.target_band_set === 'boolean' ? r.target_band_set : undefined,
+    weekly_goal_set:
+      typeof r.weekly_goal_set === 'boolean' ? r.weekly_goal_set : undefined,
   }
 }
 

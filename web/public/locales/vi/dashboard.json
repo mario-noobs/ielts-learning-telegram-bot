@@ -72,11 +72,6 @@
       "ready": "Đã sẵn sàng đi thi",
       "urgent": "Còn {n} ngày — tăng tốc nhé"
     },
-    "empty": {
-      "heading": "Đặt ngày thi để mở lộ trình ôn",
-      "description": "Mở lộ trình 4 bước được cá nhân hóa theo band mục tiêu và ngày thi của bạn.",
-      "cta": "Đặt ngày thi"
-    },
     "stepAria": "Bước {n} / {total}, {status}, {title}",
     "status": {
       "done": "hoàn tất",
@@ -153,5 +148,23 @@
       "description": "Mời bot vào group Telegram rồi gõ /start trong group đó.",
       "cta": "Xem hướng dẫn nhóm"
     }
+  },
+  "recentContent": {
+    "heading": "Từ vừa học gần đây",
+    "viewAll": "Xem tất cả",
+    "emptyTitle": "Chưa có từ nào",
+    "emptyBody": "Lấy bộ từ hôm nay hoặc mở bot — các từ mới nhất sẽ xuất hiện ở đây.",
+    "emptyCta": "Lấy từ hôm nay",
+    "errorTitle": "Không tải được danh sách từ",
+    "errorBody": "Kiểm tra kết nối và reload dashboard."
+  },
+  "examDateDialog": {
+    "title": "Đặt ngày thi",
+    "description": "Hệ thống sẽ lên lộ trình quanh ngày này — đếm ngược, tốc độ mỗi ngày, và nhắc giai đoạn nước rút.",
+    "label": "Ngày thi",
+    "save": "Lưu",
+    "saving": "Đang lưu…",
+    "cancel": "Hủy",
+    "close": "Đóng"
   }
 }
