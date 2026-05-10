@@ -39,7 +39,10 @@ from services.repositories import (
     get_group_challenges_repo,
     get_group_daily_words_repo,
     get_groups_repo,
+    get_daily_plans_repo,
     get_listening_history_repo,
+    get_progress_recommendations_repo,
+    get_progress_snapshots_repo,
     get_quiz_history_repo,
     get_quiz_sessions_repo,
     get_reading_sessions_repo,
@@ -295,26 +298,18 @@ def save_cached_reading_questions(passage_id: str, data: dict) -> None:
 
 
 # ─── Daily Plans (US-4.1) ─────────────────────────────────────────
-# Not migrated — kept on Firestore for now, pending separate refinement.
+# M8 Block D (#234): now delegated to PostgresDailyPlansRepo.
 
 def get_daily_plan(telegram_id, date_str: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("daily_plans").document(date_str).get())
-    if not doc.exists:
-        return None
-    return doc.to_dict()
+    return get_daily_plans_repo().get(telegram_id, date_str)
 
 
 def save_daily_plan(telegram_id, date_str: str, plan: dict) -> None:
-    now = datetime.now(timezone.utc)
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("daily_plans").document(date_str)
-     .set({**plan, "generated_at": now}))
+    get_daily_plans_repo().save(telegram_id, date_str, plan)
 
 
 def update_daily_plan(telegram_id, date_str: str, data: dict) -> None:
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("daily_plans").document(date_str).update(data))
+    get_daily_plans_repo().update(telegram_id, date_str, data)
 
 
 def complete_plan_activity(
@@ -322,46 +317,14 @@ def complete_plan_activity(
 ) -> Optional[dict]:
     """Atomically mark a plan activity completed.
 
-    Returns the updated plan dict, None if no plan exists for the date,
-    or the string "NOT_FOUND" if the activity id is not in the plan.
-    The read/modify/write happens inside a Firestore transaction so
-    concurrent completions of different activities cannot clobber each
-    other.
+    Returns the updated plan dict, ``None`` if no plan exists for the
+    date, or ``"NOT_FOUND"`` if the activity_id is not in the plan.
+    The read/modify/write happens inside a PG transaction with row lock
+    so concurrent completions of different activities cannot clobber.
     """
-    db = _get_db()
-    plan_ref = (db.collection("users").document(str(telegram_id))
-                .collection("daily_plans").document(date_str))
-
-    @firestore.transactional
-    def _txn(txn):
-        snapshot = plan_ref.get(transaction=txn)
-        if not snapshot.exists:
-            return None
-
-        plan = snapshot.to_dict() or {}
-        activities = list(plan.get("activities") or [])
-        changed = False
-        for i, a in enumerate(activities):
-            if a.get("id") == activity_id and not a.get("completed"):
-                activities[i] = {**a, "completed": True}
-                changed = True
-                break
-
-        if not any(a.get("id") == activity_id for a in activities):
-            return "NOT_FOUND"
-
-        if not changed:
-            # Already completed — idempotent no-op
-            return plan
-
-        completed_count = sum(1 for a in activities if a.get("completed"))
-        txn.update(plan_ref, {
-            "activities": activities,
-            "completed_count": completed_count,
-        })
-        return {**plan, "activities": activities, "completed_count": completed_count}
-
-    return _txn(db.transaction())
+    return get_daily_plans_repo().complete_activity(
+        telegram_id, date_str, activity_id,
+    )
 
 
 # ─── Listening Exercises ──────────────────────────────────────────
@@ -384,57 +347,37 @@ def list_listening_exercises(telegram_id, limit: int = 50) -> list[dict]:
 
 
 # ─── Progress Snapshots (US-5.1) ──────────────────────────────────
-# Not migrated — progress_snapshots are computed/cached views.
+# M8 Block D (#234): now delegated to PostgresProgressSnapshotsRepo.
 
 def save_progress_snapshot(telegram_id, date_str: str, snapshot: dict) -> None:
     """Upsert a progress snapshot for the given local date."""
-    now = datetime.now(timezone.utc)
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("progress_snapshots").document(date_str)
-     .set({**snapshot, "date": date_str, "generated_at": now}))
+    get_progress_snapshots_repo().save(telegram_id, date_str, snapshot)
 
 
 def get_progress_snapshot(telegram_id, date_str: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("progress_snapshots").document(date_str).get())
-    if not doc.exists:
-        return None
-    return doc.to_dict()
+    return get_progress_snapshots_repo().get(telegram_id, date_str)
 
 
 def list_progress_snapshots(telegram_id, date_strs: list[str]) -> list[dict]:
-    """Return snapshots whose document id is in `date_strs` (skips missing).
+    """Return snapshots whose date is in `date_strs` (skips missing).
 
-    Uses a single Firestore `get_all` batch call rather than N sequential
-    `document().get()` round-trips.
+    Single SELECT WHERE date IN (...) — replaces the Firestore
+    ``get_all`` batch call.
     """
-    if not date_strs:
-        return []
-    db = _get_db()
-    col = (db.collection("users").document(str(telegram_id))
-           .collection("progress_snapshots"))
-    refs = [col.document(d) for d in date_strs]
-    snapshots = db.get_all(refs)
-    return [s.to_dict() for s in snapshots if s.exists]
+    return get_progress_snapshots_repo().list_for_dates(telegram_id, date_strs)
 
 
 # ─── Progress Recommendations (US-5.3) ───────────────────────────
+# M8 Block D (#234): now delegated to PostgresProgressRecommendationsRepo.
 
 def get_progress_recommendations(telegram_id, week_key: str) -> Optional[dict]:
-    doc = (_get_db().collection("users").document(str(telegram_id))
-           .collection("progress_recommendations").document(week_key).get())
-    if not doc.exists:
-        return None
-    return doc.to_dict()
+    return get_progress_recommendations_repo().get(telegram_id, week_key)
 
 
 def save_progress_recommendations(
     telegram_id, week_key: str, data: dict,
 ) -> None:
-    now = datetime.now(timezone.utc)
-    (_get_db().collection("users").document(str(telegram_id))
-     .collection("progress_recommendations").document(week_key)
-     .set({**data, "week_key": week_key, "generated_at": now}))
+    get_progress_recommendations_repo().save(telegram_id, week_key, data)
 
 
 # ─── Group Operations ─────────────────────────────────────────────

@@ -71,6 +71,9 @@ _group_challenges_repo = None
 _group_challenge_answers_repo = None
 _quiz_sessions_repo = None
 _reading_sessions_repo = None
+_daily_plans_repo = None
+_progress_snapshots_repo = None
+_progress_recommendations_repo = None
 _plan_repo: PlanRepo | None = None
 _team_repo: TeamRepo | None = None
 _org_repo: OrgRepo | None = None
@@ -188,6 +191,33 @@ def get_reading_sessions_repo():
     return _reading_sessions_repo
 
 
+def get_daily_plans_repo():
+    """Postgres-backed daily plan repo (M8 Block D)."""
+    global _daily_plans_repo
+    if _daily_plans_repo is None:
+        from .postgres.progress_repo import PostgresDailyPlansRepo
+        _daily_plans_repo = PostgresDailyPlansRepo()
+    return _daily_plans_repo
+
+
+def get_progress_snapshots_repo():
+    """Postgres-backed progress snapshots repo (M8 Block D)."""
+    global _progress_snapshots_repo
+    if _progress_snapshots_repo is None:
+        from .postgres.progress_repo import PostgresProgressSnapshotsRepo
+        _progress_snapshots_repo = PostgresProgressSnapshotsRepo()
+    return _progress_snapshots_repo
+
+
+def get_progress_recommendations_repo():
+    """Postgres-backed progress recommendations repo (M8 Block D)."""
+    global _progress_recommendations_repo
+    if _progress_recommendations_repo is None:
+        from .postgres.progress_repo import PostgresProgressRecommendationsRepo
+        _progress_recommendations_repo = PostgresProgressRecommendationsRepo()
+    return _progress_recommendations_repo
+
+
 def get_plan_repo() -> PlanRepo:
     """Return the process-wide ``PlanRepo`` singleton (Postgres-backed)."""
     global _plan_repo
@@ -260,6 +290,7 @@ def _reset_singletons_for_tests() -> None:
     global _groups_repo, _group_daily_words_repo
     global _group_challenges_repo, _group_challenge_answers_repo
     global _quiz_sessions_repo, _reading_sessions_repo
+    global _daily_plans_repo, _progress_snapshots_repo, _progress_recommendations_repo
     global _plan_repo, _team_repo, _org_repo, _audit_log_repo
     global _ai_usage_repo, _metrics_repo, _link_token_repo
     _user_repo = None
@@ -274,6 +305,9 @@ def _reset_singletons_for_tests() -> None:
     _group_challenge_answers_repo = None
     _quiz_sessions_repo = None
     _reading_sessions_repo = None
+    _daily_plans_repo = None
+    _progress_snapshots_repo = None
+    _progress_recommendations_repo = None
     _plan_repo = None
     _team_repo = None
     _org_repo = None
@@ -333,6 +367,9 @@ __all__ = [
     "get_group_challenge_answers_repo",
     "get_quiz_sessions_repo",
     "get_reading_sessions_repo",
+    "get_daily_plans_repo",
+    "get_progress_snapshots_repo",
+    "get_progress_recommendations_repo",
     "get_plan_repo",
     "get_team_repo",
     "get_org_repo",
