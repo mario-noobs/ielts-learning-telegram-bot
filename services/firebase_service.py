@@ -35,6 +35,10 @@ from firebase_admin import firestore
 import config
 from services.repositories import (
     get_daily_words_repo,
+    get_group_challenge_answers_repo,
+    get_group_challenges_repo,
+    get_group_daily_words_repo,
+    get_groups_repo,
     get_listening_history_repo,
     get_quiz_history_repo,
     get_user_repo,
@@ -458,104 +462,51 @@ def save_progress_recommendations(
 # ─── Group Operations ─────────────────────────────────────────────
 # OUT OF SCOPE for US-P.1 — groups stay on Firestore permanently.
 
+# M8 Block B (#234): now delegated to PostgresGroupsRepo.
+
 def get_group_settings(group_id: int) -> Optional[dict]:
-    doc = _get_db().collection("groups").document(str(group_id)).get()
-    if doc.exists:
-        return {"id": doc.id, **doc.to_dict()}
-    return None
+    return get_groups_repo().get(group_id)
 
 
 def create_group(group_id: int, settings: dict = None,
                   owner_telegram_id: Optional[int] = None):
-    """Create a new group doc with default settings.
+    """Create a new group row with default settings.
 
     ``owner_telegram_id`` is stamped at creation so the web group-edit
-    page (US-#227) can permission-gate the PATCH route. Legacy groups
-    created before this argument was added land with no owner; they
-    stay member-readable but are PATCH-locked from the web until
-    someone backfills the field.
+    page (US-#227) can permission-gate the PATCH route. Idempotent —
+    re-running the call on an existing group is a no-op (ON CONFLICT
+    DO NOTHING).
     """
-    default = {
-        "daily_time": config.DEFAULT_DAILY_TIME,
-        "challenge_time": config.DEFAULT_CHALLENGE_TIME,
-        "timezone": config.DEFAULT_TIMEZONE,
-        "topics": ["education", "environment", "technology"],
-        "default_band": config.DEFAULT_BAND_TARGET,
-        "word_count": config.DEFAULT_WORD_COUNT,
-        "challenge_question_count": config.DEFAULT_CHALLENGE_QUESTION_COUNT,
-        "challenge_deadline_minutes": config.DEFAULT_CHALLENGE_DEADLINE_MINUTES,
-        "created_at": datetime.now(timezone.utc),
-    }
-    if owner_telegram_id is not None:
-        default["owner_telegram_id"] = int(owner_telegram_id)
-    if settings:
-        default.update(settings)
-    _get_db().collection("groups").document(str(group_id)).set(default)
+    get_groups_repo().create(group_id, settings, owner_telegram_id)
 
 
 def update_group_settings(group_id: int, data: dict):
-    _get_db().collection("groups").document(str(group_id)).update(data)
+    get_groups_repo().update(group_id, data)
 
 
 def get_all_groups() -> list[dict]:
     """Return all registered groups."""
-    docs = _get_db().collection("groups").stream()
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return get_groups_repo().list_all()
 
 
 def list_groups_for_user(telegram_id: int) -> list[dict]:
     """Return groups this user is a member of (US-#227).
 
-    The ``users.group_id`` field is unreliable as a membership marker —
-    it's only set when the user runs ``/start`` *inside* a group chat.
-    A typical Telegram flow has users DM the bot first to /start, then
-    join one or more groups; their group_id stays NULL the whole time
-    even after they're active in a group.
-
-    So we walk ``groups/*`` and check membership via
-    ``get_all_users_in_group(g.id)``. With a small group count (<100
-    in the foreseeable future) this is cheap; if it grows we'll add a
-    membership index doc instead.
+    Membership is the union of ``users.group_id`` (legacy /start-in-
+    group flow) and ``group_members`` (M14 explicit ledger).
     """
-    if telegram_id is None:
-        return []
-    target_id = int(telegram_id)
-    out: list[dict] = []
-    for group in get_all_groups():
-        try:
-            group_id = int(group.get("id"))
-        except (TypeError, ValueError):
-            continue
-        members = get_all_users_in_group(group_id)
-        member_ids: set[int] = set()
-        for m in members:
-            raw = str(m.get("id", ""))
-            if raw.isdigit():
-                member_ids.add(int(raw))
-        if target_id in member_ids:
-            out.append({**group, "id": str(group_id)})
-    return out
+    return get_groups_repo().list_for_user(telegram_id)
 
 
 # ─── Daily Words (Group) ──────────────────────────────────────────
-# OUT OF SCOPE — group daily words stay on Firestore.
+# M8 Block B (#234): now delegated to PostgresGroupDailyWordsRepo.
 
 def save_daily_words(group_id: int, date_str: str, words: list, topic: str):
-    doc = {
-        "words": words,
-        "topic": topic,
-        "generated_at": datetime.now(timezone.utc),
-    }
-    (_get_db().collection("groups").document(str(group_id))
-     .collection("daily_words").document(date_str).set(doc))
+    get_group_daily_words_repo().save(group_id, date_str, words, topic)
 
 
 def get_daily_words(group_id: int, date_str: str) -> Optional[dict]:
-    doc = (_get_db().collection("groups").document(str(group_id))
-           .collection("daily_words").document(date_str).get())
-    if doc.exists:
-        return doc.to_dict()
-    return None
+    return get_group_daily_words_repo().get(group_id, date_str)
 
 
 # ─── User Daily Words (DM — delegated to DailyWordsRepo) ─────────
@@ -576,205 +527,72 @@ def get_user_daily_words(telegram_id: int, date_str: str) -> Optional[dict]:
 
 
 # ─── Challenge (Group) ────────────────────────────────────────────
-# OUT OF SCOPE — group challenges stay on Firestore.
+# M8 Block B (#234): now delegated to PostgresGroupChallengesRepo.
 
 def save_challenge(group_id: int, date_str: str, questions: list,
                     deadline_minutes: int = None):
-    now = datetime.now(timezone.utc)
-    if deadline_minutes is None:
-        deadline_minutes = config.CHALLENGE_DEADLINE_MINUTES
-    doc = {
-        "questions": questions,
-        "participants": {},
-        "status": "active",
-        "created_at": now,
-        "expires_at": now + timedelta(minutes=deadline_minutes),
-    }
-    (_get_db().collection("groups").document(str(group_id))
-     .collection("challenges").document(date_str).set(doc))
+    get_group_challenges_repo().save(group_id, date_str, questions, deadline_minutes)
 
 
 def get_challenge(group_id: int, date_str: str) -> Optional[dict]:
-    doc = (_get_db().collection("groups").document(str(group_id))
-           .collection("challenges").document(date_str).get())
-    if doc.exists:
-        return {"id": doc.id, **doc.to_dict()}
-    return None
+    return get_group_challenges_repo().get(group_id, date_str)
 
 
 def update_challenge_score(group_id: int, date_str: str,
                            user_id: int, score: int):
-    doc_ref = (_get_db().collection("groups").document(str(group_id))
-               .collection("challenges").document(date_str))
-    doc_ref.update({f"participants.{user_id}": score})
+    get_group_challenges_repo().update_participant_score(
+        group_id, date_str, user_id, score,
+    )
 
 
 # ─── Challenge Answers (per-user subcollection) ─────────────────
-# OUT OF SCOPE — group data stays on Firestore.
+# M8 Block B (#234): now delegated to PostgresGroupChallengeAnswersRepo.
 
 def save_challenge_answer(group_id: int, date_str: str, user_id: int,
                           q_idx: int, is_correct: bool,
                           display_name: Optional[str] = None):
-    """Persist a single answer for a user in the challenge answers subcollection.
+    """Merge ``{q_idx: is_correct}`` into the user's answer row.
 
-    Creates the answer doc on first call; merges subsequent answers.
-
-    ``display_name`` is the Telegram-side name shown on the answer doc
-    so the closing/results flow can fall back to it when the user has
-    no PG profile row (e.g. they only ever clicked challenge buttons in
-    the group, never DM'd the bot to /start). Without this, the results
-    post degraded to "🥇 Unknown — 2/10" — see fix for #228 follow-up.
+    ``display_name`` is the Telegram-side name captured at answer time.
+    Used by the results post when the user has no PG profile row (e.g.
+    they only clicked challenge buttons, never DM'd /start) — without
+    this, results degraded to "🥇 Unknown — 2/10" (#228 follow-up).
     """
-    doc_ref = (_get_db().collection("groups").document(str(group_id))
-               .collection("challenges").document(date_str)
-               .collection("answers").document(str(user_id)))
-
-    now = datetime.now(timezone.utc)
-    payload: dict = {
-        "responses": {str(q_idx): is_correct},
-        "started_at": now,
-        "completed_at": None,
-    }
-    if display_name:
-        # Only set on write (don't clobber a name from an earlier answer
-        # if this call somehow doesn't carry one).
-        payload["display_name"] = display_name
-    doc_ref.set(payload, merge=True)
+    get_group_challenge_answers_repo().upsert_response(
+        group_id, date_str, user_id, q_idx, is_correct, display_name,
+    )
 
 
 def mark_challenge_answer_complete(group_id: int, date_str: str, user_id: int):
-    """Set completed_at timestamp on a user's answer doc."""
-    doc_ref = (_get_db().collection("groups").document(str(group_id))
-               .collection("challenges").document(date_str)
-               .collection("answers").document(str(user_id)))
-    doc_ref.update({"completed_at": datetime.now(timezone.utc)})
+    get_group_challenge_answers_repo().mark_completed(group_id, date_str, user_id)
 
 
 def get_user_challenge_answers(group_id: int, date_str: str,
                                user_id: int) -> Optional[dict]:
-    """Get a single user's answer doc from the challenge answers subcollection."""
-    doc = (_get_db().collection("groups").document(str(group_id))
-           .collection("challenges").document(date_str)
-           .collection("answers").document(str(user_id)).get())
-    if doc.exists:
-        return {"id": doc.id, **doc.to_dict()}
-    return None
+    return get_group_challenge_answers_repo().get(group_id, date_str, user_id)
 
 
 def get_all_challenge_answers(group_id: int, date_str: str) -> list[dict]:
-    """Get all answer docs for a challenge (one per participant)."""
-    docs = (_get_db().collection("groups").document(str(group_id))
-            .collection("challenges").document(date_str)
-            .collection("answers").stream())
-    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+    return get_group_challenge_answers_repo().list_for_challenge(group_id, date_str)
 
 
 def close_challenge_atomic(group_id: int, date_str: str) -> Optional[dict]:
     """Atomically close a challenge: compute scores, set winner, mark closed.
 
-    Uses a Firestore transaction to prevent double-close races.
-    Returns the challenge dict with final participants, or None if no challenge.
+    PG transaction with row-level lock on the challenge row prevents
+    double-close races. Idempotent — re-closing returns existing results.
+    Winner's ``challenge_wins`` counter bumps in the same transaction.
+
+    The returned dict surfaces ``display_names`` (uid → Telegram name)
+    so result posts can render names without a second query, matching
+    the legacy Firestore shape.
     """
-    db = _get_db()
-    challenge_ref = (db.collection("groups").document(str(group_id))
-                     .collection("challenges").document(date_str))
-
-    @firestore.transactional
-    def _close_txn(txn):
-        challenge_doc = challenge_ref.get(transaction=txn)
-        if not challenge_doc.exists:
-            return None
-
-        challenge = challenge_doc.to_dict()
-        if challenge.get("status") == "closed":
-            # Already closed — return existing results (idempotent)
-            return {"id": challenge_doc.id, **challenge}
-
-        # Read all answer docs (outside transaction is fine — they're immutable at close time)
-        answers = get_all_challenge_answers(group_id, date_str)
-
-        participants = {}
-        # uid → Telegram-side display name captured when the user
-        # answered. Used by the results post when the user has no PG
-        # profile row to look up — see save_challenge_answer.
-        display_names: dict[str, str] = {}
-        for ans in answers:
-            uid = ans["id"]
-            responses = ans.get("responses", {})
-            # D6 REVISED: score = count of correct answers regardless of completion
-            score = sum(1 for v in responses.values() if v)
-            participants[uid] = score
-            name = (ans.get("display_name") or "").strip()
-            if name:
-                display_names[uid] = name
-
-        # Determine winner (highest score; tie-break: earliest completed_at)
-        winner_id = None
-        if participants:
-            def _sort_key(item):
-                uid, score = item
-                # Find completed_at for tie-breaking
-                ans_doc = next((a for a in answers if a["id"] == uid), None)
-                completed_at = None
-                if ans_doc:
-                    completed_at = ans_doc.get("completed_at")
-                # Higher score first (negate), then earlier completion
-                # If completed_at is None, sort last
-                if completed_at is None:
-                    # Use a far-future timestamp for incomplete users
-                    completed_at = datetime(9999, 1, 1, tzinfo=timezone.utc)
-                elif hasattr(completed_at, 'timestamp'):
-                    pass  # already a datetime
-                return (-score, completed_at)
-
-            sorted_p = sorted(participants.items(), key=_sort_key)
-            winner_id = int(sorted_p[0][0])
-
-        # Write final scores and close
-        txn.update(challenge_ref, {
-            "participants": participants,
-            "display_names": display_names,
-            "status": "closed",
-        })
-
-        # Increment winner's challenge_wins
-        if winner_id is not None and participants.get(str(winner_id), 0) > 0:
-            winner_ref = db.collection("users").document(str(winner_id))
-            txn.update(winner_ref, {
-                "challenge_wins": firestore.Increment(1),
-            })
-
-        result = {"id": challenge_doc.id, **challenge}
-        result["participants"] = participants
-        result["status"] = "closed"
-        return result
-
-    txn = db.transaction()
-    return _close_txn(txn)
+    return get_group_challenges_repo().close_atomic(group_id, date_str)
 
 
 def get_active_challenges() -> list[dict]:
     """Get all active challenges across all groups (for restart recovery)."""
-    results = []
-    groups = get_all_groups()
-    now = datetime.now(timezone.utc)
-    for group in groups:
-        group_id = group["id"]
-        docs = (_get_db().collection("groups").document(str(group_id))
-                .collection("challenges")
-                .where("status", "==", "active")
-                .stream())
-        for doc in docs:
-            data = doc.to_dict()
-            expires_at = data.get("expires_at")
-            if expires_at and hasattr(expires_at, 'timestamp'):
-                if expires_at > now:
-                    results.append({
-                        "group_id": group_id,
-                        "date_str": doc.id,
-                        **data,
-                    })
-    return results
+    return get_group_challenges_repo().list_active()
 
 
 # ─── Enriched Word Cache ──────────────────────────────────────────

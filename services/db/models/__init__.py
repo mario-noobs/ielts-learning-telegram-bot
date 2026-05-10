@@ -3,6 +3,13 @@
 from services.db.models.ai_routing import AiProviderUsage, AiRoutingConfig
 from services.db.models.ai_usage import AiUsage
 from services.db.models.audit_log import AuditLog
+from services.db.models.groups import (
+    Group,
+    GroupChallenge,
+    GroupChallengeAnswer,
+    GroupDailyWords,
+    GroupMember,
+)
 from services.db.models.history import (
     ListeningHistory,
     QuizHistory,
@@ -22,6 +29,11 @@ __all__ = [
     "AiRoutingConfig",
     "AiUsage",
     "AuditLog",
+    "Group",
+    "GroupChallenge",
+    "GroupChallengeAnswer",
+    "GroupDailyWords",
+    "GroupMember",
     "LinkToken",
     "ListeningHistory",
     "Org",
