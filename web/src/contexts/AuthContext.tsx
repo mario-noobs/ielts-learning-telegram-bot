@@ -29,6 +29,9 @@ export interface BackendProfile {
   team_id?: string | null
   org_id?: string | null
   quota_override?: number | null
+  // #242: drives /vocab linking banner + first-login onboarding dialog.
+  daily_words_count?: number
+  dismissed_onboarding?: boolean
 }
 
 interface AuthContextType {
@@ -58,6 +61,12 @@ function normalize(raw: unknown): BackendProfile | null {
     org_id: (r.org_id as string | null | undefined) ?? null,
     quota_override:
       typeof r.quota_override === 'number' ? r.quota_override : null,
+    daily_words_count:
+      typeof r.daily_words_count === 'number' ? r.daily_words_count : undefined,
+    dismissed_onboarding:
+      typeof r.dismissed_onboarding === 'boolean'
+        ? r.dismissed_onboarding
+        : undefined,
   }
 }
 
