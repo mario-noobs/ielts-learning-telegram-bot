@@ -9,6 +9,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { localizeError } from '../../lib/apiError'
 import { startLink, unlinkTelegram } from '../../lib/link'
 
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? ''
+
 /**
  * `/settings/link-telegram` (US-M12.3).
  *
@@ -61,26 +63,89 @@ export default function LinkTelegramPage() {
         </Link>
       </div>
       <h1 className="text-2xl font-semibold text-fg">{t('settings.heading')}</h1>
-      <div className="mt-6">
-        {isLinked ? (
-          <LinkedState
-            onChanged={async () => {
-              await refreshProfile()
-              // Post-unlink the row has no auth_uid, so /me 404s and
-              // the profile is null. Dashboard's auto-create rebuilds
-              // a fresh web_xxx — bounce there so the user sees a
-              // working page instead of this one going blank.
-              navigate('/')
-            }}
-          />
-        ) : (
-          <NotLinkedState />
-        )}
-      </div>
-      <div className="mt-6">
-        <GroupJoinCTA />
-      </div>
+
+      <section className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
+          {t('settings.step1Label')}
+        </h2>
+        <div className="mt-2">
+          {isLinked ? (
+            <LinkedState
+              onChanged={async () => {
+                await refreshProfile()
+                // Post-unlink the row has no auth_uid, so /me 404s and
+                // the profile is null. Dashboard's auto-create rebuilds
+                // a fresh web_xxx — bounce there so the user sees a
+                // working page instead of this one going blank.
+                navigate('/')
+              }}
+            />
+          ) : (
+            <NotLinkedState />
+          )}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
+          {t('settings.step2Label')}
+        </h2>
+        <div className="mt-2 space-y-3">
+          <GroupInviteStep />
+          <GroupJoinCTA />
+        </div>
+      </section>
     </main>
+  )
+}
+
+// ── Step 2: invite bot into a user's own Telegram group ───────────────
+
+function GroupInviteStep() {
+  const { t } = useTranslation('link')
+  const [copied, setCopied] = useState(false)
+
+  const handle = BOT_USERNAME ? `@${BOT_USERNAME}` : ''
+  const onCopy = async () => {
+    if (!handle) return
+    try {
+      await navigator.clipboard.writeText(handle)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard API can be blocked (insecure context, denied perm).
+      // Fail silently — the username is still visible for manual copy.
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-surface-raised p-5">
+      <h3 className="font-semibold text-fg">{t('settings.groupInvite.title')}</h3>
+      <p className="mt-1 text-sm text-muted-fg">
+        {t('settings.groupInvite.subtitle')}
+      </p>
+      <ol className="mt-3 space-y-2 text-sm text-muted-fg list-decimal list-inside">
+        <li>{t('settings.groupInvite.step1')}</li>
+        <li>{t('settings.groupInvite.step2')}</li>
+        <li>{t('settings.groupInvite.step3')}</li>
+      </ol>
+      {handle ? (
+        <div className="mt-4 flex items-center gap-2">
+          <code className="flex-1 rounded-md border border-border/60 bg-surface px-3 py-1.5 text-sm font-mono text-fg">
+            {handle}
+          </code>
+          <button
+            type="button"
+            onClick={onCopy}
+            className="inline-flex items-center justify-center rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-raised"
+          >
+            {copied
+              ? t('settings.groupInvite.copied')
+              : t('settings.groupInvite.copy')}
+          </button>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

@@ -160,5 +160,10 @@
     "prev": "Prev",
     "next": "Next",
     "pageOf": "{current} / {total}"
+  },
+  "linkPrompt": {
+    "title": "Get daily words on Telegram too",
+    "description": "Link your account to receive new vocab in Telegram every day, and to use the bot with a group of friends.",
+    "cta": "Link Telegram"
   }
 }

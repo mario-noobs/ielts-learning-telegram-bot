@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import EmptyState from '../components/EmptyState'
+import { useProfile } from '../contexts/AuthContext'
 
 interface TopicSummary {
   id: string
@@ -79,6 +80,8 @@ function TopicCard({
 
 export default function VocabHomePage() {
   const { t } = useTranslation('vocab')
+  const profile = useProfile()
+  const showLinkPrompt = profile != null && profile.id.startsWith('web_')
   const [topics, setTopics] = useState<TopicSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -157,6 +160,27 @@ export default function VocabHomePage() {
           </div>
         )}
       </header>
+
+      {showLinkPrompt && (
+        <div
+          role="region"
+          aria-label={t('linkPrompt.title')}
+          className="mb-6 flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex-1">
+            <p className="font-semibold text-fg">{t('linkPrompt.title')}</p>
+            <p className="text-sm text-muted-fg mt-1">
+              {t('linkPrompt.description')}
+            </p>
+          </div>
+          <Link
+            to="/settings/link-telegram"
+            className="shrink-0 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            {t('linkPrompt.cta')}
+          </Link>
+        </div>
+      )}
 
       {error && (
         <div className="bg-danger/10 border-l-4 border-danger p-4 rounded-lg mb-4">

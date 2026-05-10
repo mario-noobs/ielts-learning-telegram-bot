@@ -160,5 +160,10 @@
     "prev": "Trước",
     "next": "Tiếp",
     "pageOf": "{current} / {total}"
+  },
+  "linkPrompt": {
+    "title": "Nhận từ vựng hàng ngày trên Telegram",
+    "description": "Liên kết tài khoản để mỗi ngày nhận từ mới qua Telegram, và để dùng bot cùng nhóm bạn.",
+    "cta": "Liên kết Telegram"
   }
 }

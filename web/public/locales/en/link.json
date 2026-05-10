@@ -68,6 +68,17 @@
       "unlinkConfirm": "Unlink",
       "unlinkCancel": "Cancel",
       "unlinkErrorTitle": "Couldn't unlink"
+    },
+    "step1Label": "Step 1 — Personal account",
+    "step2Label": "Step 2 — Use with a group (optional)",
+    "groupInvite": {
+      "title": "Add the bot to your Telegram group",
+      "subtitle": "Anyone in the group will get daily vocab and challenges.",
+      "step1": "Open your group in Telegram and tap the group name to manage members.",
+      "step2": "Add the bot below as a member.",
+      "step3": "Send /start in the group to register it with IELTS Coach.",
+      "copy": "Copy",
+      "copied": "Copied!"
     }
   },
   "group": {
