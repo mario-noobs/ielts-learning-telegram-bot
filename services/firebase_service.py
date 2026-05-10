@@ -34,17 +34,20 @@ from firebase_admin import firestore
 
 import config
 from services.repositories import (
+    get_auth_link_codes_repo,
+    get_daily_plans_repo,
     get_daily_words_repo,
+    get_enriched_words_repo,
     get_group_challenge_answers_repo,
     get_group_challenges_repo,
     get_group_daily_words_repo,
     get_groups_repo,
-    get_daily_plans_repo,
     get_listening_history_repo,
     get_progress_recommendations_repo,
     get_progress_snapshots_repo,
     get_quiz_history_repo,
     get_quiz_sessions_repo,
+    get_reading_questions_repo,
     get_reading_sessions_repo,
     get_user_repo,
     get_vocab_repo,
@@ -286,15 +289,11 @@ def list_reading_sessions(telegram_id, limit: int = 10) -> list[dict]:
 # by passage_id so the AI cost is one-time per passage (US-M9.3).
 
 def get_cached_reading_questions(passage_id: str) -> Optional[dict]:
-    doc = _get_db().collection("reading_questions").document(passage_id).get()
-    if not doc.exists:
-        return None
-    return doc.to_dict()
+    return get_reading_questions_repo().get(passage_id)
 
 
 def save_cached_reading_questions(passage_id: str, data: dict) -> None:
-    (_get_db().collection("reading_questions").document(passage_id)
-     .set({**data, "cached_at": datetime.now(timezone.utc)}))
+    get_reading_questions_repo().save(passage_id, data)
 
 
 # ─── Daily Plans (US-4.1) ─────────────────────────────────────────
@@ -517,25 +516,21 @@ def get_active_challenges() -> list[dict]:
 
 
 # ─── Enriched Word Cache ──────────────────────────────────────────
-# Not migrated — shared cache, not per-user data.
+# M8 Block E (#234): now delegated to PostgresEnrichedWordsRepo.
 
 def get_enriched_word_doc(word: str) -> Optional[dict]:
     """Fetch cached enriched word document. Returns None on miss."""
-    doc = _get_db().collection("enriched_words").document(word).get()
-    return doc.to_dict() if doc.exists else None
+    return get_enriched_words_repo().get(word)
 
 
 def set_enriched_word_doc(word: str, data: dict):
     """Write full enriched word document to cache."""
-    data["cached_at"] = datetime.now(timezone.utc)
-    _get_db().collection("enriched_words").document(word).set(data)
+    get_enriched_words_repo().save(word, data)
 
 
 def update_enriched_word_example(word: str, band_tier: str, example: dict):
-    """Add a band-tier example to an existing enriched word doc."""
-    _get_db().collection("enriched_words").document(word).update({
-        f"examples_by_band.{band_tier}": example
-    })
+    """Merge ``examples_by_band[band_tier] = example`` race-safely."""
+    get_enriched_words_repo().update_example(word, band_tier, example)
 
 
 # ─── Leaderboard ──────────────────────────────────────────────────
@@ -1035,19 +1030,14 @@ LINK_CODE_TTL_SECONDS = 5 * 60
 def create_link_code(code: str, telegram_id: int) -> None:
     """Store a single-use link code that expires in LINK_CODE_TTL_SECONDS."""
     now = datetime.now(timezone.utc)
-    _get_db().collection("auth_link_codes").document(code).set({
-        "telegram_id": telegram_id,
-        "created_at": now,
-        "expires_at": now + timedelta(seconds=LINK_CODE_TTL_SECONDS),
-    })
+    get_auth_link_codes_repo().create(
+        code, telegram_id, now + timedelta(seconds=LINK_CODE_TTL_SECONDS),
+    )
 
 
 def get_link_code(code: str) -> Optional[dict]:
-    doc = _get_db().collection("auth_link_codes").document(code).get()
-    if not doc.exists:
-        return None
-    return doc.to_dict()
+    return get_auth_link_codes_repo().get(code)
 
 
 def delete_link_code(code: str) -> None:
-    _get_db().collection("auth_link_codes").document(code).delete()
+    get_auth_link_codes_repo().delete(code)
