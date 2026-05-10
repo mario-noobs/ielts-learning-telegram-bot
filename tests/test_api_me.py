@@ -199,3 +199,64 @@ class TestDailyWordsCount:
         assert res.status_code == 200
         assert res.json()["dismissed_onboarding"] is True
         assert captured["dismissed_onboarding"] is True
+
+
+class TestFieldSetFlags:
+    """#dashboard-polish: PATCH /me stamps *_set flags whenever the
+    user actively submits the field, so readiness sub-tasks can tick
+    on save rather than from unclearable default values."""
+
+    def test_patch_target_band_stamps_flag(self, client):
+        captured: dict = {}
+
+        def upd(_uid, data):
+            captured.update(data)
+
+        with patch(
+            "api.routes.auth.firebase_service.update_user",
+            side_effect=upd,
+        ):
+            res = client.patch("/api/v1/me", json={"target_band": 7.5})
+        assert res.status_code == 200
+        body = res.json()
+        assert body["target_band"] == 7.5
+        assert body["target_band_set"] is True
+        # Persistence layer received both the value AND the flag.
+        assert captured["target_band"] == 7.5
+        assert captured["target_band_set"] is True
+
+    def test_patch_weekly_goal_stamps_flag(self, client):
+        captured: dict = {}
+
+        def upd(_uid, data):
+            captured.update(data)
+
+        with patch(
+            "api.routes.auth.firebase_service.update_user",
+            side_effect=upd,
+        ):
+            res = client.patch(
+                "/api/v1/me", json={"weekly_goal_minutes": 200},
+            )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["weekly_goal_minutes"] == 200
+        assert body["weekly_goal_set"] is True
+        assert captured["weekly_goal_minutes"] == 200
+        assert captured["weekly_goal_set"] is True
+
+    def test_patch_unrelated_field_does_not_stamp_flags(self, client):
+        """Stamping should be tied 1:1 to the field actually submitted."""
+        captured: dict = {}
+
+        def upd(_uid, data):
+            captured.update(data)
+
+        with patch(
+            "api.routes.auth.firebase_service.update_user",
+            side_effect=upd,
+        ):
+            res = client.patch("/api/v1/me", json={"name": "Bob"})
+        assert res.status_code == 200
+        assert "target_band_set" not in captured
+        assert "weekly_goal_set" not in captured

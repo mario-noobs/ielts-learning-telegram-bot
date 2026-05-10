@@ -50,6 +50,13 @@ class UserProfile(BaseModel):
     daily_words_count: int = 5
     dismissed_onboarding: bool = False
 
+    # #dashboard-polish: stamped to true by PATCH /me when the user
+    # explicitly submits the corresponding field. Surfaces in the
+    # response so the dashboard ReadinessTrack sub-tasks tick once the
+    # user has actually configured these — not from the row defaults.
+    target_band_set: bool = False
+    weekly_goal_set: bool = False
+
 
 class AiUsageFeaturePoint(BaseModel):
     """One feature's count in today's per-user usage breakdown."""

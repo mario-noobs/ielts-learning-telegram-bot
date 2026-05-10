@@ -89,28 +89,24 @@ def _skills_at_target(progress: dict, target: float) -> int:
     return hit
 
 
-def _has_daily_plan_locked(user: dict) -> bool:
-    """Treat "user touched their daily reminder time + has weekly goal" as
-    a proxy for "daily plan locked in". Avoids a new field — both are
-    already settable from /settings Practice + Goals tabs."""
-    if not (user.get("weekly_goal_minutes") or 0):
-        return False
-    if not user.get("daily_time"):
-        return False
-    return True
-
-
 def _step_goal(user: dict) -> Step:
-    """Step 1 — set target band + exam date."""
-    has_band = bool(user.get("target_band"))
+    """Step 1 — set target band + exam date.
+
+    Step done-ness hinges on ``exam_date`` (no default — only "set" if
+    the user picked one). The ``target_band`` sub-task ticks off a
+    separate ``target_band_set`` flag stamped by PATCH /me, because the
+    underlying value defaults to 7.0 on every fresh row and is
+    unclearable; reading the value alone can't distinguish "defaulted"
+    from "user explicitly chose 7.0".
+    """
     has_exam = bool(user.get("exam_date"))
-    done = has_band and has_exam
+    target_band_set = bool(user.get("target_band_set", False))
     sub_tasks: list[SubTask] = [
         {
             "id": "target_band",
             "label_key": "readinessTrack.subTasks.target_band",
             "href": "/settings#target-band",
-            "done": has_band,
+            "done": target_band_set,
         },
         {
             "id": "exam_date",
@@ -121,7 +117,7 @@ def _step_goal(user: dict) -> Step:
     ]
     return {
         "id": "goal",
-        "status": "done" if done else "active",
+        "status": "done" if has_exam else "active",
         "title_key": "readinessTrack.steps.goal.title",
         "rationale_key": "readinessTrack.steps.goal.rationale",
         "rationale_params": {},
@@ -130,12 +126,20 @@ def _step_goal(user: dict) -> Step:
 
 
 def _step_daily_plan(user: dict, prev_done: bool) -> Step:
-    """Step 2 — daily reminder time + weekly goal."""
-    locked_in = _has_daily_plan_locked(user)
+    """Step 2 — daily reminder time + weekly goal.
+
+    Step done-ness hinges on ``daily_time`` (no default — bot DM cron
+    is the real signal). The ``weekly_goal`` sub-task ticks off the
+    ``weekly_goal_set`` flag — same rationale as target_band: the UI
+    defaults to 150 and the field is functionally unclearable, so the
+    flag carries the "user actually saved this" intent.
+    """
+    has_daily_time = bool(user.get("daily_time"))
     weekly_goal = int(user.get("weekly_goal_minutes") or 0)
+    weekly_goal_set = bool(user.get("weekly_goal_set", False))
     if not prev_done:
         status: Status = "upcoming"
-    elif locked_in:
+    elif has_daily_time:
         status = "done"
     else:
         status = "active"
@@ -144,13 +148,13 @@ def _step_daily_plan(user: dict, prev_done: bool) -> Step:
             "id": "weekly_goal",
             "label_key": "readinessTrack.subTasks.weekly_goal",
             "href": "/settings#weekly-goal",
-            "done": weekly_goal > 0,
+            "done": weekly_goal_set,
         },
         {
             "id": "daily_time",
             "label_key": "readinessTrack.subTasks.daily_time",
             "href": "/settings#daily-time",
-            "done": bool(user.get("daily_time")),
+            "done": has_daily_time,
         },
     ]
     return {

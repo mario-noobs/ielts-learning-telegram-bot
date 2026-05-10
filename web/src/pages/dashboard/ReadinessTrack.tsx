@@ -253,8 +253,8 @@ export default function ReadinessTrack({ progress }: Props) {
   const [data, setData] = useState<ReadinessResponse | null>(null)
   const [expandedId, setExpandedId] = useState<StepId | null>(null)
 
-  useEffect(() => {
-    apiFetch<ReadinessResponse>('/api/v1/readiness')
+  const loadReadiness = () => {
+    return apiFetch<ReadinessResponse>('/api/v1/readiness')
       .then((d) => {
         setData(d)
         const active = d.steps.find((s) => s.status === 'active')
@@ -267,6 +267,11 @@ export default function ReadinessTrack({ progress }: Props) {
         }
       })
       .catch(() => setData(null))
+  }
+
+  useEffect(() => {
+    void loadReadiness()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const headerCopy = useMemo(() => {
@@ -288,39 +293,10 @@ export default function ReadinessTrack({ progress }: Props) {
 
   if (!data) return null
 
-  // No exam date set → empty-state CTA. Reuses PersonalizationCTA's
-  // styling pattern so it visually matches existing onboarding nudges.
-  if (data.days_until_exam === null) {
-    return (
-      <section
-        aria-labelledby="readiness-track-heading"
-        className="rounded-2xl border border-primary/20 bg-primary/5 p-5"
-      >
-        <h2
-          id="readiness-track-heading"
-          className="font-semibold text-fg"
-        >
-          {t('readinessTrack.empty.heading')}
-        </h2>
-        <p className="mt-1 text-sm text-muted-fg">
-          {t('readinessTrack.empty.description')}
-        </p>
-        <Link
-          to="/settings#exam-date"
-          onClick={() =>
-            track('dashboard_track_subtask_click', {
-              step: 'goal',
-              subtask: 'exam_date',
-            })
-          }
-          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-fg hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <Icon name="Calendar" size="sm" />
-          {t('readinessTrack.empty.cta')}
-        </Link>
-      </section>
-    )
-  }
+  // No exam-date branch: render the full track regardless. Onboarding
+  // CTA for setting the exam date lives in <PersonalizationCTA> stacked
+  // above this widget — the previous duplicate empty-state here showed
+  // the same "Set exam date" button twice.
 
   const containerToneCls =
     data.urgent
@@ -385,3 +361,4 @@ export default function ReadinessTrack({ progress }: Props) {
     </section>
   )
 }
+

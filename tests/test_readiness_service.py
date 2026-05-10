@@ -106,6 +106,44 @@ def test_skills_at_target_step3_done():
     assert snap["pct_complete"] == 75
 
 
+def test_subtasks_tick_only_after_user_set_flag():
+    """target_band 7.0 + weekly_goal_minutes 150 are unclearable
+    defaults; the sub-tasks tick off explicit *_set flags stamped by
+    PATCH /me, not the underlying values (#dashboard-polish).
+
+    This test pins both halves of the contract:
+      - flags absent / false  → sub-tasks open (○)
+      - flags true            → sub-tasks ticked (✓)
+    """
+    # Fresh user: defaults present, no flags → sub-tasks open.
+    snap = readiness_service.compute_readiness(
+        _user(target_band=7.0, weekly_goal_minutes=150),
+        _progress(0),
+    )
+    goal = snap["steps"][0]
+    daily = snap["steps"][1]
+    target_band_task = next(t for t in goal["sub_tasks"] if t["id"] == "target_band")
+    weekly_goal_task = next(t for t in daily["sub_tasks"] if t["id"] == "weekly_goal")
+    assert target_band_task["done"] is False
+    assert weekly_goal_task["done"] is False
+    assert goal["status"] == "active"
+
+    # User has saved both fields → flags flip true → sub-tasks tick.
+    snap = readiness_service.compute_readiness(
+        _user(
+            target_band=7.0,
+            weekly_goal_minutes=150,
+            target_band_set=True,
+            weekly_goal_set=True,
+        ),
+        _progress(0),
+    )
+    goal = snap["steps"][0]
+    daily = snap["steps"][1]
+    assert next(t for t in goal["sub_tasks"] if t["id"] == "target_band")["done"] is True
+    assert next(t for t in daily["sub_tasks"] if t["id"] == "weekly_goal")["done"] is True
+
+
 def test_urgent_window_under_seven_days_flips_flag():
     """Exam within EXAM_URGENT_DAYS → urgent flag true + Step 4 active."""
     near = (_today() + timedelta(days=5)).isoformat()

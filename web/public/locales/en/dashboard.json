@@ -72,11 +72,6 @@
       "ready": "You're exam-ready",
       "urgent": "{n} days left — push hard"
     },
-    "empty": {
-      "heading": "Set your exam date to start the readiness track",
-      "description": "Unlock a 4-step roadmap personalised to your target band and exam date.",
-      "cta": "Set exam date"
-    },
     "stepAria": "Step {n} of {total}, {status}, {title}",
     "status": {
       "done": "done",
@@ -153,5 +148,23 @@
       "description": "Add the bot to a Telegram group and send /start there.",
       "cta": "See group instructions"
     }
+  },
+  "recentContent": {
+    "heading": "Recently learned words",
+    "viewAll": "View all",
+    "emptyTitle": "No words yet",
+    "emptyBody": "Pull today's daily set or open the bot — your most recent words will land here.",
+    "emptyCta": "Get today's words",
+    "errorTitle": "Couldn't load your words",
+    "errorBody": "Check your connection and reload the dashboard."
+  },
+  "examDateDialog": {
+    "title": "Set your exam date",
+    "description": "We'll plan around this — countdown, daily pace, and the final-stretch nudge.",
+    "label": "Exam date",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "close": "Close"
   }
 }

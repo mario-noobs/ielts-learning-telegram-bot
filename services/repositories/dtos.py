@@ -110,6 +110,13 @@ class UserDoc(_FirestoreDTO):
     daily_words_count: int = 5
     dismissed_onboarding: bool = False
 
+    # #dashboard-polish: PATCH /me stamps these to True the first time
+    # the user submits the corresponding field. Drives the readiness
+    # sub-task tick state without needing the underlying value fields
+    # to be nullable.
+    target_band_set: bool = False
+    weekly_goal_set: bool = False
+
 
 class QuizStats(BaseModel):
     """Aggregate quiz stats derived from the user profile counters."""

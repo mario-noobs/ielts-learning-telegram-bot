@@ -51,6 +51,8 @@ def _row_to_doc(u: User) -> UserDoc:
         recent_personal_topics=list(u.recent_personal_topics or []),
         daily_words_count=u.daily_words_count,
         dismissed_onboarding=u.dismissed_onboarding,
+        target_band_set=u.target_band_set,
+        weekly_goal_set=u.weekly_goal_set,
     )
 
 
