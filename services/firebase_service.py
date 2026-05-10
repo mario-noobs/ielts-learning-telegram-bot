@@ -1,36 +1,20 @@
-"""Firestore data-access module (legacy surface).
+"""Legacy data-access surface — now a thin delegation layer over PG repos.
 
-As of US-P.1 (#113) the user-scoped collections below are owned by the
-``services/repositories/`` package. The functions here remain as the
-public surface that handlers, services, and ``async_firebase`` already
-import — they now delegate to the repository layer so the M8 Postgres
-migration (#130) touches only the repo impls, not 40+ call sites.
+Post-M8 cutover (#234) every collection moved to Postgres. This module
+stays as the import surface (``firebase_service.X``) for the 50+ call
+sites in handlers/services/api so the migration didn't have to touch
+each one. Each function here forwards to a typed PG repo from
+``services.repositories``.
 
-In-scope (delegated to repos):
-- ``users/{uid}`` profile
-- ``users/{uid}/vocabulary``
-- ``users/{uid}/quiz_history``
-- ``users/{uid}/writing_history``
-- ``users/{uid}/daily_words`` (DM-scoped)
-- ``auth_mapping`` (web-auth linkage to ``users/``)
-
-Out of scope (unchanged — stays on Firestore permanently):
-- ``groups/`` and all subcollections (``daily_words``, ``challenges``,
-  ``challenges/*/answers``)
-- ``users/{uid}/quiz_sessions``, ``users/{uid}/daily_plans``,
-  ``users/{uid}/listening_history``, ``users/{uid}/progress_snapshots``,
-  ``users/{uid}/progress_recommendations``
-- ``enriched_words`` cache
-- ``auth_link_codes`` (DM/bot linking flow)
-
-The ``_get_db()`` helper is preserved because the out-of-scope paths
-still reach Firestore directly through this module.
+The only Firebase product the app still depends on is **Identity
+Platform / Auth** for ID-token verification. That init lives in
+``services.firebase_auth`` and does NOT import Firestore. The
+``_get_db`` shim is retained for backwards compatibility — it now just
+boots Firebase Admin and returns ``None``.
 """
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-
-from firebase_admin import firestore
 
 import config
 from services.repositories import (
@@ -53,14 +37,22 @@ from services.repositories import (
     get_vocab_repo,
     get_writing_history_repo,
 )
-from services.repositories.firestore.user_repo import _get_db as _get_db  # noqa: F401
+def _get_db():
+    """Backwards-compat shim — returns None post-decommission (#234).
 
-# ``_get_db`` is re-exported above so legacy call sites (api/auth.py,
-# api/routes/auth.py, this module's out-of-scope group/plan/listening
-# helpers) can keep importing ``firebase_service._get_db``. The single
-# lazy-init lives in ``services.repositories.firestore.user_repo`` —
-# there is exactly one Firebase app and one Firestore client per
-# process.
+    Pre-cutover this returned a Firestore client. Code that still calls
+    ``firebase_service._get_db()`` is either:
+    1. Booting Firebase Admin SDK for Auth — switched to
+       ``services.firebase_auth.ensure_admin_initialized``.
+    2. Doing direct Firestore reads — none should remain post-PR #6.
+
+    We boot Firebase Admin (cheap, idempotent) and return None so a
+    caller that mistakenly chains ``.collection(...)`` fails loudly
+    instead of silently re-reaching for Firestore.
+    """
+    from services.firebase_auth import ensure_admin_initialized
+    ensure_admin_initialized()
+    return None
 
 
 # ─── User Operations (delegated to UserRepo) ───────────────────────
@@ -687,7 +679,6 @@ def merge_web_into_telegram(web_id: str, telegram_id: int) -> dict:
     from services.admin import audit_service
 
     repo = get_user_repo()
-    fs_repo = _firestore_user_repo_instance()
 
     web_row = repo.get(web_id)
     tg_row = repo.get(telegram_id)
@@ -704,8 +695,10 @@ def merge_web_into_telegram(web_id: str, telegram_id: int) -> dict:
     # 1. Build merged field dict (counters summed; total_words rewritten in step 3).
     merged = _build_merged_fields(web_dict, tg_dict)
 
-    # 2. Copy Firestore subcollections (vocab dedupe + others).
-    counts = fs_repo.copy_subcollections(str(web_id), str(telegram_id))
+    # 2. Move PG subcollection rows source → target. Single transaction
+    #    inside the helper; vocab dedupe by normalized_word, daily_words
+    #    skip dates target already has.
+    counts = _copy_subcollections_pg(str(web_id), str(telegram_id))
 
     # 3. After dedupe, total_words = sum - vocab_dropped.
     merged["total_words"] = (
@@ -714,16 +707,10 @@ def merge_web_into_telegram(web_id: str, telegram_id: int) -> dict:
         - int(counts.get("vocab_dropped", 0))
     )
 
-    # 4. Atomic Postgres merge.
+    # 4. Atomic Postgres merge — DELETE source row + apply merged fields
+    #    to target. Cascade fires on any leftover subcollection rows
+    #    (defensive — step 2 already moved everything that should survive).
     repo.merge_into(str(web_id), str(telegram_id), merged=merged)
-
-    # 5. Best-effort cleanup: delete source Firestore subcollection docs.
-    try:
-        _delete_source_subcollections(str(web_id))
-    except Exception as exc:  # noqa: BLE001 — best-effort
-        structlog.get_logger("identity").warning(
-            "merge.source_cleanup_failed", source_id=str(web_id), error=str(exc),
-        )
 
     # 6. Audit + structlog.
     audit_before = {k: web_dict.get(k) for k in (
@@ -752,26 +739,93 @@ def merge_web_into_telegram(web_id: str, telegram_id: int) -> dict:
     return counts
 
 
-def _firestore_user_repo_instance():
-    """Return a ``FirestoreUserRepo`` for subcollection ops regardless of
-    which impl ``get_user_repo()`` returns. After US-M8.6 the factory
-    yields ``PostgresUserRepo``, but Firestore subcollections still need
-    Firestore-side helpers (`copy_subcollections`).
+def _copy_subcollections_pg(source_id: str, target_id: str) -> dict:
+    """Move user-scoped subcollection rows from source → target (M8 #234).
+
+    Replaces the legacy Firestore ``copy_subcollections`` helper. Runs
+    in a single PG transaction so a partial failure doesn't leave the
+    merge in a half-applied state.
+
+    Vocab dedupe rule: when source and target both have a row with the
+    same ``normalized_word``, the target's row wins (we drop source).
+    Other tables (quiz_history, writing_history, daily_words,
+    listening_history) have no natural dedupe key — every row moves.
+
+    Returns counts dict matching the legacy shape so callers can echo
+    merge stats back to the user.
     """
-    from services.repositories.firestore.user_repo import FirestoreUserRepo
-    return FirestoreUserRepo()
+    from sqlalchemy import text
 
+    from services.db import get_sync_session
 
-def _delete_source_subcollections(source_id: str) -> None:
-    """Best-effort delete of all docs under ``users/{source_id}/<sub>``
-    for the 4 in-scope subcollections. Does NOT delete the
-    ``users/{source_id}`` root doc — that's handled by Postgres
-    ``merge_into`` deleting the row."""
-    db = _get_db()
-    root = db.collection("users").document(source_id)
-    for sub in ("vocabulary", "quiz_history", "writing_history", "daily_words"):
-        for doc in root.collection(sub).stream():
-            doc.reference.delete()
+    counts = {
+        "vocab_merged": 0,
+        "vocab_dropped": 0,
+        "quiz_merged": 0,
+        "writing_merged": 0,
+        "daily_merged": 0,
+        "daily_skipped": 0,
+        "listening_merged": 0,
+    }
+    with get_sync_session() as s, s.begin():
+        # Vocab: dedupe by (target_user, normalized_word). Source rows
+        # whose normalized_word already exists on target get dropped.
+        dropped = s.execute(
+            text(
+                "DELETE FROM user_vocabulary AS src "
+                "WHERE src.user_id = :s "
+                "AND EXISTS ("
+                "  SELECT 1 FROM user_vocabulary AS tgt "
+                "  WHERE tgt.user_id = :t "
+                "  AND tgt.normalized_word = src.normalized_word"
+                ")"
+            ),
+            {"s": source_id, "t": target_id},
+        ).rowcount or 0
+        moved = s.execute(
+            text(
+                "UPDATE user_vocabulary SET user_id = :t WHERE user_id = :s"
+            ),
+            {"s": source_id, "t": target_id},
+        ).rowcount or 0
+        counts["vocab_dropped"] = dropped
+        counts["vocab_merged"] = moved
+
+        # Histories: simple bulk move — primary keys are row UUIDs so no
+        # collision possible.
+        for tbl, key in (
+            ("quiz_history", "quiz_merged"),
+            ("writing_history", "writing_merged"),
+            ("listening_history", "listening_merged"),
+        ):
+            counts[key] = s.execute(
+                text(f"UPDATE {tbl} SET user_id = :t WHERE user_id = :s"),
+                {"s": source_id, "t": target_id},
+            ).rowcount or 0
+
+        # user_daily_words has composite PK (user_id, date). Skip dates
+        # the target already covers; move the rest.
+        skipped = s.execute(
+            text(
+                "DELETE FROM user_daily_words AS src "
+                "WHERE src.user_id = :s "
+                "AND EXISTS ("
+                "  SELECT 1 FROM user_daily_words AS tgt "
+                "  WHERE tgt.user_id = :t AND tgt.date = src.date"
+                ")"
+            ),
+            {"s": source_id, "t": target_id},
+        ).rowcount or 0
+        moved = s.execute(
+            text(
+                "UPDATE user_daily_words SET user_id = :t WHERE user_id = :s"
+            ),
+            {"s": source_id, "t": target_id},
+        ).rowcount or 0
+        counts["daily_skipped"] = skipped
+        counts["daily_merged"] = moved
+
+    return counts
 
 
 def unlink_telegram(telegram_id: int, *, surface: str) -> bool:

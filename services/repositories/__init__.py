@@ -1,8 +1,9 @@
 """Repository package — Protocol + DTO layer over user-scoped storage.
 
-Post-M8-cutover (#234): the canonical implementations are Postgres for
-all user-scoped data. The Firestore impls are kept import-able for the
-30-day read-only archive but no factory returns them by default.
+Post-M8 decommission (#234): the only implementation is Postgres. The
+former ``services.repositories.firestore`` subpackage was removed in
+PR #6 — all 17 collections now live in PG with the schema defined in
+``migrations/versions/0006_full_firestore_cutover.py``.
 
 Typical usage::
 
@@ -10,9 +11,8 @@ Typical usage::
 
     user = get_user_repo().get(telegram_id)
 
-The factories below return module-level singletons — they match the
-lazy-init style already used by ``services.firebase_service._get_db``
-and avoid introducing a DI framework for this refactor.
+The factories below return module-level singletons — same lazy-init
+pattern as other long-lived services in the codebase.
 """
 
 from __future__ import annotations
@@ -32,13 +32,6 @@ from .dtos import (
     UserDoc,
     VocabularyItem,
     WritingHistoryEntry,
-)
-from .firestore import (
-    FirestoreDailyWordsRepo,
-    FirestoreQuizHistoryRepo,
-    FirestoreUserRepo,
-    FirestoreVocabRepo,
-    FirestoreWritingHistoryRepo,
 )
 from .protocols import (
     AiUsageRepo,
@@ -394,12 +387,6 @@ __all__ = [
     "AiUsageDoc",
     "PlatformMetricDoc",
     "LinkTokenDoc",
-    # Firestore impls (kept for the 30-day archive — never returned by factories)
-    "FirestoreUserRepo",
-    "FirestoreVocabRepo",
-    "FirestoreQuizHistoryRepo",
-    "FirestoreWritingHistoryRepo",
-    "FirestoreDailyWordsRepo",
     # Factories
     "get_user_repo",
     "get_vocab_repo",

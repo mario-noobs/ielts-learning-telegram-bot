@@ -10,7 +10,7 @@ An IELTS exam-prep platform with three surfaces sharing one Python core:
 - **Web API** (`/api/`) — FastAPI backend the web app talks to. Auth via Firebase ID tokens.
 - **Telegram bot** (`/bot/`, `main.py`) — Original surface, now in **maintenance mode**. Only touch bot code when explicitly asked.
 
-All three call into shared `/services/` and `/prompts/` layers. External services are still free tier (Gemini, Firestore, gTTS).
+All three call into shared `/services/` and `/prompts/` layers. External services are still free tier (Gemini, Firebase Auth, gTTS). **Firestore was decommissioned 2026-05-10 (#234)** — all 17 collections migrated to self-hosted Postgres; only Firebase Identity Platform (Auth) remains.
 
 ## Running Locally
 
@@ -49,10 +49,11 @@ Env (`.env`): `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN` (bot only). `firebase_crede
 ### Shared services (`/services/`)
 
 - `ai_service.py` — Central Gemini wrapper. `generate()` runs via `asyncio.to_thread`; `generate_json()` strips markdown fences + parses JSON. 429 raises `RateLimitError` immediately (no retry); other errors retry with backoff. Surfaced through API as 429 in the contract shape.
-- `firebase_service.py` — Single Firestore data-access layer with lazy `_db` singleton. Collections: `users` (subcollections `vocabulary`, `quiz_history`, `writing_history`, `daily_words`), `groups` (subcollections `daily_words`, `challenges`).
-- `repositories/` — Newer DTO + protocol-based repository layer (`firestore/` impls). Prefer this for new code over touching `firebase_service` directly.
+- `firebase_service.py` — Legacy import surface kept as a delegation layer; every function forwards to a Postgres repo via the factory. `_get_db()` is a no-op shim post-decommission.
+- `firebase_auth.py` — Firebase Admin SDK init (Auth-only). Call `ensure_admin_initialized()` before `firebase_admin.auth.verify_id_token`.
+- `repositories/` — Protocol + Postgres-only impls under `postgres/`. The Firestore subpackage was removed in PR #6 of #234.
 - `async_firebase.py` — Async wrappers for hot paths.
-- `feature_flag_service.py` — Firestore-backed flags with 60s in-memory cache. Eval order: missing→False, kill-switch→False, `uid_allowlist`→True, no uid→`enabled`, else `sha256("{flag}:{uid}") % 100 < rollout_pct`. Admin via `scripts/flags.py`. No redeploy to toggle. Planned flags: `design_system_v2`, `reading_lab`. (Postgres dual-write flags removed — M8 pivoted to a pre-launch one-shot cutover, see ADR-M8-3.)
+- `feature_flag_service.py` — Postgres-backed flags (table `feature_flags`) with 60s in-memory cache. Eval order: missing→False, kill-switch→False, `uid_allowlist`→True, no uid→`enabled`, else `sha256("{flag}:{uid}") % 100 < rollout_pct`. Admin via `scripts/flags.py`. No redeploy to toggle.
 - Domain services: `vocab_service`, `quiz_service`, `srs_service` (SM-2), `writing_service`, `listening_service`, `reading_service`, `coaching_service`, `plan_service`, `progress_service`, `weakness_service`, `word_service`, `tts_service`, `leaderboard_service`, `challenge_service`, `scheduler_service`, `rate_limit_service`.
 
 ### Bot (`/bot/`, `main.py`) — maintenance mode
@@ -72,7 +73,8 @@ Env (`.env`): `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN` (bot only). `firebase_crede
 |---------|-----|-----------|
 | Telegram Bot API | `python-telegram-bot` 21+ | Unlimited |
 | Google Gemini (`gemini-2.5-flash`) | `google-generativeai` | 15 RPM, 1500 req/day |
-| Firebase Auth + Firestore | `firebase-admin`, `firebase` (web) | 50K reads + 20K writes/day |
+| Firebase Auth (Identity Platform) | `firebase-admin`, `firebase` (web) | Free for ID-token verify |
+| Self-hosted Postgres 16 | SQLAlchemy 2.x + Alembic | N/A (self-hosted) |
 | Google TTS | `gTTS` | No hard limit |
 
 ## Config

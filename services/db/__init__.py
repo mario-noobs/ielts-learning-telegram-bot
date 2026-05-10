@@ -39,10 +39,7 @@ def _require_url() -> str:
 
 
 def get_engine() -> AsyncEngine:
-    """Lazy-init the async engine; one engine per process.
-
-    Mirrors ``services.repositories.firestore.user_repo._get_db``.
-    """
+    """Lazy-init the async engine; one engine per process."""
     global _engine, _sessionmaker
     if _engine is None:
         url = _require_url()
