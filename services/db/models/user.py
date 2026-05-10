@@ -58,6 +58,13 @@ class User(Base):
     last_active_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
     signup_cohort: Mapped[Optional[str]] = mapped_column(Text, nullable=True, index=True)
 
+    # FIFO ring of last-N personal topics (US-#226 rotation). vocab_service
+    # rewrites this on every /mydaily — keep app-side capped at
+    # RECENT_TOPICS_KEEP=5 entries.
+    recent_personal_topics: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]",
+    )
+
     __table_args__ = (
         Index("ix_users_role_plan", "role", "plan"),
     )
