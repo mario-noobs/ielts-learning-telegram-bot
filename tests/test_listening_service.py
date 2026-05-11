@@ -140,6 +140,44 @@ class TestGenerateExerciseDispatch:
         assert [b["index"] for b in result["blanks"]] == [0, 1, 2, 3, 4]
 
     @pytest.mark.asyncio
+    async def test_gap_fill_audio_transcript_reconstructed_from_blanks(self):
+        """Gap-fill audio "user keeps hearing blank" bug: if Gemini
+        leaves placeholders in its `transcript` field, we ignore them
+        and rebuild the audio-bound transcript from `display_text` +
+        `blanks`. Deterministic — same input always yields a clean
+        passage with every word spoken.
+        """
+        with patch(
+            "services.listening_service.ai_service.generate_json",
+            new=AsyncMock(return_value={
+                "title": "Workplace Stress",
+                # AI broke the contract — placeholders bleed into
+                # transcript. Old code shipped this straight to gTTS.
+                "transcript": "She felt _____ about the _____ today and tomorrow forever.",
+                "display_text": (
+                    "She felt _____ about the _____ today and tomorrow forever."
+                ),
+                "blanks": [
+                    {"answer": "anxious"},
+                    {"answer": "results"},
+                    {"answer": "today"},
+                    {"answer": "tomorrow"},
+                    {"answer": "forever"},
+                ],
+            }),
+        ):
+            result = await listening_service.generate_exercise(
+                "gap_fill", 7.5, "psychology",
+            )
+        # transcript is rebuilt — no underscore placeholders survive.
+        assert "_____" not in result["transcript"]
+        # First two answers fill the two blanks in display_text order.
+        assert "anxious" in result["transcript"]
+        assert "results" in result["transcript"]
+        # display_text is preserved for the UI.
+        assert "_____" in result["display_text"]
+
+    @pytest.mark.asyncio
     async def test_comprehension_clamps_correct_index(self):
         with patch(
             "services.listening_service.ai_service.generate_json",
