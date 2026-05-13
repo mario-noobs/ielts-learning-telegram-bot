@@ -14,6 +14,10 @@ _MIN_QUESTIONS = 2
 _MAX_QUESTIONS = 6
 _WORDS_PER_SECOND = 2.3  # average speaking rate
 
+# Runs of 3+ underscores are the placeholder shape; single underscores
+# inside identifiers (rare in IELTS prose but possible) shouldn't match.
+_BLANK_PLACEHOLDER_RE = re.compile(r"_{3,}")
+
 
 def _clean_str(value, default: str = "") -> str:
     return str(value or default).strip()
@@ -39,9 +43,32 @@ def _normalize_dictation(raw: dict, band: float, topic: str) -> dict:
     }
 
 
+def _audio_transcript_from(display_text: str, blanks: list[dict]) -> str:
+    """Build a clean, audio-ready transcript by filling display-text
+    blanks with their answers in order.
+
+    Gemini occasionally leaves ``_____`` or the literal word "blank" in
+    its own ``transcript`` field even with the hardened prompt. gTTS
+    then reads those placeholders aloud (or as silence), which is the
+    "user keeps hearing blank" bug. Reconstructing the transcript from
+    ``display_text`` + ``blanks`` is deterministic — both fields are
+    contractually correct (the UI relies on them too), so the audio
+    surface no longer depends on the AI getting the transcript right.
+    """
+    answers = iter(blanks)
+
+    def _replace(_match):
+        try:
+            return next(answers).get("answer", "")
+        except StopIteration:
+            return ""
+
+    return _BLANK_PLACEHOLDER_RE.sub(_replace, display_text)
+
+
 def _normalize_gap_fill(raw: dict, band: float, topic: str) -> dict:
-    transcript = _clean_str(raw.get("transcript"))
-    display_text = _clean_str(raw.get("display_text")) or transcript
+    ai_transcript = _clean_str(raw.get("transcript"))
+    display_text = _clean_str(raw.get("display_text")) or ai_transcript
 
     blanks_raw = raw.get("blanks") or []
     blanks: list[dict] = []
@@ -56,6 +83,14 @@ def _normalize_gap_fill(raw: dict, band: float, topic: str) -> dict:
             break
     for i, b in enumerate(blanks):
         b["index"] = i
+
+    # Reconstruct the audio transcript from the display text + answers.
+    # Falls back to whatever the AI gave us only if display_text has no
+    # blank markers at all (defensive — shouldn't happen in practice).
+    if _BLANK_PLACEHOLDER_RE.search(display_text):
+        transcript = _audio_transcript_from(display_text, blanks)
+    else:
+        transcript = ai_transcript
 
     return {
         "exercise_type": "gap_fill",
