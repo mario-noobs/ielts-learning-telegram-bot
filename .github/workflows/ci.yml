@@ -115,10 +115,13 @@ jobs:
             fi
           fi
 
-          # Previous completed CI run on the same branch, excluding this one.
+          # Most recent CI run on the same branch with a *meaningful* outcome —
+          # skip the current run and any cancelled/skipped runs (e.g., concurrency
+          # cancellations), so back-to-green still fires when the prior real run
+          # was a failure even if cancellations happened in between.
           prev=$(gh api \
-            "repos/${REPO}/actions/workflows/ci.yml/runs?branch=${BRANCH}&status=completed&per_page=10" \
-            -q "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID})][0].conclusion")
+            "repos/${REPO}/actions/workflows/ci.yml/runs?branch=${BRANCH}&status=completed&per_page=20" \
+            -q "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID}) | select(.conclusion == \"success\" or .conclusion == \"failure\")][0].conclusion")
           echo "context=$context, overall=$overall, prev=${prev:-none}"
 
           notify=false
