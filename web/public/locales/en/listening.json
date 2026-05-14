@@ -2,6 +2,25 @@
   "heading": "Listening Gym",
   "subline": "Practise listening at band {band}. {done, plural, one {# done today} other {# done today}}",
   "historyLink": "History",
+  "tabs": {
+    "practice": "Practice",
+    "mock": "Mock",
+    "tips": "Tips",
+    "mockComingSoon": "Mock tests are coming soon. Check back after the next update."
+  },
+  "tips": {
+    "subtitle": "AI-generated tips for your band. Refreshed daily.",
+    "refreshBtn": "Refresh tips",
+    "refreshAriaLabel": "Refresh tips",
+    "retryBtn": "Try again",
+    "categories": {
+      "strategy": "Strategy",
+      "vocabulary": "Vocabulary",
+      "pronunciation": "Pronunciation",
+      "exam_technique": "Exam technique",
+      "mindset": "Mindset"
+    }
+  },
   "types": {
     "dictation": {
       "title": "Dictation",

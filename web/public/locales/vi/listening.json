@@ -2,6 +2,25 @@
   "heading": "Listening Gym",
   "subline": "Luyện nghe ở Band {band}. Hôm nay đã hoàn thành {done} bài.",
   "historyLink": "Lịch sử",
+  "tabs": {
+    "practice": "Luyện tập",
+    "mock": "Thi thử",
+    "tips": "Mẹo học",
+    "mockComingSoon": "Tính năng thi thử sắp ra mắt. Hãy quay lại sau bản cập nhật tiếp theo."
+  },
+  "tips": {
+    "subtitle": "Mẹo học do AI tạo theo band của bạn. Cập nhật mỗi ngày.",
+    "refreshBtn": "Làm mới mẹo",
+    "refreshAriaLabel": "Làm mới mẹo",
+    "retryBtn": "Thử lại",
+    "categories": {
+      "strategy": "Chiến lược",
+      "vocabulary": "Từ vựng",
+      "pronunciation": "Phát âm",
+      "exam_technique": "Kỹ thuật thi",
+      "mindset": "Tâm lý"
+    }
+  },
   "types": {
     "dictation": {
       "title": "Dictation",

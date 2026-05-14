@@ -75,3 +75,14 @@ class ListeningHistoryItem(BaseModel):
 
 class ListeningHistoryResponse(BaseModel):
     items: list[ListeningHistoryItem]
+
+
+class ListeningTip(BaseModel):
+    id: str
+    title: str
+    body: str
+    category: str
+
+
+class ListeningTipsResponse(BaseModel):
+    tips: list[ListeningTip]
