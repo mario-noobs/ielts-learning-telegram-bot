@@ -6,8 +6,8 @@ on:
 
 jobs:
   notify:
-    # Skip draft PRs — they aren't ready for review yet.
-    if: github.event.pull_request.draft == false
+    # Only PRs targeting main, and skip drafts (not ready for review yet).
+    if: github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
