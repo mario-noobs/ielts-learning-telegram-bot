@@ -28,15 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: mario-noobs/ci-baseline/actions/setup-python@main
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: requirements-dev.txt
-
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+          python_version: "3.11"
+          requirements_file: requirements.txt
+          dev_requirements_file: requirements-dev.txt
 
       # TODO: re-enable once the pre-existing ruff debt is cleaned up.
       # The repo carries a backlog of import-ordering errors in files that
@@ -49,29 +45,24 @@ jobs:
       - name: Apply Alembic migrations
         run: alembic upgrade head
 
-      - name: Run tests
-        run: pytest tests/ -v --tb=short
-
-      - name: Check coverage
-        run: pytest tests/ --cov=services --cov=bot.utils --cov-report=term-missing --cov-fail-under=15
+      - uses: mario-noobs/ci-baseline/actions/run-pytest@main
+        with:
+          paths: tests/
+          args: "-v --tb=short"
+          coverage_paths: "services bot.utils"
+          coverage_min: "15"
 
   web:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - uses: mario-noobs/ci-baseline/actions/setup-node@main
         with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+          node_version: "20"
+          package_manager: npm
+          working_directory: web
 
       - name: Build Storybook
+        working-directory: web
         run: npm run build-storybook -- --quiet
