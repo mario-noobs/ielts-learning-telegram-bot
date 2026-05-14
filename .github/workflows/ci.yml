@@ -1,10 +1,14 @@
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
+    branches: ['**']
+
+# When a new push lands on the same branch, cancel any still-running CI run
+# for that branch so we always notify on the latest commit.
+concurrency:
+  group: ci-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-test:
@@ -35,10 +39,6 @@ jobs:
           dev_requirements_file: requirements-dev.txt
 
       # TODO: re-enable once the pre-existing ruff debt is cleaned up.
-      # The repo carries a backlog of import-ordering errors in files that
-      # current PRs don't touch, blocking CI on otherwise-clean changes.
-      # Plan: dedicated `chore: ruff --fix sweep` PR to bring main green,
-      # then unconditionally re-enable this step.
       # - name: Lint with ruff
       #   run: ruff check .
 
@@ -69,54 +69,86 @@ jobs:
 
   notify:
     needs: [lint-and-test, web]
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
     steps:
-      - name: Decide whether to notify
+      - name: Decide context and whether to notify
         id: decide
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LINT_RESULT: ${{ needs.lint-and-test.result }}
           WEB_RESULT: ${{ needs.web.result }}
+          BRANCH: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
+          # Overall conclusion across required jobs.
           if [ "$LINT_RESULT" = "success" ] && [ "$WEB_RESULT" = "success" ]; then
             overall=success
           else
             overall=failure
           fi
-          # Look up the previous completed CI run on main (skip the current one).
-          prev=$(gh run list \
-            --repo "$GITHUB_REPOSITORY" \
-            --workflow=ci.yml \
-            --branch=main \
-            --event=push \
-            --limit=5 \
-            --json databaseId,conclusion,status \
-            -q "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and .status == \"completed\")][0].conclusion")
-          echo "previous run conclusion: ${prev:-none}"
 
-          if [ "$overall" = "failure" ]; then
-            {
-              echo "should_notify=true"
-              echo "title=:x: CI failed on main"
-              echo "color=#dc2626"
-            } >> "$GITHUB_OUTPUT"
-          elif [ "$overall" = "success" ] && [ "$prev" = "failure" ]; then
-            {
-              echo "should_notify=true"
-              echo "title=:white_check_mark: CI back to green on main"
-              echo "color=#16a34a"
-            } >> "$GITHUB_OUTPUT"
+          # Classify the push:
+          #   main      → notify on failure / back-to-green on main
+          #   pr        → push to a branch with an open PR to main; same logic, PR context
+          #   branch    → push to a feature branch with no open PR yet; silent
+          if [ "$BRANCH" = "main" ]; then
+            context=main
+            label="main"
+            link="$GITHUB_SERVER_URL/$REPO/commits/main"
           else
-            echo "should_notify=false" >> "$GITHUB_OUTPUT"
+            pr_json=$(gh pr list --repo "$REPO" --head "$BRANCH" --base main --state open --json number,title,url --limit 1)
+            pr_count=$(echo "$pr_json" | jq 'length')
+            if [ "$pr_count" -gt 0 ]; then
+              context=pr
+              pr_number=$(echo "$pr_json" | jq -r '.[0].number')
+              pr_title=$(echo "$pr_json"  | jq -r '.[0].title')
+              pr_url=$(echo "$pr_json"    | jq -r '.[0].url')
+              label="PR #${pr_number} — ${pr_title}"
+              link="$pr_url"
+            else
+              context=branch
+            fi
           fi
 
+          # Previous completed CI run on the same branch, excluding this one.
+          prev=$(gh api \
+            "repos/${REPO}/actions/workflows/ci.yml/runs?branch=${BRANCH}&status=completed&per_page=10" \
+            -q "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID})][0].conclusion")
+          echo "context=$context, overall=$overall, prev=${prev:-none}"
+
+          notify=false
+          if [ "$context" = "branch" ]; then
+            # Pre-PR feature-branch pushes: stay quiet.
+            notify=false
+          elif [ "$overall" = "failure" ]; then
+            notify=true
+            title=":x: CI failed on ${label}"
+            color="#dc2626"
+          elif [ "$overall" = "success" ] && [ "$prev" = "failure" ]; then
+            notify=true
+            title=":white_check_mark: CI back to green on ${label}"
+            color="#16a34a"
+          fi
+
+          {
+            echo "notify=$notify"
+            echo "title=$title"
+            echo "color=$color"
+            echo "link=$link"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Post to Pumble
-        if: steps.decide.outputs.should_notify == 'true'
+        if: steps.decide.outputs.notify == 'true'
         env:
           WEBHOOK: ${{ secrets.PUMBLE_WEBHOOK_URL }}
           TITLE: ${{ steps.decide.outputs.title }}
           COLOR: ${{ steps.decide.outputs.color }}
+          LINK: ${{ steps.decide.outputs.link }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           COMMIT_SHA: ${{ github.sha }}
           ACTOR: ${{ github.actor }}
@@ -129,6 +161,7 @@ jobs:
           payload=$(jq -n \
             --arg title  "$TITLE" \
             --arg color  "$COLOR" \
+            --arg link   "$LINK" \
             --arg commit "<$SERVER/$REPO/commit/$COMMIT_SHA|${COMMIT_SHA:0:7}> by $ACTOR" \
             --arg msg    "$COMMIT_MSG" \
             --arg jobs   "lint-and-test: $LINT_RESULT · web: $WEB_RESULT" \
@@ -138,6 +171,7 @@ jobs:
               attachments: [{
                 color: $color,
                 fields: [
+                  {title: "Where",   value: $link,   short: false},
                   {title: "Commit",  value: $commit, short: false},
                   {title: "Message", value: $msg,    short: false},
                   {title: "Jobs",    value: $jobs,   short: false},

@@ -1,0 +1,63 @@
+name: PR Notify
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+jobs:
+  notify:
+    # Only PRs targeting main, and skip drafts (not ready for review yet).
+    if: github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Post to Pumble
+        env:
+          WEBHOOK: ${{ secrets.PUMBLE_WEBHOOK_URL }}
+          ACTION: ${{ github.event.action }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_ADDITIONS: ${{ github.event.pull_request.additions }}
+          PR_DELETIONS: ${{ github.event.pull_request.deletions }}
+          PR_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          case "$ACTION" in
+            opened)            title=":mega: New PR ready for review";;
+            ready_for_review)  title=":mega: PR marked ready for review";;
+            reopened)          title=":arrows_counterclockwise: PR reopened";;
+            *)                 title=":mega: PR update";;
+          esac
+
+          # Trim body to keep the card readable.
+          body_short=$(printf '%s' "$PR_BODY" | head -c 400)
+          if [ "$(printf '%s' "$PR_BODY" | wc -c)" -gt 400 ]; then
+            body_short="${body_short}…"
+          fi
+          [ -z "$body_short" ] && body_short="_(no description)_"
+
+          payload=$(jq -n \
+            --arg title    "$title" \
+            --arg pr_line  "<${PR_URL}|#${PR_NUMBER} ${PR_TITLE}> by ${PR_AUTHOR}" \
+            --arg branches "${PR_HEAD} → ${PR_BASE}" \
+            --arg diff     "+${PR_ADDITIONS} / -${PR_DELETIONS} across ${PR_FILES} file(s)" \
+            --arg body     "$body_short" \
+            '{
+              text: $title,
+              attachments: [{
+                color: "#2563eb",
+                fields: [
+                  {title: "PR",          value: $pr_line,  short: false},
+                  {title: "Branches",    value: $branches, short: true},
+                  {title: "Changes",     value: $diff,     short: true},
+                  {title: "Description", value: $body,     short: false}
+                ]
+              }]
+            }')
+          curl -fsSL -X POST -H "Content-Type: application/json" --data "$payload" "$WEBHOOK"
