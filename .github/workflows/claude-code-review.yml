@@ -26,13 +26,27 @@ jobs:
 
       - name: Run Claude Code Review
         uses: anthropics/claude-code-action@v1
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Update a single sticky review comment per PR instead of posting
-          # a new one on every push.
-          use_sticky_comment: true
           prompt: |
-            Review this pull request. Post a single review comment with these sections:
+            Review pull request #${{ github.event.pull_request.number }} in
+            ${{ github.repository }}. Read the diff with:
+
+              gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+
+            Then post a single review comment using:
+
+              gh pr comment ${{ github.event.pull_request.number }} \
+                --repo ${{ github.repository }} \
+                --body-file <(cat <<'BODY'
+              <review markdown>
+              BODY
+              )
+
+            Structure the review with these sections:
 
             **Summary** — 1-2 sentences on what changed and why.
 
