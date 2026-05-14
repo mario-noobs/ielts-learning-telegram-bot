@@ -3,11 +3,17 @@ name: CI
 on:
   push:
     branches: ['**']
+  pull_request:
+    branches: [main]
+    # 'synchronize' is intentionally omitted — push to the PR branch already
+    # triggers CI via the push event above, so adding synchronize would cause
+    # duplicate runs. We only want PR-lifecycle events that aren't pushes.
+    types: [opened, reopened, ready_for_review]
 
-# When a new push lands on the same branch, cancel any still-running CI run
-# for that branch so we always notify on the latest commit.
+# Dedupe by branch so a new push cancels its in-flight predecessor.
+# For pull_request events use the head ref so the group matches the push side.
 concurrency:
-  group: ci-${{ github.ref_name }}
+  group: ci-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -82,7 +88,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LINT_RESULT: ${{ needs.lint-and-test.result }}
           WEB_RESULT: ${{ needs.web.result }}
-          BRANCH: ${{ github.ref_name }}
+          BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
           REPO: ${{ github.repository }}
         run: |
           # Overall conclusion across required jobs.
