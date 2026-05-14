@@ -153,11 +153,8 @@ async def create_user(
 ) -> UserProfile:
     """Register a new web user using the Firebase Auth token.
 
-    Idempotent: if a row already exists for this Firebase ``auth_uid``
-    (typical after unlink → reload, or React StrictMode firing the
-    Dashboard auto-create effect twice), return the existing profile
-    rather than raising 409. Same effect either way; the client doesn't
-    need to special-case "already there".
+    Raises 409 ``auth.user.exists`` if a row already exists for this
+    Firebase ``auth_uid``.
     """
     from services.firebase_auth import ensure_admin_initialized
     ensure_admin_initialized()  # Firebase Admin SDK boot for Auth verify
@@ -172,7 +169,7 @@ async def create_user(
 
     existing = await asyncio.to_thread(firebase_service.get_user_by_auth_uid, auth_uid)
     if existing:
-        return _to_profile(existing)
+        raise ApiError(ERR.auth_user_exists)
 
     # US-M14.1: prefer Firebase token's `name` claim (Google SSO supplies
     # this). Fall back to email local-part, then to a friendly default.
