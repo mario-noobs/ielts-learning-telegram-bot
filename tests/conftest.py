@@ -19,9 +19,17 @@ import pytest
 
 @pytest.fixture(autouse=True, scope="session")
 def _mock_firebase():
-    """Prevent Firebase SDK from initializing with real credentials."""
+    """Prevent Firebase SDK from initializing with real credentials.
+
+    Routes in api/routes/auth.py call ensure_admin_initialized() directly.
+    _resolve_credential() returns None in CI (test.json doesn't exist and
+    FIREBASE_CREDENTIALS_JSON is unset), so the function raises RuntimeError
+    before the patched initialize_app is ever reached. Patching the function
+    itself is the correct fix.
+    """
     with patch("firebase_admin.credentials.Certificate", return_value=MagicMock()), \
-         patch("firebase_admin.initialize_app", return_value=MagicMock()):
+         patch("firebase_admin.initialize_app", return_value=MagicMock()), \
+         patch("services.firebase_auth.ensure_admin_initialized", return_value=None):
         yield
 
 
