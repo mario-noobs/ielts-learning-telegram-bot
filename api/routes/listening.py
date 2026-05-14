@@ -20,7 +20,8 @@ from api.models.listening import (
     ListeningTipsResponse,
 )
 from api.permissions import enforce_ai_quota
-from services import firebase_service, listening_service, tts_service
+from services import ai_service, firebase_service, listening_service, tts_service
+from services.ai_service import RateLimitError
 
 # In-memory TTL cache: (user_id, band, locale) -> (tips, expires_at)
 _tips_cache: dict[tuple, tuple[list[ListeningTip], float]] = {}
@@ -192,8 +193,6 @@ async def get_listening_tips(
 ) -> ListeningTipsResponse:
     from prompts.listening_tips_prompt import LISTENING_TIPS_PROMPT
     from prompts.listening_tips_prompt_vi import LISTENING_TIPS_PROMPT_VI
-    from services import ai_service
-    from services.ai_service import RateLimitError
 
     user_id = user["id"]
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
