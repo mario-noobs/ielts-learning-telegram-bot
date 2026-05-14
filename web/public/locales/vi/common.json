@@ -44,6 +44,10 @@
       "home": "Trang chủ",
       "learn": "Học",
       "practice": "Luyện",
+      "listening": "Listening",
+      "reading": "Reading",
+      "writing": "Writing",
+      "speaking": "Speaking",
       "progress": "Tiến độ",
       "profile": "Tôi",
       "admin": "Quản trị"
@@ -55,12 +59,15 @@
       "review": "Ôn tập",
       "writing": "Writing",
       "listening": "Listening",
-      "reading": "Reading"
+      "reading": "Reading",
+      "speaking": "Speaking"
     },
     "sidebar": {
       "collapse": "Thu gọn sidebar",
       "expand": "Mở rộng sidebar"
-    }
+    },
+    "comingSoon": "Sắp ra mắt",
+    "speakingDisabledAriaLabel": "Speaking — sắp ra mắt, chưa khả dụng"
   },
   "plan": {
     "badge": {
