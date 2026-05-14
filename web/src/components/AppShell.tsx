@@ -18,12 +18,31 @@ interface Tab {
   icon: IconName
   /** Additional routes that should mark this tab as active */
   matches?: string[]
+  /** Renders as a non-navigable, dimmed entry with a "coming soon" badge. */
+  disabled?: boolean
+  /** Aria label used when disabled, so screen readers announce the unavailable state. */
+  disabledAriaKey?: string
 }
 
+// US-M15.0: sidebar splits "Practice" into 4 IELTS-skill top-level entries.
+// Speaking has no surface yet — disabled with "coming soon" affordance.
+// US-#211 redirects keep old /vocab, /write, /listening, /reading bookmarks alive.
 const TABS: Tab[] = [
   { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
-  // US-#211: route restructure → /learn/* and /practice/*. Old /vocab,
-  // /write, /listening, /reading paths still redirect for bookmarks.
+  { to: '/learn/daily', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
+  { to: '/practice/listening', labelKey: 'nav.tabs.listening', icon: 'Headphones', matches: ['/practice/listening', '/listening'] },
+  { to: '/practice/reading', labelKey: 'nav.tabs.reading', icon: 'FileText', matches: ['/practice/reading', '/reading'] },
+  { to: '/practice/writing', labelKey: 'nav.tabs.writing', icon: 'PenLine', matches: ['/practice/writing', '/write'] },
+  { to: '/practice/speaking', labelKey: 'nav.tabs.speaking', icon: 'Mic', disabled: true, disabledAriaKey: 'nav.speakingDisabledAriaLabel' },
+  { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
+  { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
+]
+
+// Mobile bottom bar can't fit 8 entries. Keep the pre-M15.0 5-tab shape so
+// mobile UX is unchanged; cross-skill navigation on mobile happens via
+// PRACTICE_SUBNAV inside /practice/*.
+const MOBILE_TABS: Tab[] = [
+  { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
   { to: '/learn/daily', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
   { to: '/practice/writing', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/practice/', '/write', '/listening', '/reading'] },
   { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
@@ -34,6 +53,7 @@ interface SubNavItem {
   to: string
   labelKey: string
   matches?: string[]
+  disabled?: boolean
 }
 
 const LEARN_SUBNAV: SubNavItem[] = [
@@ -46,6 +66,7 @@ const PRACTICE_SUBNAV: SubNavItem[] = [
   { to: '/practice/writing', labelKey: 'nav.subnav.writing', matches: ['/practice/writing'] },
   { to: '/practice/listening', labelKey: 'nav.subnav.listening', matches: ['/practice/listening'] },
   { to: '/practice/reading', labelKey: 'nav.subnav.reading', matches: ['/practice/reading'] },
+  { to: '/practice/speaking', labelKey: 'nav.subnav.speaking', disabled: true },
 ]
 
 function activeSubnav(pathname: string): SubNavItem[] | null {
@@ -87,6 +108,7 @@ export default function AppShell() {
   }, [collapsed])
 
   const tabs = TABS
+  const mobileTabs = MOBILE_TABS
   const showAdminEntry =
     profile?.role !== undefined && ADMIN_ROLES.includes(profile.role)
   const planId = profile?.plan ?? 'free'
@@ -156,6 +178,31 @@ export default function AppShell() {
 
           <ul className="flex-1 space-y-0.5">
             {tabs.map((tab) => {
+              if (tab.disabled) {
+                const ariaLabel = tab.disabledAriaKey ? t(tab.disabledAriaKey) : t(tab.labelKey)
+                return (
+                  <li key={tab.to}>
+                    <span
+                      role="link"
+                      aria-disabled="true"
+                      aria-label={ariaLabel}
+                      tabIndex={-1}
+                      title={collapsed ? ariaLabel : undefined}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-fg opacity-50 cursor-not-allowed"
+                    >
+                      <Icon name={tab.icon} size="lg" variant="muted" />
+                      {showLabels && (
+                        <span className="hidden lg:inline-flex lg:items-center lg:gap-2 font-medium">
+                          {t(tab.labelKey)}
+                          <span className="rounded-full bg-muted-fg/10 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                            {t('nav.comingSoon')}
+                          </span>
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                )
+              }
               const active = isTabActive(tab, pathname)
               return (
                 <li key={tab.to}>
@@ -265,13 +312,35 @@ export default function AppShell() {
           {(() => {
             const subnav = activeSubnav(pathname)
             if (!subnav) return null
+            // Hide practice subnav on lg+ — desktop sidebar already exposes
+            // the 4 skills as top-level entries (M15.0).
+            const hideOnDesktop = subnav === PRACTICE_SUBNAV
             return (
               <nav
                 aria-label={t('nav.subnav.ariaLabel')}
-                className="border-b border-border bg-surface-raised/50 px-4 md:px-6"
+                className={`border-b border-border bg-surface-raised/50 px-4 md:px-6 ${
+                  hideOnDesktop ? 'lg:hidden' : ''
+                }`}
               >
                 <ul className="flex gap-1 overflow-x-auto">
                   {subnav.map((item) => {
+                    if (item.disabled) {
+                      return (
+                        <li key={item.to} className="shrink-0">
+                          <span
+                            role="link"
+                            aria-disabled="true"
+                            tabIndex={-1}
+                            className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-muted-fg opacity-50 cursor-not-allowed"
+                          >
+                            {t(item.labelKey)}
+                            <span className="rounded-full bg-muted-fg/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                              {t('nav.comingSoon')}
+                            </span>
+                          </span>
+                        </li>
+                      )
+                    }
                     const active = isSubnavActive(item, pathname)
                     return (
                       <li key={item.to} className="shrink-0">
@@ -298,14 +367,16 @@ export default function AppShell() {
         </main>
       </div>
 
-      {/* Mobile bottom tab bar (<md) */}
+      {/* Mobile bottom tab bar (<md) — separate 5-tab subset since the
+          full 8-entry desktop sidebar can't fit in a bottom bar. Cross-skill
+          navigation on mobile lives in PRACTICE_SUBNAV. */}
       <nav
         aria-label={t('nav.mainNav')}
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-raised border-t border-border"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <ul className="flex">
-          {tabs.map((tab) => {
+          {mobileTabs.map((tab) => {
             const active = isTabActive(tab, pathname)
             return (
               <li key={tab.to} className="flex-1">

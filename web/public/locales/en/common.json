@@ -44,6 +44,10 @@
       "home": "Home",
       "learn": "Learn",
       "practice": "Practice",
+      "listening": "Listening",
+      "reading": "Reading",
+      "writing": "Writing",
+      "speaking": "Speaking",
       "progress": "Progress",
       "profile": "Me",
       "admin": "Admin"
@@ -55,12 +59,15 @@
       "review": "Review",
       "writing": "Writing",
       "listening": "Listening",
-      "reading": "Reading"
+      "reading": "Reading",
+      "speaking": "Speaking"
     },
     "sidebar": {
       "collapse": "Collapse sidebar",
       "expand": "Expand sidebar"
-    }
+    },
+    "comingSoon": "Coming soon",
+    "speakingDisabledAriaLabel": "Speaking — coming soon, not available"
   },
   "plan": {
     "badge": {
