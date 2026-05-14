@@ -66,3 +66,83 @@ jobs:
       - name: Build Storybook
         working-directory: web
         run: npm run build-storybook -- --quiet
+
+  notify:
+    needs: [lint-and-test, web]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether to notify
+        id: decide
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINT_RESULT: ${{ needs.lint-and-test.result }}
+          WEB_RESULT: ${{ needs.web.result }}
+        run: |
+          if [ "$LINT_RESULT" = "success" ] && [ "$WEB_RESULT" = "success" ]; then
+            overall=success
+          else
+            overall=failure
+          fi
+          # Look up the previous completed CI run on main (skip the current one).
+          prev=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow=ci.yml \
+            --branch=main \
+            --event=push \
+            --limit=5 \
+            --json databaseId,conclusion,status \
+            -q "[.[] | select(.databaseId != ${GITHUB_RUN_ID} and .status == \"completed\")][0].conclusion")
+          echo "previous run conclusion: ${prev:-none}"
+
+          if [ "$overall" = "failure" ]; then
+            {
+              echo "should_notify=true"
+              echo "title=:x: CI failed on main"
+              echo "color=#dc2626"
+            } >> "$GITHUB_OUTPUT"
+          elif [ "$overall" = "success" ] && [ "$prev" = "failure" ]; then
+            {
+              echo "should_notify=true"
+              echo "title=:white_check_mark: CI back to green on main"
+              echo "color=#16a34a"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "should_notify=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post to Pumble
+        if: steps.decide.outputs.should_notify == 'true'
+        env:
+          WEBHOOK: ${{ secrets.PUMBLE_WEBHOOK_URL }}
+          TITLE: ${{ steps.decide.outputs.title }}
+          COLOR: ${{ steps.decide.outputs.color }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          SERVER: ${{ github.server_url }}
+          RUN_ID: ${{ github.run_id }}
+          LINT_RESULT: ${{ needs.lint-and-test.result }}
+          WEB_RESULT: ${{ needs.web.result }}
+        run: |
+          payload=$(jq -n \
+            --arg title  "$TITLE" \
+            --arg color  "$COLOR" \
+            --arg commit "<$SERVER/$REPO/commit/$COMMIT_SHA|${COMMIT_SHA:0:7}> by $ACTOR" \
+            --arg msg    "$COMMIT_MSG" \
+            --arg jobs   "lint-and-test: $LINT_RESULT · web: $WEB_RESULT" \
+            --arg run    "<$SERVER/$REPO/actions/runs/$RUN_ID|View run>" \
+            '{
+              text: $title,
+              attachments: [{
+                color: $color,
+                fields: [
+                  {title: "Commit",  value: $commit, short: false},
+                  {title: "Message", value: $msg,    short: false},
+                  {title: "Jobs",    value: $jobs,   short: false},
+                  {title: "Run",     value: $run,    short: false}
+                ]
+              }]
+            }')
+          curl -fsSL -X POST -H "Content-Type: application/json" --data "$payload" "$WEBHOOK"
