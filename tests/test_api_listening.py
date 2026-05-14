@@ -1,4 +1,4 @@
-"""Integration tests for /api/v1/listening (US-3.2)."""
+"""Integration tests for /api/v1/listening (US-3.2, US-M15.6)."""
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
@@ -333,3 +333,88 @@ class TestResubmit:
                 json={"user_text": "anything"},
             )
         assert res.status_code == 409
+
+
+_FAKE_TIPS_JSON = {
+    "tips": [
+        {"id": "tip_1", "title": "Preview before listening", "body": "Read questions first.", "category": "strategy"},
+        {"id": "tip_2", "title": "Learn topic vocabulary", "body": "Expand your **academic** word list.", "category": "vocabulary"},
+        {"id": "tip_3", "title": "Train connected speech", "body": "English speakers link words:\n- gonna\n- wanna", "category": "pronunciation"},
+        {"id": "tip_4", "title": "Anticipate answer types", "body": "Note whether you need a name, date, or number.", "category": "exam_technique"},
+        {"id": "tip_5", "title": "Stay calm under pressure", "body": "If you miss an answer, move on immediately.", "category": "mindset"},
+    ]
+}
+
+
+class TestTips:
+    def setup_method(self):
+        # Clear the module-level cache before each test to avoid cross-test pollution.
+        import api.routes.listening as _m
+        _m._tips_cache.clear()
+
+    def test_happy_path_returns_5_tips(self, client):
+        with patch(
+            "api.routes.listening.ai_service.generate_json",
+            new=AsyncMock(return_value=_FAKE_TIPS_JSON),
+        ):
+            res = client.get("/api/v1/listening/tips?locale=en")
+        assert res.status_code == 200
+        body = res.json()
+        assert len(body["tips"]) == 5
+        categories = {t["category"] for t in body["tips"]}
+        assert categories == {"strategy", "vocabulary", "pronunciation", "exam_technique", "mindset"}
+
+    def test_tips_schema_valid(self, client):
+        with patch(
+            "api.routes.listening.ai_service.generate_json",
+            new=AsyncMock(return_value=_FAKE_TIPS_JSON),
+        ):
+            res = client.get("/api/v1/listening/tips?locale=en")
+        body = res.json()
+        for tip in body["tips"]:
+            assert "id" in tip
+            assert "title" in tip
+            assert "body" in tip
+            assert "category" in tip
+
+    def test_rate_limit_with_cached_fallback_returns_200(self, client):
+        from services.ai_service import RateLimitError
+
+        # Prime the cache with a successful response.
+        with patch(
+            "api.routes.listening.ai_service.generate_json",
+            new=AsyncMock(return_value=_FAKE_TIPS_JSON),
+        ):
+            client.get("/api/v1/listening/tips?locale=en")
+
+        # Second call triggers RateLimitError — should return cached version.
+        with patch(
+            "api.routes.listening.ai_service.generate_json",
+            new=AsyncMock(side_effect=RateLimitError()),
+        ):
+            res = client.get("/api/v1/listening/tips?locale=en&fresh=true")
+        assert res.status_code == 200
+        assert len(res.json()["tips"]) == 5
+
+    def test_rate_limit_without_cache_returns_503(self, client):
+        from services.ai_service import RateLimitError
+
+        with patch(
+            "api.routes.listening.ai_service.generate_json",
+            new=AsyncMock(side_effect=RateLimitError()),
+        ):
+            res = client.get("/api/v1/listening/tips?locale=en")
+        assert res.status_code == 503
+        assert res.json()["error"]["code"] == "ai.rate_limited"
+
+    def test_vi_locale_accepted(self, client):
+        with patch(
+            "api.routes.listening.ai_service.generate_json",
+            new=AsyncMock(return_value=_FAKE_TIPS_JSON),
+        ):
+            res = client.get("/api/v1/listening/tips?locale=vi")
+        assert res.status_code == 200
+
+    def test_invalid_locale_rejected(self, client):
+        res = client.get("/api/v1/listening/tips?locale=fr")
+        assert res.status_code == 422

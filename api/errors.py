@@ -189,6 +189,10 @@ class _Registry:
         "ai.provider_unavailable", 503,
         "All AI providers in the chain are unavailable. Please try again.",
     )
+    ai_rate_limited = ErrorCode(
+        "ai.rate_limited", 503,
+        "AI provider is rate-limited; no cached fallback available. Try again shortly.",
+    )
 
     # ─── Group management (US-#227) ───────────────────────────────────
     groups_not_member = ErrorCode(

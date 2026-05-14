@@ -83,6 +83,19 @@ export interface ListeningHistoryItem {
   created_at: string | null
 }
 
+export type TipCategory = 'strategy' | 'vocabulary' | 'pronunciation' | 'exam_technique' | 'mindset'
+
+export interface ListeningTip {
+  id: string
+  title: string
+  body: string
+  category: TipCategory
+}
+
+export interface ListeningTipsResponse {
+  tips: ListeningTip[]
+}
+
 const blobCache = new Map<string, string>()
 
 export async function fetchListeningAudioUrl(pathSuffix: string): Promise<string> {

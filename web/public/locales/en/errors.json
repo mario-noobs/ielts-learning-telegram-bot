@@ -67,6 +67,10 @@
     "target_not_found": "Target does not exist.",
     "invalid_role_change": "Role change not allowed."
   },
+  "ai": {
+    "rate_limited": "The AI service is busy right now. Try again in a moment.",
+    "provider_unavailable": "AI service is currently unavailable. Please try again."
+  },
   "quota": {
     "daily_exceeded": "You've used {used} of {plan_quota} AI calls today on this plan. Resets at midnight UTC."
   },

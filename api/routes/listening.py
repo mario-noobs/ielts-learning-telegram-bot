@@ -1,12 +1,14 @@
 import asyncio
 import json
 import os
+import time
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
 import config
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.listening import (
     ListeningExerciseResult,
     ListeningExerciseView,
@@ -14,9 +16,19 @@ from api.models.listening import (
     ListeningHistoryItem,
     ListeningHistoryResponse,
     ListeningSubmitRequest,
+    ListeningTip,
+    ListeningTipsResponse,
 )
 from api.permissions import enforce_ai_quota
 from services import firebase_service, listening_service, tts_service
+
+# In-memory TTL cache: (user_id, band, locale) -> (tips, expires_at)
+_tips_cache: dict[tuple, tuple[list[ListeningTip], float]] = {}
+_TIPS_TTL_SECS = 86400  # 24 h
+
+_VALID_CATEGORIES = frozenset(
+    {"strategy", "vocabulary", "pronunciation", "exam_technique", "mindset"}
+)
 
 router = APIRouter(prefix="/api/v1/listening", tags=["listening"])
 
@@ -166,6 +178,62 @@ async def generate_listening(
         firebase_service.get_listening_exercise, user["id"], exercise_id,
     )
     return _to_view(stored or {"id": exercise_id, **exercise})
+
+
+@router.get(
+    "/tips",
+    response_model=ListeningTipsResponse,
+    dependencies=[Depends(enforce_ai_quota("listening"))],
+)
+async def get_listening_tips(
+    locale: str = Query(default="en", pattern="^(en|vi)$"),
+    fresh: bool = False,
+    user: dict = Depends(get_current_user),
+) -> ListeningTipsResponse:
+    from prompts.listening_tips_prompt import LISTENING_TIPS_PROMPT
+    from prompts.listening_tips_prompt_vi import LISTENING_TIPS_PROMPT_VI
+    from services import ai_service
+    from services.ai_service import RateLimitError
+
+    user_id = user["id"]
+    band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+    cache_key = (user_id, band, locale)
+    now = time.time()
+
+    if not fresh:
+        cached = _tips_cache.get(cache_key)
+        if cached and now < cached[1]:
+            return ListeningTipsResponse(tips=cached[0])
+
+    prompt = (
+        LISTENING_TIPS_PROMPT_VI if locale == "vi" else LISTENING_TIPS_PROMPT
+    ).format(band=band)
+
+    try:
+        result = await ai_service.generate_json(prompt)
+    except RateLimitError:
+        stale = _tips_cache.get(cache_key)
+        if stale:
+            return ListeningTipsResponse(tips=stale[0])
+        raise ApiError(ERR.ai_rate_limited)
+
+    raw_tips = result.get("tips", []) if isinstance(result, dict) else []
+    tips = [
+        ListeningTip(
+            id=t.get("id", f"tip_{i + 1}"),
+            title=t.get("title", ""),
+            body=t.get("body", ""),
+            category=(
+                t.get("category")
+                if t.get("category") in _VALID_CATEGORIES
+                else "strategy"
+            ),
+        )
+        for i, t in enumerate(raw_tips[:5])
+    ]
+
+    _tips_cache[cache_key] = (tips, now + _TIPS_TTL_SECS)
+    return ListeningTipsResponse(tips=tips)
 
 
 @router.get("/history", response_model=ListeningHistoryResponse)
