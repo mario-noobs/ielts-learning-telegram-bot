@@ -8,4 +8,12 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = [
+  "tests/test_utils.py",
+  "tests/test_permissions.py",
+  "tests/test_ai_router.py",
+  "tests/test_srs_service.py",
+  "tests/test_listening_service.py",
+  "tests/test_request_id_middleware.py",
+  "tests/test_vocab_dedup.py",
+]

@@ -11,6 +11,9 @@ import os
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test")
 os.environ.setdefault("GEMINI_API_KEY", "test")
 os.environ.setdefault("FIREBASE_CREDENTIALS_PATH", "test.json")
+# Keep bare `pytest` on the fast, DB-free path. Commands that need Postgres
+# (for example `make test-all`) pass DATABASE_URL explicitly and override this.
+os.environ.setdefault("DATABASE_URL", "")
 
 from unittest.mock import MagicMock, patch
 

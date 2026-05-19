@@ -8,7 +8,8 @@
 #   make dev       # emulators + seed + api + web (parallel)
 #   make seed      # (re)load deterministic demo data
 #   make bot       # start Telegram bot (optional; requires real token)
-#   make test      # pytest
+#   make test      # fast pytest subset
+#   make test-all  # full pytest suite
 #   make clean     # tear everything down
 
 SHELL := /bin/bash
@@ -22,6 +23,21 @@ EMULATOR_ENV := \
 	FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 	GOOGLE_CLOUD_PROJECT=ielts-bot-dev \
 	DATABASE_URL=postgresql+asyncpg://ielts:dev@localhost:5432/ielts
+
+FAST_TEST_ENV := \
+	FIRESTORE_EMULATOR_HOST=localhost:8080 \
+	FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
+	GOOGLE_CLOUD_PROJECT=ielts-bot-dev \
+	DATABASE_URL=
+
+PYTEST_FAST_TARGETS := \
+	tests/test_utils.py \
+	tests/test_permissions.py \
+	tests/test_ai_router.py \
+	tests/test_srs_service.py \
+	tests/test_listening_service.py \
+	tests/test_request_id_middleware.py \
+	tests/test_vocab_dedup.py
 
 # ─── meta ──────────────────────────────────────────────────────────────
 
@@ -142,8 +158,12 @@ dev: install postgres emulators seed  ## One-command dev environment: postgres +
 # ─── test / clean ──────────────────────────────────────────────────────
 
 .PHONY: test
-test:  ## Run pytest (Postgres tests skip unless DATABASE_URL is set)
-	@$(EMULATOR_ENV) $(PY) -m pytest -q
+test:  ## Run fast pytest subset for local/build feedback
+	@$(FAST_TEST_ENV) $(PY) -m pytest -q $(PYTEST_FAST_TARGETS)
+
+.PHONY: test-all
+test-all:  ## Run the full pytest suite (requires local services for integration tests)
+	@$(EMULATOR_ENV) $(PY) -m pytest -q tests
 
 .PHONY: clean
 clean:  ## Remove venv, caches, node_modules, and stop dev containers (prompts first)

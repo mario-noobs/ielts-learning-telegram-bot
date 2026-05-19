@@ -12,6 +12,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "vitest run",
+    "test:all": "vitest run --config vitest.full.config.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
