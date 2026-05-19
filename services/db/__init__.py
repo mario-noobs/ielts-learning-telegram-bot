@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager, contextmanager
 from typing import AsyncIterator, Iterator
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.ext.asyncio import (
@@ -38,11 +39,38 @@ def _require_url() -> str:
     return config.DATABASE_URL
 
 
+def _replace_query_key(url: str, source: str, target: str) -> str:
+    parts = urlsplit(url)
+    if not parts.query:
+        return url
+
+    query = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        query.append((target if key == source else key, value))
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
+def get_async_database_url() -> str:
+    """Return a SQLAlchemy URL that uses asyncpg."""
+    url = _require_url()
+    if url.startswith("postgresql://"):
+        url = f"postgresql+asyncpg://{url.removeprefix('postgresql://')}"
+    return _replace_query_key(url, "sslmode", "ssl")
+
+
+def get_sync_database_url() -> str:
+    """Return a SQLAlchemy URL that uses the default sync Postgres driver."""
+    url = _require_url()
+    if url.startswith("postgresql+asyncpg://"):
+        url = f"postgresql://{url.removeprefix('postgresql+asyncpg://')}"
+    return _replace_query_key(url, "ssl", "sslmode")
+
+
 def get_engine() -> AsyncEngine:
     """Lazy-init the async engine; one engine per process."""
     global _engine, _sessionmaker
     if _engine is None:
-        url = _require_url()
+        url = get_async_database_url()
         _engine = create_async_engine(
             url,
             pool_size=config.DB_POOL_SIZE,
@@ -57,8 +85,7 @@ def get_sync_engine() -> Engine:
     """Lazy-init the sync engine for use by sync repos (bot handlers)."""
     global _sync_engine, _sync_sessionmaker
     if _sync_engine is None:
-        # Strip the asyncpg driver suffix; SQLAlchemy defaults to psycopg2.
-        url = _require_url().replace("postgresql+asyncpg://", "postgresql://")
+        url = get_sync_database_url()
         _sync_engine = create_engine(
             url,
             pool_size=config.DB_POOL_SIZE,

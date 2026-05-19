@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import config as app_config
 from services.db import models  # noqa: F401  populate Base.metadata
+from services.db import get_async_database_url
 from services.db.base import Base
 
 cfg = context.config
@@ -21,14 +22,15 @@ if not app_config.DATABASE_URL:
     raise RuntimeError(
         "DATABASE_URL is not set; cannot run migrations. See .env.example.",
     )
-cfg.set_main_option("sqlalchemy.url", app_config.DATABASE_URL)
+database_url = get_async_database_url()
+cfg.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=app_config.DATABASE_URL,
+        url=database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
