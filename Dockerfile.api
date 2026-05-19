@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY alembic.ini config.py run_api.py ./
+COPY api ./api
+COPY content ./content
+COPY data ./data
+COPY migrations ./migrations
+COPY prompts ./prompts
+COPY scripts ./scripts
+COPY services ./services
+
+EXPOSE 8000
+CMD ["sh", "-c", "uvicorn api.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]
