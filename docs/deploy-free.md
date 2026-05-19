@@ -8,7 +8,8 @@ Recommended split:
 - Auth: Firebase Auth only.
 
 This keeps the Vite app on a static CDN and the FastAPI app on a normal
-container host where Alembic migrations can run before deploy.
+container host. On Render Free, Alembic runs at container startup because
+Render pre-deploy commands are paid-only.
 
 ## 1. Create Neon Postgres
 
@@ -34,7 +35,7 @@ Use this as `DATABASE_URL` on Render.
 3. Set the secret env vars Render asks for:
    - `DATABASE_URL`
    - `GEMINI_API_KEY`
-   - `FIREBASE_CREDENTIALS_JSON`
+   - `FIREBASE_CREDENTIALS_JSON` (base64-encoded service account JSON)
    - `CORS_ORIGINS`
    - `WEB_BASE_URL`
    - `BOT_USERNAME`
@@ -89,7 +90,13 @@ Redeploy the Render service.
 
 - Render Free services can sleep when idle, so the first API request after a
   quiet period may be slow.
+- Render Free does not support pre-deploy commands. `Dockerfile.api` runs
+  `alembic upgrade head` before starting Uvicorn.
 - The Telegram bot is not deployed by this setup. Keep it on the existing VPS
   or add a separate paid/background worker later.
-- Do not commit real Firebase service account JSON. Put the minified JSON into
-  `FIREBASE_CREDENTIALS_JSON` in Render's environment settings.
+- Do not commit real Firebase service account JSON. Encode it locally and paste
+  the result into `FIREBASE_CREDENTIALS_JSON` in Render's environment settings:
+
+```bash
+base64 -i firebase_credentials.json | tr -d '\n'
+```

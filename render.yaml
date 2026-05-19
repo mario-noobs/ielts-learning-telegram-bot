@@ -5,7 +5,6 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile.api
     healthCheckPath: /api/v1/health
-    preDeployCommand: alembic upgrade head
     envVars:
       - key: ENV
         value: production
