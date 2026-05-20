@@ -349,21 +349,13 @@ async def link_start(
     token payload, and the bot redeems via ``/start link_<token>``.
     """
     user_id = str(user["id"])
-    if not user_id.startswith("web_") and user.get("auth_uid"):
-        # Already a Telegram-linked row; the user can simply open the bot
-        # directly. We still mint a token in case they want to attach a
-        # second Google identity to a different Telegram account, but
-        # this route is intentionally conservative — return 409 to make
-        # the UX explicit.
+    # Non-web_xxx id means this row is already a Telegram-linked identity.
+    if not user_id.startswith("web_"):
         raise ApiError(ERR.auth_link_conflict)
-    auth_uid = user.get("auth_uid")
-    if not auth_uid:
-        # Defensive: a row hydrated by /me must have an auth_uid (the
-        # token used to fetch it carried it). If we got here without one
-        # something upstream is broken.
-        raise ApiError(ERR.auth_invalid_token)
+    # Firebase users identify via auth_uid; local-auth users via their web_xxx id.
+    identifier = user.get("auth_uid") or user_id
     result = await asyncio.to_thread(
-        firebase_service.create_link_token_for_auth, auth_uid,
+        firebase_service.create_link_token_for_auth, identifier,
     )
     return LinkStartResponse(
         token=result["token"],

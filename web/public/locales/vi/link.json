@@ -57,7 +57,9 @@
       "openBotCta": "Mở bot Telegram",
       "creatingToken": "Đang tạo link…",
       "errorTitle": "Không tạo được link",
-      "errorRetry": "Thử lại"
+      "errorRetry": "Thử lại",
+      "localAuthNote": "Liên kết Telegram yêu cầu tài khoản Google.",
+      "localAuthHint": "Đăng nhập bằng Google để kết nối tài khoản Telegram."
     },
     "linked": {
       "title": "Đã kết nối với Telegram",

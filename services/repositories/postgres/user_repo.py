@@ -162,6 +162,13 @@ class PostgresUserRepo:
 
     # ── Web auth ──────────────────────────────────────────────────────
 
+    def get_by_id(self, user_id: str) -> Optional[UserDoc]:
+        with get_sync_session() as s:
+            row = s.execute(
+                select(User).where(User.id == user_id),
+            ).scalar_one_or_none()
+            return _row_to_doc(row) if row else None
+
     def get_by_auth_uid(self, auth_uid: str) -> Optional[UserDoc]:
         with get_sync_session() as s:
             row = s.execute(

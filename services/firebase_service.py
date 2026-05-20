@@ -549,6 +549,12 @@ def get_user_by_email_local(email: str) -> Optional[dict]:
     return user.model_dump() if user else None
 
 
+def get_user_by_id(user_id: str) -> Optional[dict]:
+    """Look up any user by their primary-key id (web_xxx or numeric string)."""
+    user = get_user_repo().get_by_id(user_id)
+    return user.model_dump() if user else None
+
+
 def create_web_user(auth_uid: str, email: str, name: str,
                     target_band: float = 7.0, topics: list = None) -> dict:
     """Create a user from web registration (no telegram_id)."""
@@ -1039,7 +1045,11 @@ def redeem_link_token_bot(token: str, telegram_id: int) -> dict:
     if not auth_uid:
         return {"status": "invalid"}
 
-    web_user = get_user_by_auth_uid(auth_uid)
+    # Local-auth users store their web_xxx id in the auth_uid field.
+    if auth_uid.startswith("web_"):
+        web_user = get_user_by_id(auth_uid)
+    else:
+        web_user = get_user_by_auth_uid(auth_uid)
     tg_user = get_user(telegram_id)
 
     # Sub-case A — TG row doesn't exist yet.

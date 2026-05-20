@@ -57,7 +57,9 @@
       "openBotCta": "Open Telegram bot",
       "creatingToken": "Generating link…",
       "errorTitle": "Couldn't generate the link",
-      "errorRetry": "Try again"
+      "errorRetry": "Try again",
+      "localAuthNote": "Telegram linking requires a Google account.",
+      "localAuthHint": "Sign in with Google to connect your Telegram account."
     },
     "linked": {
       "title": "Connected to Telegram",
