@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import Icon, { IconName } from '../components/Icon'
 import TelegramIcon from '../components/icons/Telegram'
 import PlanBadge from '../components/PlanBadge'
+import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import { ThemePref, useTheme } from '../lib/theme'
@@ -360,6 +361,7 @@ function ThemeToggle() {
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation(['settings', 'common', 'link', 'usage'])
+  const { logout } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
 
   // Field-level deep-link (e.g. /settings#exam-date) routes the user
@@ -942,6 +944,19 @@ export default function SettingsPage() {
           )}
         </>
       )}
+
+      {/* Logout — always visible, especially useful on mobile where the
+          sidebar sign-out button is not rendered. */}
+      <div className="pt-4 border-t border-border">
+        <button
+          type="button"
+          onClick={logout}
+          className="flex items-center gap-2 text-sm font-medium text-danger hover:text-danger/80 transition-colors"
+        >
+          <Icon name="LogOut" size="sm" variant="danger" />
+          {t('common:nav.signOut')}
+        </button>
+      </div>
     </div>
   )
 }
