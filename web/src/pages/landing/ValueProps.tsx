@@ -1,4 +1,4 @@
-import { BookOpen, PenLine, Target } from 'lucide-react'
+import { BookOpen, FileText, Headphones, PenLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   Card,
@@ -10,7 +10,7 @@ import {
 interface PropDef {
   icon: typeof BookOpen
   illustration: string // path under web/public/landing/
-  i18nKey: 'vocab' | 'writing' | 'progress'
+  i18nKey: 'vocab' | 'writing' | 'listening' | 'reading'
   iconColor: string
   iconBg: string
 }
@@ -31,9 +31,16 @@ const PROPS: PropDef[] = [
     iconBg: 'bg-accent/10',
   },
   {
-    icon: Target,
-    illustration: '/landing/progress.svg',
-    i18nKey: 'progress',
+    icon: Headphones,
+    illustration: '/landing/howitworks-2-feedback.svg',
+    i18nKey: 'listening',
+    iconColor: 'text-warning',
+    iconBg: 'bg-warning/10',
+  },
+  {
+    icon: FileText,
+    illustration: '/landing/howitworks-3-readiness.svg',
+    i18nKey: 'reading',
     iconColor: 'text-success',
     iconBg: 'bg-success/10',
   },
@@ -58,7 +65,7 @@ export default function ValueProps() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-8">
         {PROPS.map(({ icon: Icon, illustration, i18nKey, iconColor, iconBg }) => (
           <Card
             key={i18nKey}

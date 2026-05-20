@@ -104,9 +104,13 @@
         "title": "AI chấm Writing tức thì",
         "body": "Chấm 4 tiêu chí Cambridge: Task Response, Coherence, Lexical, Grammar."
       },
-      "progress": {
-        "title": "Adaptive plan",
-        "body": "Coach AI chọn task ngày mai dựa trên điểm yếu hôm nay."
+      "listening": {
+        "title": "Luyện nghe",
+        "body": "Thực hành với audio chuẩn IELTS và câu hỏi comprehension theo từng phần."
+      },
+      "reading": {
+        "title": "Luyện đọc",
+        "body": "Đoạn văn có tính giờ, AI giải thích đáp án để tăng tốc độ và độ chính xác."
       }
     }
   },

@@ -104,9 +104,13 @@
         "title": "Instant AI feedback",
         "body": "Cambridge 4-criterion scoring: Task Response, Coherence, Lexical, Grammar."
       },
-      "progress": {
-        "title": "Adaptive plan",
-        "body": "Your AI coach picks tomorrow's tasks based on today's weak spots."
+      "listening": {
+        "title": "Listening practice",
+        "body": "Train with authentic IELTS-style audio clips and comprehension questions."
+      },
+      "reading": {
+        "title": "Reading lab",
+        "body": "Timed passages with AI-explained answers to build speed and accuracy."
       }
     }
   },
