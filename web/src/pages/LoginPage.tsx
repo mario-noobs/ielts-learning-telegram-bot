@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom'
 import LogoMark from '../components/brand/LogoMark'
 import { useAuth, type LocalRegisterData } from '../contexts/AuthContext'
 import { localizeError } from '../lib/apiError'
+import { isInAppBrowser } from '../lib/browser'
 
 type Mode = 'options' | 'login' | 'register'
 
@@ -54,6 +55,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('options')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const inAppBrowser = isInAppBrowser()
   const [showPw, setShowPw] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showOptional, setShowOptional] = useState(false)
@@ -119,6 +121,23 @@ export default function LoginPage() {
       })
     } catch (err) {
       setFormError(localizeError(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setSubmitting(true)
+    setFormError(null)
+    try {
+      await signInWithGoogle()
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code ?? ''
+      if (code === 'auth/disallowed-useragent' || code === 'auth/operation-not-supported-in-this-environment') {
+        setFormError(t('auth.inAppBrowserWarning') + ' ' + t('auth.inAppBrowserHint'))
+      } else {
+        setFormError(localizeError(err))
+      }
     } finally {
       setSubmitting(false)
     }
@@ -190,9 +209,17 @@ export default function LoginPage() {
               <h2 className="mb-2 text-2xl font-bold text-fg">{t('auth.welcomeBack')}</h2>
               <p className="mb-6 text-sm text-muted-fg">{t('auth.tagline')}</p>
 
+              {inAppBrowser && (
+                <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  <p className="font-medium">{t('auth.inAppBrowserWarning')}</p>
+                  <p className="mt-1 opacity-80">{t('auth.inAppBrowserHint')}</p>
+                </div>
+              )}
+
               <button
-                onClick={signInWithGoogle}
-                className="flex w-full items-center justify-center gap-3 rounded-lg bg-primary px-6 py-3 font-medium text-on-primary transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onClick={handleGoogleSignIn}
+                disabled={submitting || inAppBrowser}
+                className="flex w-full items-center justify-center gap-3 rounded-lg bg-primary px-6 py-3 font-medium text-on-primary transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <GoogleIcon />
                 {t('nav.signInWithGoogle')}

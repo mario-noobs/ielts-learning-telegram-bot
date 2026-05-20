@@ -91,6 +91,8 @@
     "signInWithEmail": "Sign in with email",
     "signUpWithEmail": "Sign up with email",
     "useGoogleInstead": "Use Google instead",
+    "inAppBrowserWarning": "Google sign-in doesn't work in in-app browsers (Instagram, Facebook, etc.).",
+    "inAppBrowserHint": "Open this page in Chrome or Safari to continue.",
     "createAccount": "Create an account",
     "signIn": "Sign in",
     "alreadyHaveAccount": "Already have an account?",

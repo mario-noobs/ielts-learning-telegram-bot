@@ -91,6 +91,8 @@
     "signInWithEmail": "Đăng nhập bằng email",
     "signUpWithEmail": "Đăng ký bằng email",
     "useGoogleInstead": "Dùng Google thay thế",
+    "inAppBrowserWarning": "Đăng nhập Google không hoạt động trong trình duyệt ứng dụng (Instagram, Facebook, v.v.).",
+    "inAppBrowserHint": "Mở trang này trong Chrome hoặc Safari để tiếp tục.",
     "createAccount": "Tạo tài khoản",
     "signIn": "Đăng nhập",
     "alreadyHaveAccount": "Đã có tài khoản?",
