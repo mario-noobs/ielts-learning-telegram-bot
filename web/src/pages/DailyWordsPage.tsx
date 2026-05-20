@@ -181,6 +181,16 @@ export default function DailyWordsPage() {
           ✏️ {t('daily.openQuiz')}
         </Link>
       </div>
+
+      <div className="flex items-center justify-between rounded-xl border border-border bg-surface-raised px-4 py-3">
+        <p className="text-sm text-muted-fg">{t('daily.allWordsLabel')}</p>
+        <Link
+          to="/learn/vocab"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          {t('daily.allWordsCta')} →
+        </Link>
+      </div>
     </div>
   )
 }

@@ -146,6 +146,8 @@
     "wordRange": "Words {first}–{last} of {total}",
     "openFlip": "Flip Cards",
     "openQuiz": "Fill-in-Blank",
+    "allWordsLabel": "See all words you've learned by topic",
+    "allWordsCta": "Go to vocabulary",
     "retry": "Try again",
     "flip": {
       "done": "Done"
