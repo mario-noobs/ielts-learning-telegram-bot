@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -82,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<BackendProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  // Prevents onAuthStateChanged from re-fetching profile mid-logout, which
+  // would race against setProfile(null) and restore the session.
+  const loggingOutRef = useRef(false)
 
   const fetchProfile = useCallback(async ({ rethrow = false } = {}) => {
     try {
@@ -95,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
+      if (loggingOutRef.current) return
       setUser(u)
       // Always attempt profile fetch — works for Firebase Bearer (when u is set)
       // and for local auth via httpOnly cookie (when u is null).
@@ -125,16 +130,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    if (!user && profile) {
-      // Local auth session — clear server-side cookie
-      try {
-        await apiFetch('/api/v1/auth/local/logout', { method: 'POST' })
-      } catch { /* best-effort */ }
-      setProfile(null)
-    } else {
-      await signOut(auth)
-      setProfile(null)
-    }
+    loggingOutRef.current = true
+    try {
+      // Always try to clear server-side session cookie, regardless of auth method.
+      // For Firebase-only users this is a no-op; for local auth it revokes the cookie.
+      await apiFetch('/api/v1/auth/local/logout', { method: 'POST' })
+    } catch { /* best-effort */ }
+    await signOut(auth)
+    setUser(null)
+    setProfile(null)
+    loggingOutRef.current = false
   }
 
   return (
