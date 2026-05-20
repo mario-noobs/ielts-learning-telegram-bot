@@ -9,6 +9,7 @@ async function fetchAudioBlob(word: string): Promise<string> {
 
   const token = await auth.currentUser?.getIdToken()
   const res = await fetch(`${API_URL}/api/v1/audio/${encodeURIComponent(word)}`, {
+    credentials: 'include',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) throw new Error(`audio ${res.status}`)

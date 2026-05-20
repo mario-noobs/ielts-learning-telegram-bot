@@ -57,6 +57,7 @@ export async function unlinkTelegram(): Promise<void> {
   const token = user ? await user.getIdToken() : null
   const res = await fetch(`${API_URL}/api/v1/users/link`, {
     method: 'DELETE',
+    credentials: 'include',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },

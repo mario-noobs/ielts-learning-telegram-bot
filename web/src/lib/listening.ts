@@ -103,6 +103,7 @@ export async function fetchListeningAudioUrl(pathSuffix: string): Promise<string
   if (cached) return cached
   const token = await auth.currentUser?.getIdToken()
   const res = await fetch(`${API_URL}${pathSuffix}`, {
+    credentials: 'include',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) throw new Error(`audio ${res.status}`)
