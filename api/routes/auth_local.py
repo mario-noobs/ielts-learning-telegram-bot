@@ -17,16 +17,20 @@ REFRESH_COOKIE = "refresh_token"
 
 def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
     import config
-    secure = config.ENV != "development"
+    # Cross-origin deployments (e.g. Vercel → Render) require SameSite=None + Secure.
+    # Local dev uses Lax + no Secure so plain HTTP works.
+    cross_site = config.ENV != "development"
+    samesite = "none" if cross_site else "lax"
+    secure = cross_site
     response.set_cookie(
         ACCESS_COOKIE, access,
         max_age=config.LOCAL_ACCESS_TTL_MINUTES * 60,
-        httponly=True, samesite="lax", secure=secure,
+        httponly=True, samesite=samesite, secure=secure,
     )
     response.set_cookie(
         REFRESH_COOKIE, refresh,
         max_age=config.LOCAL_REFRESH_TTL_DAYS * 86400,
-        httponly=True, samesite="lax", secure=secure,
+        httponly=True, samesite=samesite, secure=secure,
     )
 
 

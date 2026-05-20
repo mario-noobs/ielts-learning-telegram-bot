@@ -83,12 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<BackendProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async ({ rethrow = false } = {}) => {
     try {
       const me = await apiFetch<unknown>('/api/v1/me')
       setProfile(normalize(me))
-    } catch {
+    } catch (err) {
       setProfile(null)
+      if (rethrow) throw err
     }
   }, [])
 
@@ -112,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
-    await fetchProfile()
+    await fetchProfile({ rethrow: true })
   }
 
   const registerLocal = async (data: LocalRegisterData) => {
@@ -120,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: JSON.stringify(data),
     })
-    await fetchProfile()
+    await fetchProfile({ rethrow: true })
   }
 
   const logout = async () => {
