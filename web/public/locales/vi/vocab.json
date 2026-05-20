@@ -42,6 +42,7 @@
     "heading": "Từ vựng",
     "headingPill": "theo chủ đề",
     "subtitle": "Bấm vào 1 chủ đề để xem chi tiết từ vựng. Chủ đề ít thuộc nhất hiện trước.",
+    "reviewCta": "Bắt đầu ôn tập",
     "clearFilter": "Bỏ lọc",
     "progress": {
       "label": "Đã thuộc",
@@ -145,6 +146,8 @@
     "wordRange": "Từ {first}–{last} trên {total}",
     "openFlip": "Flip Card",
     "openQuiz": "Điền chỗ trống",
+    "allWordsLabel": "Xem toàn bộ từ đã học theo chủ đề",
+    "allWordsCta": "Vào từ vựng",
     "retry": "Thử lại",
     "flip": {
       "done": "Xong"

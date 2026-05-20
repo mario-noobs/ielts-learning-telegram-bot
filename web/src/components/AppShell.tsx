@@ -176,7 +176,7 @@ export default function AppShell() {
             </div>
           )}
 
-          <ul className="flex-1 space-y-0.5">
+          <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5">
             {tabs.map((tab) => {
               if (tab.disabled) {
                 const ariaLabel = tab.disabledAriaKey ? t(tab.disabledAriaKey) : t(tab.labelKey)

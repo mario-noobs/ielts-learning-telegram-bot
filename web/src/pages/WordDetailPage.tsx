@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
 import { apiFetch } from '../lib/api'
 import { playPronunciation } from '../lib/audio'
@@ -147,6 +147,7 @@ function ExamplesByBand({
 
 export default function WordDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [data, setData] = useState<EnrichedWord | null>(null)
   const [band, setBand] = useState<number>(6.5)
   const [error, setError] = useState<string | null>(null)
@@ -171,6 +172,13 @@ export default function WordDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-5">
+      <button
+        onClick={() => navigate(-1)}
+        className="text-sm text-muted-fg hover:text-fg inline-flex items-center gap-1"
+      >
+        <Icon name="ArrowLeft" size="sm" /> Quay lại
+      </button>
+
       {error && (
         <div className="bg-danger/10 border-l-4 border-danger p-4 rounded-lg flex items-center justify-between">
           <p className="text-danger">{error}</p>
