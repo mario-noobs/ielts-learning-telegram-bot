@@ -1,39 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" fill="none" role="img" aria-label="Set IELTS goal — calendar and target band picker">
   <rect width="400" height="260" fill="#F8FAFC"/>
+  <!-- Top bar -->
   <rect x="16" y="16" width="368" height="32" rx="8" fill="#FFFFFF" stroke="#E2E8F0"/>
-  <rect x="28" y="26" width="100" height="12" rx="4" fill="#0D9488"/>
+  <text x="28" y="36" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#0D9488">Thiết lập mục tiêu</text>
 
   <!-- Calendar card -->
   <rect x="16" y="64" width="200" height="180" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-  <rect x="32" y="80" width="80" height="12" rx="4" fill="#0F172A"/>
-  <rect x="32" y="100" width="120" height="10" rx="4" fill="#94A3B8"/>
+  <text x="32" y="94" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#0F172A">Ngày thi</text>
+  <text x="32" y="110" font-family="system-ui, sans-serif" font-size="10" fill="#94A3B8">Tháng 8, 2026</text>
+  <!-- Day-of-week labels -->
+  <text x="32" y="126" font-family="system-ui, sans-serif" font-size="8" fill="#94A3B8">T2</text>
+  <text x="60" y="126" font-family="system-ui, sans-serif" font-size="8" fill="#94A3B8">T3</text>
+  <text x="88" y="126" font-family="system-ui, sans-serif" font-size="8" fill="#94A3B8">T4</text>
+  <text x="116" y="126" font-family="system-ui, sans-serif" font-size="8" fill="#94A3B8">T5</text>
+  <text x="144" y="126" font-family="system-ui, sans-serif" font-size="8" fill="#94A3B8">T6</text>
+  <text x="172" y="126" font-family="system-ui, sans-serif" font-size="8" fill="#94A3B8">T7</text>
+  <!-- Calendar days -->
   <g fill="#CBD5E1">
-    <rect x="32" y="124" width="20" height="20" rx="4"/>
-    <rect x="60" y="124" width="20" height="20" rx="4"/>
-    <rect x="88" y="124" width="20" height="20" rx="4"/>
-    <rect x="116" y="124" width="20" height="20" rx="4"/>
-    <rect x="144" y="124" width="20" height="20" rx="4"/>
-    <rect x="172" y="124" width="20" height="20" rx="4"/>
-    <rect x="32" y="152" width="20" height="20" rx="4"/>
-    <rect x="60" y="152" width="20" height="20" rx="4"/>
-    <rect x="88" y="152" width="20" height="20" rx="4"/>
-    <rect x="116" y="152" width="20" height="20" rx="4"/>
-    <rect x="172" y="152" width="20" height="20" rx="4"/>
-    <rect x="32" y="180" width="20" height="20" rx="4"/>
-    <rect x="60" y="180" width="20" height="20" rx="4"/>
+    <rect x="32" y="132" width="20" height="20" rx="4"/>
+    <rect x="60" y="132" width="20" height="20" rx="4"/>
+    <rect x="88" y="132" width="20" height="20" rx="4"/>
+    <rect x="116" y="132" width="20" height="20" rx="4"/>
+    <rect x="144" y="132" width="20" height="20" rx="4"/>
+    <rect x="172" y="132" width="20" height="20" rx="4"/>
+    <rect x="32" y="160" width="20" height="20" rx="4"/>
+    <rect x="60" y="160" width="20" height="20" rx="4"/>
+    <rect x="88" y="160" width="20" height="20" rx="4"/>
+    <rect x="116" y="160" width="20" height="20" rx="4"/>
+    <rect x="172" y="160" width="20" height="20" rx="4"/>
+    <rect x="32" y="188" width="20" height="20" rx="4"/>
+    <rect x="60" y="188" width="20" height="20" rx="4"/>
   </g>
-  <!-- Highlighted exam date -->
-  <rect x="144" y="152" width="20" height="20" rx="4" fill="#0D9488"/>
-  <rect x="32" y="212" width="168" height="20" rx="6" fill="#F1F5F9"/>
-  <rect x="40" y="218" width="80" height="8" rx="3" fill="#0D9488"/>
+  <text x="37" y="146" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">3</text>
+  <text x="65" y="146" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">4</text>
+  <text x="93" y="146" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">5</text>
+  <text x="121" y="146" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">6</text>
+  <text x="149" y="146" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">7</text>
+  <text x="177" y="146" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">8</text>
+  <text x="37" y="174" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">10</text>
+  <text x="65" y="174" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">11</text>
+  <text x="93" y="174" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">12</text>
+  <text x="121" y="174" font-family="system-ui, sans-serif" font-size="9" fill="#64748B">13</text>
+  <!-- Exam date highlighted -->
+  <rect x="144" y="160" width="20" height="20" rx="4" fill="#0D9488"/>
+  <text x="154" y="174" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">14</text>
+  <rect x="32" y="216" width="168" height="20" rx="6" fill="#F1F5F9"/>
+  <text x="40" y="230" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#0D9488">📅  Còn 82 ngày</text>
 
   <!-- Target band card -->
   <rect x="232" y="64" width="152" height="180" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-  <rect x="248" y="80" width="80" height="12" rx="4" fill="#0F172A"/>
+  <text x="248" y="84" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#0F172A">Band mục tiêu</text>
   <text x="248" y="138" font-family="system-ui, sans-serif" font-size="36" font-weight="700" fill="#0D9488">7.5</text>
   <rect x="248" y="160" width="120" height="6" rx="3" fill="#E2E8F0"/>
   <rect x="248" y="160" width="84" height="6" rx="3" fill="#0D9488"/>
   <circle cx="332" cy="163" r="8" fill="#0D9488"/>
-  <rect x="248" y="180" width="56" height="10" rx="3" fill="#94A3B8"/>
+  <text x="248" y="190" font-family="system-ui, sans-serif" font-size="9" fill="#94A3B8">Hiện tại: Band 6.0</text>
   <rect x="248" y="208" width="120" height="24" rx="6" fill="#0D9488"/>
+  <text x="308" y="224" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF" text-anchor="middle">Lưu mục tiêu</text>
 </svg>

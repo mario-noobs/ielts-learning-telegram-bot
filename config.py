@@ -103,6 +103,11 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 DATABASE_URL = os.getenv("DATABASE_URL")
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
 
+# Local (email/password) auth
+LOCAL_JWT_SECRET = os.getenv("LOCAL_JWT_SECRET", "change-me-in-production")
+LOCAL_ACCESS_TTL_MINUTES = int(os.getenv("LOCAL_ACCESS_TTL_MINUTES", "15"))
+LOCAL_REFRESH_TTL_DAYS = int(os.getenv("LOCAL_REFRESH_TTL_DAYS", "30"))
+
 
 def local_date_str() -> str:
     """Return today's date in the configured timezone as YYYY-MM-DD."""

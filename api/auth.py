@@ -3,12 +3,13 @@ import logging
 from datetime import datetime, timezone
 
 import firebase_admin.auth
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from api.errors import ERR, ApiError
 from services import firebase_service
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 logger = logging.getLogger(__name__)
 
 
@@ -40,31 +41,43 @@ async def _touch_last_active(user: dict) -> None:
         logger.warning("activity_touch_failed user_id=%s err=%s", user.get("id"), exc)
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """Verify Firebase ID token and return the corresponding user dict.
+async def _verify_local_token(access_token: str) -> dict:
+    from services import local_auth_service
+    try:
+        email = local_auth_service.verify_access_token(access_token)
+    except ValueError:
+        raise ApiError(ERR.auth_local_token_invalid)
 
-    Raises 401 for invalid/expired tokens, 404 when no user record is linked.
-    """
-    # Ensure Firebase Admin SDK is initialized before verifying tokens
+    user = await asyncio.to_thread(firebase_service.get_user_by_email_local, email)
+    if not user:
+        raise ApiError(ERR.auth_user_not_registered)
+    await _touch_last_active(user)
+    return user
+
+
+async def _verify_firebase_token(token: str) -> dict:
     from services.firebase_auth import ensure_admin_initialized
     ensure_admin_initialized()
-
     try:
-        decoded_token = firebase_admin.auth.verify_id_token(credentials.credentials)
-        uid = decoded_token["uid"]
+        decoded = firebase_admin.auth.verify_id_token(token)
+        uid = decoded["uid"]
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid or expired token: {e}",
-        )
+        raise ApiError(ERR.auth_invalid_token) from e
 
     user = await asyncio.to_thread(firebase_service.get_user_by_auth_uid, uid)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found. Please register first.",
-        )
+        raise ApiError(ERR.auth_user_not_registered)
     await _touch_last_active(user)
     return user
+
+
+async def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> dict:
+    access_token = request.cookies.get("access_token")
+    if access_token:
+        return await _verify_local_token(access_token)
+    if credentials:
+        return await _verify_firebase_token(credentials.credentials)
+    raise ApiError(ERR.unauthorized)

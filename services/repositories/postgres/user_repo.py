@@ -53,6 +53,11 @@ def _row_to_doc(u: User) -> UserDoc:
         dismissed_onboarding=u.dismissed_onboarding,
         target_band_set=u.target_band_set,
         weekly_goal_set=u.weekly_goal_set,
+        password_hash=u.password_hash,
+        phone=u.phone,
+        address=u.address,
+        email_verified=u.email_verified,
+        local_auth=u.local_auth,
     )
 
 
@@ -161,6 +166,13 @@ class PostgresUserRepo:
         with get_sync_session() as s:
             row = s.execute(
                 select(User).where(User.auth_uid == auth_uid),
+            ).scalar_one_or_none()
+            return _row_to_doc(row) if row else None
+
+    def get_by_email_local(self, email: str) -> Optional[UserDoc]:
+        with get_sync_session() as s:
+            row = s.execute(
+                select(User).where(User.email == email).where(User.local_auth.is_(True)),
             ).scalar_one_or_none()
             return _row_to_doc(row) if row else None
 

@@ -78,6 +78,8 @@ class UserRepo(Protocol):
 
     def get_by_auth_uid(self, auth_uid: str) -> Optional[UserDoc]: ...
 
+    def get_by_email_local(self, email: str) -> Optional[UserDoc]: ...
+
     def create_web_user(
         self,
         auth_uid: str,

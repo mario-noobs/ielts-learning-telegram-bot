@@ -86,6 +86,16 @@ class User(Base):
         Boolean, nullable=False, default=False, server_default="false",
     )
 
+    password_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
+    )
+    local_auth: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
+    )
+
     __table_args__ = (
         Index("ix_users_role_plan", "role", "plan"),
     )

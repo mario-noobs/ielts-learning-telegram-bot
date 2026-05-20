@@ -117,6 +117,13 @@ class UserDoc(_FirestoreDTO):
     target_band_set: bool = False
     weekly_goal_set: bool = False
 
+    # Local (email/password) auth fields
+    password_hash: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    email_verified: bool = False
+    local_auth: bool = False
+
 
 class QuizStats(BaseModel):
     """Aggregate quiz stats derived from the user profile counters."""

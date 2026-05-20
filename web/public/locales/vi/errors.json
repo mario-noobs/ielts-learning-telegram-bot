@@ -39,6 +39,16 @@
     },
     "link": {
       "conflict": "Tài khoản này đã liên kết với người dùng khác."
+    },
+    "local": {
+      "email_exists": "Email này đã được đăng ký. Hãy đăng nhập thay thế.",
+      "username_taken": "Tên người dùng đã tồn tại — hãy thử tên khác.",
+      "invalid_credentials": "Email hoặc mật khẩu không đúng.",
+      "too_many_attempts": "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau vài phút.",
+      "token_invalid": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+      "weak_password": "Mật khẩu phải có ít nhất 8 ký tự, gồm chữ cái và số.",
+      "password_mismatch": "Mật khẩu xác nhận không khớp.",
+      "mfa_required": "Yêu cầu xác thực hai bước."
     }
   },
   "writing": {

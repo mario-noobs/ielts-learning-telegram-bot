@@ -22,7 +22,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
 
   if (loading) return null
 
-  if (!user) {
+  if (!user && !profile) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 

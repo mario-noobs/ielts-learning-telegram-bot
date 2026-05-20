@@ -543,6 +543,12 @@ def get_user_by_auth_uid(auth_uid: str) -> Optional[dict]:
     return user.model_dump() if user else None
 
 
+def get_user_by_email_local(email: str) -> Optional[dict]:
+    """Look up a local-auth user by email (local_auth=True rows only)."""
+    user = get_user_repo().get_by_email_local(email)
+    return user.model_dump() if user else None
+
+
 def create_web_user(auth_uid: str, email: str, name: str,
                     target_band: float = 7.0, topics: list = None) -> dict:
     """Create a user from web registration (no telegram_id)."""
@@ -654,6 +660,11 @@ def _build_merged_fields(web: dict, tg: dict) -> dict:
             merged_last_active.date().isoformat()
             if hasattr(merged_last_active, "date") else None
         ),
+        "password_hash": web.get("password_hash"),
+        "phone": pick_non_empty(web.get("phone"), tg.get("phone")),
+        "address": pick_non_empty(web.get("address"), tg.get("address")),
+        "local_auth": web.get("local_auth", False) or tg.get("local_auth", False),
+        "email_verified": web.get("email_verified", False) or tg.get("email_verified", False),
     }
 
 

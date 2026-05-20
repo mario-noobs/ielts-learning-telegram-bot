@@ -39,6 +39,16 @@
     },
     "link": {
       "conflict": "This account is already linked to a different user."
+    },
+    "local": {
+      "email_exists": "An account with this email already exists. Sign in instead.",
+      "username_taken": "This username is taken — try another.",
+      "invalid_credentials": "Incorrect email or password.",
+      "too_many_attempts": "Too many failed attempts. Please wait a few minutes.",
+      "token_invalid": "Your session has expired. Please sign in again.",
+      "weak_password": "Password must be at least 8 characters and contain a letter and a number.",
+      "password_mismatch": "Passwords don't match.",
+      "mfa_required": "Two-factor authentication required."
     }
   },
   "writing": {

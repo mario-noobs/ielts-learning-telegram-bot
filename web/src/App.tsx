@@ -54,7 +54,7 @@ function AdminFallback() {
 }
 
 function ProtectedShell() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   if (loading) {
     return (
       <div className="flex items-center justify-center h-dvh text-muted-fg">
@@ -62,7 +62,7 @@ function ProtectedShell() {
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace />
+  if (!user && !profile) return <Navigate to="/login" replace />
   return <AppShell />
 }
 
@@ -93,7 +93,7 @@ function LegacyReadingRedirect() {
 }
 
 function RootRoute() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   if (loading) {
     return (
       <div className="flex items-center justify-center h-dvh text-muted-fg">
@@ -101,7 +101,7 @@ function RootRoute() {
       </div>
     )
   }
-  if (!user) return <LandingPage />
+  if (!user && !profile) return <LandingPage />
   return <AppShell />
 }
 

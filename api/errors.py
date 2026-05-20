@@ -126,6 +126,40 @@ class _Registry:
         "Link token has already been used.",
     )
 
+    # ─── Local auth (email/password) ──────────────────────────────────
+    auth_local_email_exists = ErrorCode(
+        "auth.local.email_exists", 409,
+        "An account with this email already exists.",
+    )
+    auth_local_username_taken = ErrorCode(
+        "auth.local.username_taken", 409,
+        "This username is already taken.",
+    )
+    auth_local_invalid_credentials = ErrorCode(
+        "auth.local.invalid_credentials", 401,
+        "Incorrect email or password.",
+    )
+    auth_local_too_many_attempts = ErrorCode(
+        "auth.local.too_many_attempts", 429,
+        "Too many failed attempts. Please wait a few minutes.",
+    )
+    auth_local_token_invalid = ErrorCode(
+        "auth.local.token_invalid", 401,
+        "Session token is invalid or expired.",
+    )
+    auth_local_weak_password = ErrorCode(
+        "auth.local.weak_password", 400,
+        "Password must be at least 8 characters and contain a letter and a number.",
+    )
+    auth_local_password_mismatch = ErrorCode(
+        "auth.local.password_mismatch", 400,
+        "Passwords do not match.",
+    )
+    auth_local_mfa_required = ErrorCode(
+        "auth.local.mfa_required", 403,
+        "Multi-factor authentication required.",
+    )
+
     # ─── Writing (US-2.1) ─────────────────────────────────────────────
     writing_too_short = ErrorCode(
         "writing.text.too_short", 400, "Essay is below the minimum word count.",

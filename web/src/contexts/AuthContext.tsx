@@ -10,32 +10,30 @@ import { type User, onAuthStateChanged, signInWithPopup, signOut } from 'firebas
 import { apiFetch } from '../lib/api'
 import { auth, googleProvider } from '../lib/firebase'
 
-/**
- * Backend user profile shape from `GET /api/v1/me`.
- *
- * Admin fields default to `'user'` / `'free'` when the API returns them
- * unset (pre-M8.2-cutover Firestore data lacks them; M11.1's UserDoc
- * defaults take over post-cutover).
- */
 export interface BackendProfile {
   id: string
   name: string
   email?: string | null
   target_band?: number
   preferred_locale?: 'en' | 'vi' | null
-  // Admin fields (M11.1 schema, M11.2 DTO).
   role: 'user' | 'team_admin' | 'org_admin' | 'platform_admin'
   plan: string
   team_id?: string | null
   org_id?: string | null
   quota_override?: number | null
-  // #242: drives /vocab linking banner + first-login onboarding dialog.
   daily_words_count?: number
   dismissed_onboarding?: boolean
-  // #dashboard-polish: ReadinessTrack sub-tasks tick off these flags
-  // rather than the underlying default-bearing fields.
   target_band_set?: boolean
   weekly_goal_set?: boolean
+}
+
+export interface LocalRegisterData {
+  email: string
+  username: string
+  password: string
+  confirm_password: string
+  phone?: string
+  address?: string
 }
 
 interface AuthContextType {
@@ -43,6 +41,8 @@ interface AuthContextType {
   profile: BackendProfile | null
   loading: boolean
   signInWithGoogle: () => Promise<void>
+  signInLocal: (email: string, password: string) => Promise<void>
+  registerLocal: (data: LocalRegisterData) => Promise<void>
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -88,8 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await apiFetch<unknown>('/api/v1/me')
       setProfile(normalize(me))
     } catch {
-      // Profile not available (404 first-time signup, or transient).
-      // Components fall back to `null` and gate accordingly.
       setProfile(null)
     }
   }, [])
@@ -97,22 +95,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
       setUser(u)
-      if (u) {
-        await fetchProfile()
-      } else {
-        setProfile(null)
-      }
+      // Always attempt profile fetch — works for Firebase Bearer (when u is set)
+      // and for local auth via httpOnly cookie (when u is null).
+      await fetchProfile()
       setLoading(false)
     })
   }, [fetchProfile])
 
   const signInWithGoogle = async () => {
     await signInWithPopup(auth, googleProvider)
+    // onAuthStateChanged fires and fetches profile
+  }
+
+  const signInLocal = async (email: string, password: string) => {
+    await apiFetch('/api/v1/auth/local/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+    await fetchProfile()
+  }
+
+  const registerLocal = async (data: LocalRegisterData) => {
+    await apiFetch('/api/v1/auth/local/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+    await fetchProfile()
   }
 
   const logout = async () => {
-    await signOut(auth)
-    setProfile(null)
+    if (!user && profile) {
+      // Local auth session — clear server-side cookie
+      try {
+        await apiFetch('/api/v1/auth/local/logout', { method: 'POST' })
+      } catch { /* best-effort */ }
+      setProfile(null)
+    } else {
+      await signOut(auth)
+      setProfile(null)
+    }
   }
 
   return (
@@ -122,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         signInWithGoogle,
+        signInLocal,
+        registerLocal,
         logout,
         refreshProfile: fetchProfile,
       }}
@@ -137,11 +160,6 @@ export function useAuth() {
   return ctx
 }
 
-/**
- * Subset of the backend profile most components actually need.
- * Returns `null` while the profile is still loading or when the user
- * isn't signed in.
- */
 export function useProfile(): BackendProfile | null {
   return useContext(AuthContext)?.profile ?? null
 }

@@ -1,15 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none" role="img" aria-label="Vocab SRS wireframe">
   <rect width="400" height="300" fill="#F8FAFC"/>
+  <!-- Top nav bar -->
   <rect x="16" y="16" width="368" height="40" rx="8" fill="#E2E8F0"/>
-  <rect x="28" y="28" width="120" height="16" rx="4" fill="#94A3B8"/>
+  <text x="28" y="41" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#64748B">Từ vựng hôm nay</text>
   <rect x="280" y="24" width="92" height="24" rx="12" fill="#0D9488"/>
+  <text x="326" y="40" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF" text-anchor="middle">Ôn ngay</text>
+  <!-- Flash card -->
   <rect x="16" y="72" width="368" height="140" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
   <rect x="40" y="96" width="200" height="28" rx="6" fill="#0D9488"/>
-  <rect x="40" y="136" width="320" height="10" rx="4" fill="#CBD5E1"/>
-  <rect x="40" y="154" width="280" height="10" rx="4" fill="#CBD5E1"/>
-  <rect x="40" y="172" width="220" height="10" rx="4" fill="#CBD5E1"/>
-  <rect x="16" y="228" width="88" height="56" rx="10" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="2"/>
-  <rect x="110" y="228" width="88" height="56" rx="10" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="2"/>
-  <rect x="204" y="228" width="88" height="56" rx="10" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="2"/>
+  <text x="140" y="115" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">meticulous</text>
+  <text x="40" y="152" font-family="system-ui, sans-serif" font-size="11" fill="#64748B">/məˈtɪk.jə.ləs/ — adj. Cẩn thận tỉ mỉ đến từng chi tiết nhỏ.</text>
+  <text x="40" y="172" font-family="system-ui, sans-serif" font-size="11" fill="#94A3B8">VD: She is meticulous about her work quality.</text>
+  <text x="40" y="192" font-family="system-ui, sans-serif" font-size="10" fill="#CBD5E1">→ Từ đồng nghĩa: precise, thorough, exact</text>
+  <!-- SRS rating buttons -->
+  <rect x="16" y="228" width="88" height="56" rx="10" fill="#FEF2F2" stroke="#FECACA" stroke-width="2"/>
+  <text x="60" y="252" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#EF4444" text-anchor="middle">Khó</text>
+  <text x="60" y="267" font-family="system-ui, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">1 ngày</text>
+  <rect x="110" y="228" width="88" height="56" rx="10" fill="#FFF7ED" stroke="#FED7AA" stroke-width="2"/>
+  <text x="154" y="252" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#F97316" text-anchor="middle">Bình thường</text>
+  <text x="154" y="267" font-family="system-ui, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">3 ngày</text>
+  <rect x="204" y="228" width="88" height="56" rx="10" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="2"/>
+  <text x="248" y="252" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#16A34A" text-anchor="middle">Tốt</text>
+  <text x="248" y="267" font-family="system-ui, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">7 ngày</text>
   <rect x="298" y="228" width="88" height="56" rx="10" fill="#0D9488"/>
+  <text x="342" y="252" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">Thuộc rồi!</text>
+  <text x="342" y="267" font-family="system-ui, sans-serif" font-size="9" fill="#99F6E4" text-anchor="middle">21 ngày</text>
 </svg>
