@@ -90,7 +90,7 @@ export default function Hero() {
                   {t('landing:hero.ctaPrimary')}
                 </Button>
                 <Button variant="ghost" size="lg" asChild>
-                  <a href="#sample-screens" onClick={handleDemo}>
+                  <a href="#features" onClick={handleDemo}>
                     {t('landing:hero.ctaSecondary')}
                   </a>
                 </Button>

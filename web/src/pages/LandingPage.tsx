@@ -31,8 +31,9 @@ export default function LandingPage() {
         <Hero />
         <HowItWorks />
         <StatsStrip />
-        <ValueProps />
-        <section id="sample-screens" aria-hidden="true" />
+        <div id="features">
+          <ValueProps />
+        </div>
         <Pricing />
         <Testimonials />
         <FAQ />
