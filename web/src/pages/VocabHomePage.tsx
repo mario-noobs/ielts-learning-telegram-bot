@@ -138,6 +138,12 @@ export default function VocabHomePage() {
         </div>
         {stats.total > 0 && (
           <div className="flex items-center gap-4">
+            <Link
+              to="/learn/review"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 transition-colors"
+            >
+              {t('byTopic.reviewCta')}
+            </Link>
             <div className="text-right">
               <p className="text-xs text-muted-fg">
                 {t('byTopic.progress.label')}

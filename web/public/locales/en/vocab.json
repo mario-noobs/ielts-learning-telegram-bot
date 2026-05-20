@@ -42,6 +42,7 @@
     "heading": "Vocabulary",
     "headingPill": "by topic",
     "subtitle": "Tap a topic to drill into its words. Topics with the most work to do show first.",
+    "reviewCta": "Start review",
     "clearFilter": "Clear filter",
     "progress": {
       "label": "Mastered",
