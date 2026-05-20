@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button } from '../../components/ui'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
 import LogoMark from '../../components/brand/LogoMark'
@@ -10,15 +9,11 @@ const SOCIAL_PROOF_COUNT = 2000
 
 export default function Hero() {
   const { t } = useTranslation(['landing', 'common'])
-  const { signInWithGoogle } = useAuth()
+  const navigate = useNavigate()
 
-  const handleSignup = async () => {
+  const handleSignup = () => {
     track('landing_cta_clicked', { cta: 'signup' })
-    try {
-      await signInWithGoogle()
-    } catch {
-      /* popup closed / network — silent; user retries */
-    }
+    navigate('/login')
   }
 
   const handleDemo = () => {
