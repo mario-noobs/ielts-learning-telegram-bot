@@ -58,6 +58,10 @@
       "back": "All topics",
       "subtitle": "{count, plural, one {# word in this topic} other {# words in this topic}}"
     },
+    "yourTopics": "Your Topics",
+    "yourTopicsSubtitle": "Topics you set in Settings — click to start learning.",
+    "otherTopics": "All Topics",
+    "noWordsYet": "No words yet",
     "row": {
       "changeMastery": "Change mastery — currently {current}",
       "changeMasteryConfirm": "Set mastery to:"

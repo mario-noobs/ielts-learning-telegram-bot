@@ -103,22 +103,54 @@ export default function VocabHomePage() {
     return { total, mastered }
   }, [topics])
 
-  // Topics with at least one word, sorted "least mastered first" so the
-  // gap-closing work surfaces. Empty topics drop to the bottom (we
-  // filter them out before render — `/learn/vocab` shows only what
-  // the user actually has words in).
+  const preferredSlugs: string[] = useMemo(
+    () => (Array.isArray(profile?.topics) ? profile!.topics : []),
+    [profile],
+  )
+
+  // Preferred topics: shown even with 0 words so the user sees their
+  // settings reflected immediately. Sorted least-mastered first among
+  // those that have words; 0-word ones trail alphabetically.
+  const preferredTopics = useMemo(() => {
+    if (preferredSlugs.length === 0) return []
+    const byId = Object.fromEntries(topics.map((tp) => [tp.id, tp]))
+    return preferredSlugs
+      .map((slug) => byId[slug] ?? { id: slug, name: slug, word_count: 0, mastered_count: 0, subtopics: [] })
+      .sort((a, b) => {
+        if (a.word_count === 0 && b.word_count === 0)
+          return topicLabel(a.id, a.name, t).localeCompare(topicLabel(b.id, b.name, t))
+        if (a.word_count === 0) return 1
+        if (b.word_count === 0) return -1
+        const aPct = a.mastered_count / a.word_count
+        const bPct = b.mastered_count / b.word_count
+        return aPct - bPct
+      })
+  }, [preferredSlugs, topics, t])
+
+  // Non-preferred topics with at least one word, sorted least-mastered first.
+  const otherTopics = useMemo(() => {
+    return [...topics]
+      .filter((tp) => tp.word_count > 0 && !preferredSlugs.includes(tp.id))
+      .sort((a, b) => {
+        const aPct = a.mastered_count / a.word_count
+        const bPct = b.mastered_count / b.word_count
+        if (aPct !== bPct) return aPct - bPct
+        return topicLabel(a.id, a.name, t).localeCompare(topicLabel(b.id, b.name, t))
+      })
+  }, [topics, preferredSlugs, t])
+
+  // Legacy: when no preferred topics set, fall back to all topics with words.
   const orderedTopics = useMemo(() => {
+    if (preferredSlugs.length > 0) return []
     return [...topics]
       .filter((tp) => tp.word_count > 0)
       .sort((a, b) => {
         const aPct = a.mastered_count / a.word_count
         const bPct = b.mastered_count / b.word_count
         if (aPct !== bPct) return aPct - bPct
-        return topicLabel(a.id, a.name, t).localeCompare(
-          topicLabel(b.id, b.name, t),
-        )
+        return topicLabel(a.id, a.name, t).localeCompare(topicLabel(b.id, b.name, t))
       })
-  }, [topics, t])
+  }, [topics, preferredSlugs, t])
 
   const masteryPct = stats.total === 0 ? 0 : (stats.mastered / stats.total) * 100
 
@@ -205,6 +237,45 @@ export default function VocabHomePage() {
               <div className="h-2 bg-border rounded mt-4 w-full" />
             </div>
           ))}
+        </div>
+      ) : preferredSlugs.length > 0 ? (
+        <div className="space-y-8">
+          <section>
+            <div className="flex items-baseline gap-2 mb-3">
+              <h2 className="text-base font-semibold text-fg">{t('byTopic.yourTopics')}</h2>
+              <p className="text-xs text-muted-fg">{t('byTopic.yourTopicsSubtitle')}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {preferredTopics.map((tp) =>
+                tp.word_count === 0 ? (
+                  <Link
+                    key={tp.id}
+                    to={`/learn/vocab/topic/${encodeURIComponent(tp.id)}`}
+                    className="block rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4 transition-colors hover:border-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <p className="font-semibold text-primary truncate">
+                      {topicLabel(tp.id, tp.name, t)}
+                    </p>
+                    <p className="text-xs text-primary/60 mt-2">{t('byTopic.noWordsYet')}</p>
+                    <div className="mt-3 h-1.5 bg-primary/10 rounded-full" />
+                  </Link>
+                ) : (
+                  <TopicCard key={tp.id} topic={tp} t={t} />
+                )
+              )}
+            </div>
+          </section>
+
+          {otherTopics.length > 0 && (
+            <section>
+              <h2 className="text-base font-semibold text-fg mb-3">{t('byTopic.otherTopics')}</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {otherTopics.map((tp) => (
+                  <TopicCard key={tp.id} topic={tp} t={t} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       ) : orderedTopics.length === 0 ? (
         <EmptyState

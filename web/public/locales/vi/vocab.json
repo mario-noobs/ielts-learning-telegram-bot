@@ -58,6 +58,10 @@
       "back": "Tất cả chủ đề",
       "subtitle": "{count} từ trong chủ đề này"
     },
+    "yourTopics": "Chủ đề của bạn",
+    "yourTopicsSubtitle": "Chủ đề bạn chọn trong Cài đặt — bấm để bắt đầu học.",
+    "otherTopics": "Tất cả chủ đề",
+    "noWordsYet": "Chưa có từ nào",
     "row": {
       "changeMastery": "Đổi mức độ thuộc — hiện tại {current}",
       "changeMasteryConfirm": "Đặt mức độ thành:"

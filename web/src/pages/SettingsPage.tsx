@@ -57,6 +57,12 @@ const COMMON_TZ = [
   'UTC',
 ] as const
 
+const IELTS_TOPICS = [
+  'education', 'environment', 'technology', 'health',
+  'society', 'economy', 'government', 'media',
+  'science', 'travel', 'food', 'arts',
+] as const
+
 interface UserProfile {
   id: string
   name: string
@@ -360,7 +366,7 @@ function ThemeToggle() {
 }
 
 export default function SettingsPage() {
-  const { t, i18n } = useTranslation(['settings', 'common', 'link', 'usage'])
+  const { t, i18n } = useTranslation(['settings', 'common', 'link', 'usage', 'vocab'])
   const { logout } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
 
@@ -392,7 +398,6 @@ export default function SettingsPage() {
 
   // Practice-tab state
   const [topics, setTopics] = useState<string[]>([])
-  const [topicDraft, setTopicDraft] = useState('')
   const [dailyTime, setDailyTime] = useState('')
   const [dailyWordsCount, setDailyWordsCount] = useState(5)
 
@@ -494,20 +499,11 @@ export default function SettingsPage() {
     }
   }
 
-  // Auto-save on add/remove: chip-mutations are deterministic single
-  // actions, so persist immediately instead of stranding the change
-  // until the user finds the bottom Save button.
-  const addTopic = async () => {
-    const v = topicDraft.trim().toLowerCase()
-    if (!v || topics.includes(v) || topics.length >= 5) return
-    const next = [...topics, v]
-    setTopics(next)
-    setTopicDraft('')
-    await save({ topics: next })
-  }
-
-  const removeTopic = async (t: string) => {
-    const next = topics.filter((x) => x !== t)
+  const toggleTopic = async (slug: string) => {
+    const next = topics.includes(slug)
+      ? topics.filter((x) => x !== slug)
+      : topics.length < 5 ? [...topics, slug] : topics
+    if (next === topics) return
     setTopics(next)
     await save({ topics: next })
   }
@@ -756,54 +752,33 @@ export default function SettingsPage() {
                   {t('practice.topics')}
                 </label>
                 <p className="text-xs text-muted-fg mb-2">{t('practice.topicsHint')}</p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {topics.map((topic) => (
-                    <span
-                      key={topic}
-                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary"
-                    >
-                      {topic}
+                <div className="flex flex-wrap gap-2">
+                  {IELTS_TOPICS.map((slug) => {
+                    const selected = topics.includes(slug)
+                    const atLimit = !selected && topics.length >= 5
+                    return (
                       <button
+                        key={slug}
                         type="button"
-                        onClick={() => removeTopic(topic)}
-                        aria-label={t('practice.removeTopic', { topic })}
-                        className="text-primary/70 hover:text-primary"
+                        onClick={() => toggleTopic(slug)}
+                        disabled={atLimit || saving}
+                        aria-pressed={selected}
+                        className={[
+                          'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                          selected
+                            ? 'bg-primary text-primary-fg'
+                            : 'bg-surface border border-border text-muted-fg hover:border-primary/50 hover:text-fg disabled:opacity-40',
+                        ].join(' ')}
                       >
-                        ✕
+                        {selected && <span aria-hidden>✓</span>}
+                        {t(`vocab:topicNames.${slug}`, { defaultValue: slug })}
                       </button>
-                    </span>
-                  ))}
+                    )
+                  })}
                 </div>
-                <div className="flex gap-2">
-                  {/* Input giữ enabled để user gõ được; chỉ Add button +
-                      hint phía dưới mới phản ánh giới hạn 5. */}
-                  <input
-                    type="text"
-                    value={topicDraft}
-                    onChange={(e) => setTopicDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addTopic()
-                      }
-                    }}
-                    placeholder={t('practice.topicsPlaceholder')}
-                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:border-primary focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={addTopic}
-                    disabled={!topicDraft.trim() || topics.length >= 5 || saving}
-                    className="px-3 py-2 rounded-lg bg-primary text-primary-fg text-sm hover:bg-primary-hover disabled:opacity-50"
-                  >
-                    {t('common:actions.add')}
-                  </button>
-                </div>
-                {topics.length >= 5 && (
-                  <p className="text-xs text-warning mt-1">
-                    {t('practice.topicsFull')}
-                  </p>
-                )}
+                <p className="text-xs text-muted-fg mt-2">
+                  {topics.length}/5 {t('practice.topicsHint')}
+                </p>
               </div>
 
               <div>
