@@ -209,7 +209,7 @@ export default function DailyWordsPage() {
         ))}
       </div>
 
-      {!streaming && (
+      {totalPages > 1 && (
         <Pagination
           page={page}
           totalPages={totalPages}
