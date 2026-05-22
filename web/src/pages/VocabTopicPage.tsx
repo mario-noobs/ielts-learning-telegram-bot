@@ -28,6 +28,7 @@ interface VocabularyWord {
   strength: Strength
   srs_next_review: string | null
   added_at: string | null
+  is_favourite?: boolean
 }
 
 interface WordListResponse {
@@ -154,11 +155,29 @@ function StrengthChip({ strength, onChange }: StrengthChipProps) {
   )
 }
 
+function FavouriteButton({ isFav, onToggle }: { isFav: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle() }}
+      aria-label={isFav ? 'Bỏ yêu thích' : 'Yêu thích'}
+      className={`p-1 rounded-full transition-colors ${isFav ? 'text-danger' : 'text-muted-fg hover:text-danger'}`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      </svg>
+    </button>
+  )
+}
+
 function WordRow({
   word,
+  isFav,
+  onFavToggle,
   onStrengthChange,
 }: {
   word: VocabularyWord
+  isFav: boolean
+  onFavToggle: () => void
   onStrengthChange: (id: string, next: VisualStrength) => Promise<void>
 }) {
   const visual = visualStrength(word.strength)
@@ -187,12 +206,13 @@ function WordRow({
           </p>
         )}
       </div>
-      <span className="shrink-0">
+      <div className="shrink-0 flex items-center gap-2">
+        <FavouriteButton isFav={isFav} onToggle={onFavToggle} />
         <StrengthChip
           strength={visual}
           onChange={(next) => onStrengthChange(word.id, next)}
         />
-      </span>
+      </div>
     </Link>
   )
 }
@@ -206,6 +226,8 @@ export default function VocabTopicPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<VisualStrength | null>(null)
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set())
+  const [showFavourites, setShowFavourites] = useState(false)
 
   useEffect(() => {
     if (!slug) return
@@ -218,6 +240,7 @@ export default function VocabTopicPage() {
         if (cancelled) return
         setWords(res.items)
         setNextCursor(res.next_cursor)
+        setFavouriteIds(new Set(res.items.filter(w => w.is_favourite).map(w => w.id)))
       })
       .catch((e) => !cancelled && setError(localizeError(e)))
       .finally(() => !cancelled && setLoading(false))
@@ -235,6 +258,11 @@ export default function VocabTopicPage() {
       )
       setWords((prev) => [...prev, ...res.items])
       setNextCursor(res.next_cursor)
+      setFavouriteIds((prev) => {
+        const s = new Set(prev)
+        res.items.filter(w => w.is_favourite).forEach(w => s.add(w.id))
+        return s
+      })
     } catch (e) {
       setError(localizeError(e))
     } finally {
@@ -250,10 +278,34 @@ export default function VocabTopicPage() {
     return m
   }, [words])
 
+  const toggleFavourite = async (wordId: string, current: boolean) => {
+    const next = !current
+    setFavouriteIds(prev => {
+      const s = new Set(prev)
+      if (next) s.add(wordId); else s.delete(wordId)
+      return s
+    })
+    try {
+      await apiFetch(`/api/v1/vocabulary/${wordId}/favourite`, {
+        method: 'POST',
+        body: JSON.stringify({ favourite: next }),
+      })
+    } catch {
+      setFavouriteIds(prev => {
+        const s = new Set(prev)
+        if (current) s.add(wordId); else s.delete(wordId)
+        return s
+      })
+    }
+  }
+
   const filteredWords = useMemo(() => {
-    const list = filter
+    let list = filter
       ? words.filter((w) => visualStrength(w.strength) === filter)
       : [...words]
+    if (showFavourites) {
+      list = list.filter((w) => favouriteIds.has(w.id))
+    }
     list.sort((a, b) => {
       const ra = STRENGTH_RANK[a.strength]
       const rb = STRENGTH_RANK[b.strength]
@@ -263,7 +315,7 @@ export default function VocabTopicPage() {
       return ta - tb
     })
     return list
-  }, [words, filter])
+  }, [words, filter, showFavourites, favouriteIds])
 
   const onStrengthChange = async (
     wordId: string, next: VisualStrength,
@@ -309,6 +361,16 @@ export default function VocabTopicPage() {
           counts are accurate for what's currently visible. Loading
           all pages would defeat the point of pagination. */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setShowFavourites(f => !f)}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+            showFavourites
+              ? 'bg-danger/10 text-danger border-danger/30'
+              : 'border-border text-muted-fg hover:border-danger/30 hover:text-danger'
+          }`}
+        >
+          ♥ Yêu thích
+        </button>
         {FILTER_BUCKETS.map((bucket) => {
           const active = filter === bucket
           return (
@@ -386,6 +448,8 @@ export default function VocabTopicPage() {
             <WordRow
               key={w.id}
               word={w}
+              isFav={favouriteIds.has(w.id)}
+              onFavToggle={() => toggleFavourite(w.id, favouriteIds.has(w.id))}
               onStrengthChange={onStrengthChange}
             />
           ))}

@@ -162,6 +162,11 @@ async def get_enriched_word(
     raw_collocations = data.get("collocations", []) or []
     collocations = [_to_collocation(c) for c in raw_collocations if c]
 
+    raw_synonyms = data.get("synonyms")
+    raw_antonyms = data.get("antonyms")
+    synonyms = raw_synonyms.get("words", []) if isinstance(raw_synonyms, dict) else []
+    antonyms = raw_antonyms.get("words", []) if isinstance(raw_antonyms, dict) else []
+
     return EnrichedWord(
         word=data.get("word", normalized),
         ipa=data.get("ipa", ""),
@@ -173,4 +178,7 @@ async def get_enriched_word(
         collocations=collocations,
         examples_by_band=examples,
         ielts_tip=data.get("ielts_tip", ""),
+        synonyms=synonyms,
+        antonyms=antonyms,
+        image_url=data.get("image_url"),
     )

@@ -108,6 +108,8 @@ LOCAL_JWT_SECRET = os.getenv("LOCAL_JWT_SECRET", "change-me-in-production")
 LOCAL_ACCESS_TTL_MINUTES = int(os.getenv("LOCAL_ACCESS_TTL_MINUTES", "15"))
 LOCAL_REFRESH_TTL_DAYS = int(os.getenv("LOCAL_REFRESH_TTL_DAYS", "30"))
 
+UNSPLASH_ACCESS_KEY: str = os.getenv("UNSPLASH_ACCESS_KEY", "")
+
 
 def local_date_str() -> str:
     """Return today's date in the configured timezone as YYYY-MM-DD."""

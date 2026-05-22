@@ -1,5 +1,9 @@
 import asyncio
+import json
 import logging
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -95,6 +99,77 @@ def set_word_strength_manual(
     return {**word, **update}
 
 
+def _fetch_image_url_sync(word: str) -> str | None:
+    key = getattr(config, "UNSPLASH_ACCESS_KEY", None)
+    if not key:
+        return None
+    try:
+        params = urllib.parse.urlencode({"query": word, "per_page": 1})
+        req = urllib.request.Request(
+            f"https://api.unsplash.com/search/photos?{params}",
+            headers={"Authorization": f"Client-ID {key}"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        results = data.get("results", [])
+        if results:
+            return results[0]["urls"]["regular"]
+    except Exception:
+        logger.debug("Unsplash fetch failed for %s", word)
+    return None
+
+
+async def _fetch_image_url(word: str) -> str | None:
+    return await asyncio.to_thread(_fetch_image_url_sync, word)
+
+
+def _fetch_synonyms_antonyms_sync(word: str) -> tuple[list[str], list[str], str]:
+    try:
+        req = urllib.request.Request(
+            f"https://api.dictionaryapi.dev/api/v2/entries/en/{urllib.parse.quote(word)}",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read())
+                synonyms: list[str] = []
+                antonyms: list[str] = []
+                for entry in data:
+                    for meaning in entry.get("meanings", []):
+                        synonyms.extend(meaning.get("synonyms", []))
+                        antonyms.extend(meaning.get("antonyms", []))
+                        for defn in meaning.get("definitions", []):
+                            synonyms.extend(defn.get("synonyms", []))
+                            antonyms.extend(defn.get("antonyms", []))
+                seen_s: set[str] = set()
+                seen_a: set[str] = set()
+                synonyms = [s for s in synonyms if s and not (s.lower() in seen_s or seen_s.add(s.lower()))][:8]
+                antonyms = [a for a in antonyms if a and not (a.lower() in seen_a or seen_a.add(a.lower()))][:8]
+                return synonyms, antonyms, "freedict"
+    except Exception:
+        logger.debug("Free Dictionary API failed for %s", word)
+    return [], [], "gemini"
+
+
+async def _fetch_synonyms_antonyms(word: str) -> tuple[list[str], list[str], str]:
+    synonyms, antonyms, source = await asyncio.to_thread(_fetch_synonyms_antonyms_sync, word)
+    if synonyms or antonyms:
+        return synonyms, antonyms, source
+    try:
+        result = await ai_service.generate_json(
+            f'Return synonyms and antonyms for the English word "{word}". '
+            'JSON only: {{"synonyms": ["word1","word2"], "antonyms": ["word3","word4"]}}. '
+            'Max 5 each. Only common IELTS-relevant words.'
+        )
+        return (
+            result.get("synonyms", [])[:5],
+            result.get("antonyms", [])[:5],
+            "gemini",
+        )
+    except Exception:
+        logger.debug("Gemini synonyms fallback failed for %s", word)
+    return [], [], "gemini"
+
+
 def normalize_word(raw: str) -> str:
     """Lowercase and strip whitespace."""
     return raw.strip().lower()
@@ -164,29 +239,50 @@ async def get_enriched_word(word: str, band: float,
 
         firebase_service.set_enriched_word_doc(normalized, data)
         logger.info(f"Cached new enriched word: {normalized} (band {tier})")
-        return data
+        cached = data
 
-    # Cache hit — check if this band tier has an example
-    examples = cached.get("examples_by_band", {})
+    else:
+        # Cache hit — check if this band tier has an example
+        examples = cached.get("examples_by_band", {})
 
-    if tier in examples:
-        # Full hit — return as-is
-        logger.info("Word cache HIT: %s (band %s)", normalized, tier)
-        return cached
+        if tier not in examples:
+            logger.info("Word cache PARTIAL HIT: %s (missing band %s)", normalized, tier)
+            example = await ai_service.generate_band_example(
+                word=normalized,
+                part_of_speech=cached.get("part_of_speech", ""),
+                definition_en=cached.get("definition_en", ""),
+                band=band,
+                priority=priority,
+            )
+            firebase_service.update_enriched_word_example(normalized, tier, example)
+            cached.setdefault("examples_by_band", {})[tier] = example
+            logger.info(f"Added band {tier} example for cached word: {normalized}")
+        else:
+            logger.info("Word cache HIT: %s (band %s)", normalized, tier)
 
-    logger.info("Word cache PARTIAL HIT: %s (missing band %s)", normalized, tier)
-    # Partial hit — generate example for this band tier
-    example = await ai_service.generate_band_example(
-        word=normalized,
-        part_of_speech=cached.get("part_of_speech", ""),
-        definition_en=cached.get("definition_en", ""),
-        band=band,
-        priority=priority,
-    )
+    if cached.get("synonyms") is None:
+        try:
+            syns, ants, source = await _fetch_synonyms_antonyms(normalized)
+            await asyncio.to_thread(
+                firebase_service.update_enriched_word_synonyms_antonyms,
+                normalized, syns, ants, source,
+            )
+            cached["synonyms"] = {"words": syns, "source": source}
+            cached["antonyms"] = {"words": ants, "source": source}
+        except Exception:
+            logger.debug("synonyms/antonyms backfill failed for %s", normalized)
 
-    firebase_service.update_enriched_word_example(normalized, tier, example)
-    cached.setdefault("examples_by_band", {})[tier] = example
-    logger.info(f"Added band {tier} example for cached word: {normalized}")
+    if cached.get("image_url") is None and getattr(config, "UNSPLASH_ACCESS_KEY", ""):
+        try:
+            url = await _fetch_image_url(normalized)
+            if url:
+                await asyncio.to_thread(
+                    firebase_service.update_enriched_word_image_url, normalized, url,
+                )
+                cached["image_url"] = url
+        except Exception:
+            logger.debug("image_url backfill failed for %s", normalized)
+
     return cached
 
 

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 import config
 from api.auth import get_current_user
@@ -41,6 +42,7 @@ def _to_vocab_word(doc: dict) -> VocabularyWord:
         times_correct=doc.get("times_correct", 0),
         times_incorrect=doc.get("times_incorrect", 0),
         strength=get_word_strength(doc),
+        is_favourite=doc.get("is_favourite", False),
         added_at=doc.get("added_at"),
     )
 
@@ -125,8 +127,11 @@ async def _daily_sse_generator(
         accumulated: list[dict] = []
         topic_name = ""
 
+        fav_words = await asyncio.to_thread(firebase_service.get_favourite_words, user_id, 10)
+
         async for event in vocab_service.stream_personal_daily_words(
-            telegram_id=user_id, count=count, band=band, topics=topics
+            telegram_id=user_id, count=count, band=band, topics=topics,
+            context_words=fav_words if len(fav_words) >= 3 else [],
         ):
             if event["type"] == "start":
                 topic_name = event["topic"]
@@ -171,6 +176,7 @@ async def list_vocabulary(
     limit: int = Query(20, ge=1, le=100),
     cursor: str | None = Query(None, description="ISO-8601 added_at from previous page"),
     topic: str | None = Query(None, description="Filter to a single topic slug"),
+    favourite: bool | None = Query(None, description="Filter to favourited words only"),
     user: dict = Depends(get_current_user),
 ) -> WordListResponse:
     """Paginated vocabulary list with SRS data, newest first.
@@ -191,13 +197,28 @@ async def list_vocabulary(
 
     docs = await asyncio.to_thread(
         firebase_service.get_user_vocabulary_page,
-        user["id"], limit, after, topic,
+        user["id"], limit, after, topic, favourite,
     )
     items = [_to_vocab_word(d) for d in docs]
     next_cursor = None
     if len(items) == limit and items[-1].added_at is not None:
         next_cursor = items[-1].added_at.isoformat()
     return WordListResponse(items=items, next_cursor=next_cursor)
+
+
+class _FavouriteBody(BaseModel):
+    favourite: bool
+
+
+@router.post("/{word_id}/favourite", status_code=status.HTTP_204_NO_CONTENT)
+async def toggle_favourite(
+    word_id: str,
+    body: _FavouriteBody,
+    user: dict = Depends(get_current_user),
+) -> None:
+    await asyncio.to_thread(
+        firebase_service.toggle_favourite, user["id"], word_id, body.favourite
+    )
 
 
 @router.post("/daily", response_model=DailyWordsResponse)

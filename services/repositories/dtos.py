@@ -160,6 +160,8 @@ class VocabularyItem(_FirestoreDTO):
     times_correct: int = 0
     times_incorrect: int = 0
 
+    is_favourite: bool = False
+
     added_at: Optional[datetime] = None
 
 

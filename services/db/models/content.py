@@ -59,6 +59,9 @@ class EnrichedWord(Base):
     )
     collocations: Mapped[Optional[list[Any]]] = mapped_column(JSONB, nullable=True)
     word_family: Mapped[Optional[list[Any]]] = mapped_column(JSONB, nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    synonyms: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    antonyms: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     cached_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()"),
     )

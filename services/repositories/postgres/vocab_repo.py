@@ -91,6 +91,7 @@ def _row_to_dto(row: UserVocabulary) -> VocabularyItem:
         srs_ease=row.srs_ease,
         srs_reps=row.srs_reps,
         srs_next_review=row.srs_next_review,
+        is_favourite=row.is_favourite,
         added_at=row.created_at,
     )
 
@@ -219,6 +220,7 @@ class PostgresVocabRepo:
         limit: int = 20,
         after_added_at: Optional[datetime] = None,
         topic: Optional[str] = None,
+        favourite: Optional[bool] = None,
     ) -> list[VocabularyItem]:
         conds = [
             UserVocabulary.user_id == str(user_id),
@@ -226,6 +228,8 @@ class PostgresVocabRepo:
         ]
         if topic:
             conds.append(UserVocabulary.topic_id == _topic_id(topic))
+        if favourite is True:
+            conds.append(UserVocabulary.is_favourite == True)  # noqa: E712
         if after_added_at is not None:
             conds.append(UserVocabulary.created_at < after_added_at)
         with get_sync_session() as s:
@@ -327,6 +331,31 @@ class PostgresVocabRepo:
                 )
                 .values(**values),
             )
+
+    def toggle_favourite(self, user_id: UserId, word_id: str, is_favourite: bool) -> None:
+        with get_sync_session() as s, s.begin():
+            s.execute(
+                update(UserVocabulary)
+                .where(
+                    UserVocabulary.user_id == str(user_id),
+                    UserVocabulary.id == word_id,
+                )
+                .values(is_favourite=is_favourite),
+            )
+
+    def get_favourite_words(self, user_id: UserId, limit: int = 10) -> list[str]:
+        with get_sync_session() as s:
+            rows = s.execute(
+                select(UserVocabulary.word)
+                .where(
+                    UserVocabulary.user_id == str(user_id),
+                    UserVocabulary.is_favourite == True,  # noqa: E712
+                    UserVocabulary.archived_at.is_(None),
+                )
+                .order_by(UserVocabulary.srs_reps.desc())
+                .limit(limit)
+            ).scalars().all()
+        return list(rows)
 
     def get_by_id(self, user_id: UserId, word_id: str) -> Optional[VocabularyItem]:
         with get_sync_session() as s:

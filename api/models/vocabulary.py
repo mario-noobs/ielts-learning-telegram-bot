@@ -20,6 +20,7 @@ class VocabularyWord(BaseModel):
     times_correct: int = 0
     times_incorrect: int = 0
     strength: str = "New"
+    is_favourite: bool = False
     added_at: datetime | None = None
 
 
@@ -77,6 +78,9 @@ class EnrichedWord(BaseModel):
     collocations: list[Collocation] = []
     examples_by_band: dict[str, EnrichedExample] = {}
     ielts_tip: str = ""
+    synonyms: list[str] = []
+    antonyms: list[str] = []
+    image_url: str | None = None
 
 
 class TopicSummary(BaseModel):

@@ -72,6 +72,7 @@ def _filter_dupes_lc(words: list[dict], existing_lc: set[str]) -> list[dict]:
 async def _generate_with_dedup(
     *, count: int, band: float, topic: str, existing_lc: set[str],
     fallback_topic_id: str | None = None,  # kept for compat; unused
+    context_words: list[str] | None = None,
 ) -> list[dict]:
     """Generate words in VOCAB_BATCH_SIZE chunks, each with the growing
     exclude list, so the AI never repeats earlier words and output-token
@@ -85,10 +86,15 @@ async def _generate_with_dedup(
         count - VOCAB_BATCH_SIZE * (n_batches - 1)
     ]
 
+    context_topic = topic
+    if context_words and len(context_words) >= 3:
+        joined = ", ".join(context_words[:10])
+        context_topic = f"{topic} [CONTEXT: The learner is interested in words related to: {joined}. Prefer semantically related words.]"
+
     for bs in batch_sizes:
         try:
             batch = await ai_service.generate_vocabulary(
-                count=bs, band=band, topic=topic,
+                count=bs, band=band, topic=context_topic,
                 exclude_words=list(emitted_lc),
             )
         except Exception as exc:
@@ -162,7 +168,8 @@ async def generate_daily_words(group_id: int, count: int = 10,
 
 async def generate_personal_daily_words(telegram_id: int, count: int = 10,
                                          band: float = 7.0,
-                                         topics: list = None) -> tuple[list, str]:
+                                         topics: list = None,
+                                         context_words: list[str] | None = None) -> tuple[list, str]:
     """Generate personal daily words for /mydaily DM.
 
     Same dedup + topic rotation as the group flow, but the recent-
@@ -182,6 +189,7 @@ async def generate_personal_daily_words(telegram_id: int, count: int = 10,
 
     fresh = await _generate_with_dedup(
         count=count, band=band, topic=topic, existing_lc=existing_lc,
+        context_words=context_words,
     )
 
     next_recent = _push_recent_topic(recent, topic_id)
@@ -201,6 +209,7 @@ async def stream_personal_daily_words(
     band: float = 7.0,
     topics: list | None = None,
     plan: str | None = None,
+    context_words: list[str] | None = None,
 ):
     """Async generator: yields SSE event dicts for /vocabulary/daily/stream.
 
@@ -237,10 +246,15 @@ async def stream_personal_daily_words(
 
     emitted_lc: set[str] = set()
 
+    context_topic = topic
+    if context_words and len(context_words) >= 3:
+        joined = ", ".join(context_words[:10])
+        context_topic = f"{topic} [CONTEXT: The learner is interested in words related to: {joined}. Prefer semantically related words.]"
+
     for bs in batch_sizes:
         try:
             batch = await ai_service.generate_vocabulary(
-                count=bs, band=band, topic=topic,
+                count=bs, band=band, topic=context_topic,
                 exclude_words=list(existing_lc | emitted_lc),
                 plan=plan,
             )

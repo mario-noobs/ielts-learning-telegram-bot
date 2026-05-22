@@ -26,6 +26,9 @@ interface EnrichedWord {
   collocations: Collocation[]
   examples_by_band: Record<string, EnrichedExample>
   ielts_tip: string
+  synonyms?: string[]
+  antonyms?: string[]
+  image_url?: string | null
 }
 
 interface UserProfile {
@@ -78,6 +81,34 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="text-sm font-semibold text-muted-fg uppercase tracking-wide mb-3">{title}</h2>
       {children}
     </section>
+  )
+}
+
+function WordImage({ url, word }: { url: string; word: string }) {
+  return (
+    <img
+      src={url}
+      alt={word}
+      loading="lazy"
+      className="w-24 h-24 rounded-xl object-cover shrink-0"
+    />
+  )
+}
+
+function SynonymChips({ items }: { items: string[] }) {
+  const navigate = useNavigate()
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((w) => (
+        <button
+          key={w}
+          onClick={() => navigate(`/learn/vocab/${encodeURIComponent(w)}`)}
+          className="px-3 py-1 rounded-full bg-surface text-fg text-sm hover:bg-primary/10 hover:text-primary transition-colors"
+        >
+          {w}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -204,6 +235,12 @@ export default function WordDetailPage() {
                   <p className="text-muted-fg text-sm">{data.syllable_stress}</p>
                 )}
               </div>
+              {data.image_url && (
+                <div className="flex flex-col items-end">
+                  <WordImage url={data.image_url} word={data.word} />
+                  <p className="text-xs text-muted-fg mt-1 text-right">📷 Unsplash</p>
+                </div>
+              )}
               <PlayButton word={data.word} />
             </div>
             {data.part_of_speech && (
@@ -219,6 +256,18 @@ export default function WordDetailPage() {
               {data.definition_vi && (
                 <p className="text-muted-fg mt-2">{data.definition_vi}</p>
               )}
+            </Section>
+          )}
+
+          {(data.synonyms ?? []).length > 0 && (
+            <Section title="Đồng nghĩa">
+              <SynonymChips items={(data.synonyms ?? []).slice(0, 5)} />
+            </Section>
+          )}
+
+          {(data.antonyms ?? []).length > 0 && (
+            <Section title="Trái nghĩa">
+              <SynonymChips items={(data.antonyms ?? []).slice(0, 5)} />
             </Section>
           )}
 

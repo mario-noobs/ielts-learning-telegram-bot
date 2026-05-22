@@ -127,7 +127,8 @@ def get_user_word_list(telegram_id: int) -> list[str]:
 
 def get_user_vocabulary_page(telegram_id, limit: int = 20,
                               after_added_at: Optional[datetime] = None,
-                              topic: Optional[str] = None) -> list[dict]:
+                              topic: Optional[str] = None,
+                              favourite: Optional[bool] = None) -> list[dict]:
     """Cursor-paginated vocabulary fetch ordered by added_at DESC.
 
     Cursor is the `added_at` timestamp of the last item from the previous page.
@@ -136,9 +137,17 @@ def get_user_vocabulary_page(telegram_id, limit: int = 20,
     return [
         v.model_dump()
         for v in get_vocab_repo().list_page(
-            telegram_id, limit, after_added_at, topic,
+            telegram_id, limit, after_added_at, topic, favourite,
         )
     ]
+
+
+def toggle_favourite(user_id, word_id: str, is_favourite: bool) -> None:
+    get_vocab_repo().toggle_favourite(user_id, word_id, is_favourite)
+
+
+def get_favourite_words(user_id, limit: int = 10) -> list[str]:
+    return get_vocab_repo().get_favourite_words(user_id, limit)
 
 
 def count_words_by_topic(telegram_id) -> dict[str, int]:
@@ -523,6 +532,16 @@ def set_enriched_word_doc(word: str, data: dict):
 def update_enriched_word_example(word: str, band_tier: str, example: dict):
     """Merge ``examples_by_band[band_tier] = example`` race-safely."""
     get_enriched_words_repo().update_example(word, band_tier, example)
+
+
+def update_enriched_word_image_url(word: str, url: str) -> None:
+    get_enriched_words_repo().update_image_url(word, url)
+
+
+def update_enriched_word_synonyms_antonyms(
+    word: str, synonyms: list, antonyms: list, source: str,
+) -> None:
+    get_enriched_words_repo().update_synonyms_antonyms(word, synonyms, antonyms, source)
 
 
 # ─── Leaderboard ──────────────────────────────────────────────────

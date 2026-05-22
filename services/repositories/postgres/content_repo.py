@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from services.db import get_sync_session
@@ -70,6 +70,7 @@ _ENRICHED_STRUCTURED = {
     "ipa", "part_of_speech", "definition_en", "definition_vi",
     "syllable_stress", "ielts_tip", "examples_by_band",
     "collocations", "word_family",
+    "image_url", "synonyms", "antonyms",
 }
 
 
@@ -85,6 +86,9 @@ def _enriched_to_dict(e: EnrichedWord) -> dict[str, Any]:
         "examples_by_band": dict(e.examples_by_band or {}) if e.examples_by_band else None,
         "collocations": list(e.collocations or []) if e.collocations else None,
         "word_family": list(e.word_family or []) if e.word_family else None,
+        "image_url": e.image_url,
+        "synonyms": e.synonyms,
+        "antonyms": e.antonyms,
         "cached_at": e.cached_at,
     }
 
@@ -112,6 +116,27 @@ class PostgresEnrichedWordsRepo:
         )
         with get_sync_session() as s, s.begin():
             s.execute(stmt)
+
+    def update_image_url(self, word: str, url: str) -> None:
+        with get_sync_session() as s, s.begin():
+            s.execute(
+                update(EnrichedWord)
+                .where(EnrichedWord.word == word)
+                .values(image_url=url),
+            )
+
+    def update_synonyms_antonyms(
+        self, word: str, synonyms: list[str], antonyms: list[str], source: str,
+    ) -> None:
+        with get_sync_session() as s, s.begin():
+            s.execute(
+                update(EnrichedWord)
+                .where(EnrichedWord.word == word)
+                .values(
+                    synonyms={"words": synonyms, "source": source},
+                    antonyms={"words": antonyms, "source": source},
+                ),
+            )
 
     def update_example(self, word: str, band_tier: str, example: dict) -> None:
         """Merge ``examples_by_band[band_tier] = example`` (race-safe)."""

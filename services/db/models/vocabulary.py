@@ -78,6 +78,8 @@ class UserVocabulary(Base):
         DateTime(timezone=True), nullable=True,
     )
 
+    is_favourite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
+
     archived_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True,
     )
@@ -103,6 +105,11 @@ class UserVocabulary(Base):
             "ix_user_vocabulary_topic",
             "user_id", "topic_id",
             postgresql_where=text("archived_at IS NULL"),
+        ),
+        Index(
+            "ix_user_vocabulary_favourite",
+            "user_id",
+            postgresql_where=text("is_favourite = TRUE AND archived_at IS NULL"),
         ),
     )
 
