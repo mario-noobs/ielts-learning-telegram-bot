@@ -154,7 +154,8 @@ async def stream_daily(
 ):
     """Stream today's personal daily words via SSE, one word at a time."""
     date_str = config.local_date_str()
-    count = body.count if body and body.count else config.DEFAULT_WORD_COUNT
+    count = (body.count if body and body.count
+             else int(user.get("daily_words_count") or config.DEFAULT_WORD_COUNT))
     topics = body.topics if body and body.topics else user.get("topics") or None
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
 
@@ -230,7 +231,8 @@ async def generate_daily(
             generated_at=cached.get("generated_at"),
         )
 
-    count = (body.count if body and body.count else config.DEFAULT_WORD_COUNT)
+    count = (body.count if body and body.count
+             else int(user.get("daily_words_count") or config.DEFAULT_WORD_COUNT))
     topics = (body.topics if body and body.topics else user.get("topics") or None)
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
 

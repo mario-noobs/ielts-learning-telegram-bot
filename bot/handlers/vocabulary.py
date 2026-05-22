@@ -77,9 +77,10 @@ async def _generate_daily(update: Update, context: ContextTypes.DEFAULT_TYPE,
         group = firebase_service.get_group_settings(group_id)
         band = group.get("default_band", config.DEFAULT_BAND_TARGET) if group else config.DEFAULT_BAND_TARGET
 
+        count = int(group.get("word_count", config.DEFAULT_WORD_COUNT) if group else config.DEFAULT_WORD_COUNT)
         words, topic = await vocab_service.generate_daily_words(
             group_id=group_id,
-            count=config.DEFAULT_WORD_COUNT,
+            count=count,
             band=band,
         )
 

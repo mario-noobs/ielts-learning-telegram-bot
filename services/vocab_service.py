@@ -71,42 +71,42 @@ def _filter_dupes_lc(words: list[dict], existing_lc: set[str]) -> list[dict]:
 
 async def _generate_with_dedup(
     *, count: int, band: float, topic: str, existing_lc: set[str],
-    fallback_topic_id: str | None = None,
+    fallback_topic_id: str | None = None,  # kept for compat; unused
 ) -> list[dict]:
-    """Call the AI, filter dupes, top up once if short.
-
-    Pulled into a helper so group + personal flows share the dedup
-    logic. The AI prompt receives the FULL exclude list (no `[:100]`
-    cap) — Phase 1 prompt sizes haven't been an issue at our band.
-    If we ever hit a token-budget ceiling we'll chunk; not yet.
+    """Generate words in VOCAB_BATCH_SIZE chunks, each with the growing
+    exclude list, so the AI never repeats earlier words and output-token
+    limits are never hit.
     """
-    primary = await ai_service.generate_vocabulary(
-        count=count, band=band, topic=topic,
-        exclude_words=list(existing_lc),
-    )
-    filtered = _filter_dupes_lc(primary, existing_lc)
-    if len(filtered) >= count:
-        return filtered[:count]
+    emitted_lc: set[str] = set(existing_lc)
+    all_words: list[dict] = []
 
-    # Top up: ask the AI for the missing slots, with everything we've
-    # already accepted added to the exclude list. One retry only — we
-    # don't want a runaway loop if the AI keeps regenerating dupes.
-    needed = count - len(filtered)
-    accepted_keys = {(w.get("word") or "").strip().lower() for w in filtered}
-    extended_exclude = existing_lc | accepted_keys
-    try:
-        topup = await ai_service.generate_vocabulary(
-            count=needed, band=band,
-            topic=fallback_topic_id or topic,
-            exclude_words=list(extended_exclude),
-        )
-        filtered.extend(_filter_dupes_lc(topup, extended_exclude))
-    except Exception as exc:  # noqa: BLE001 — top-up best-effort
-        logger.warning("Vocab top-up failed: %s — returning %d/%d words",
-                       exc, len(filtered), count)
-    # If we still come up short, return whatever we have rather than
-    # blocking the user — better N-1 fresh words than a hard error.
-    return filtered[:count]
+    n_batches = math.ceil(count / VOCAB_BATCH_SIZE)
+    batch_sizes = [VOCAB_BATCH_SIZE] * (n_batches - 1) + [
+        count - VOCAB_BATCH_SIZE * (n_batches - 1)
+    ]
+
+    for bs in batch_sizes:
+        try:
+            batch = await ai_service.generate_vocabulary(
+                count=bs, band=band, topic=topic,
+                exclude_words=list(emitted_lc),
+            )
+        except Exception as exc:
+            logger.warning("Vocab batch failed: %s — returning %d/%d words",
+                           exc, len(all_words), count)
+            break
+
+        fresh = _filter_dupes_lc(batch, emitted_lc)
+        for w in fresh:
+            key = (w.get("word") or "").strip().lower()
+            if key:
+                emitted_lc.add(key)
+        all_words.extend(fresh)
+
+        if len(all_words) >= count:
+            break
+
+    return all_words[:count]
 
 
 async def generate_daily_words(group_id: int, count: int = 10,
