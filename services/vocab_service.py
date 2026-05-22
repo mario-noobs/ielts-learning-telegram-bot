@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import math
@@ -8,8 +7,7 @@ from services import ai_service, firebase_service
 
 logger = logging.getLogger(__name__)
 
-VOCAB_BATCH_SIZE = 5    # max words per AI prompt — keeps output tokens ≤ ~3500
-_BATCH_CONCURRENCY = 3  # max parallel AI calls (Groq free: 30 RPM)
+VOCAB_BATCH_SIZE = 5  # max words per AI prompt — keeps output tokens ≤ ~3500
 
 # US-#226 — topic rotation. Picking a topic, we exclude the last
 # RECENT_TOPICS_AVOID entries from the candidate pool. Stored as a
@@ -206,9 +204,10 @@ async def stream_personal_daily_words(
 ):
     """Async generator: yields SSE event dicts for /vocabulary/daily/stream.
 
-    Splits the request into VOCAB_BATCH_SIZE-word batches, runs up to
-    _BATCH_CONCURRENCY concurrently, and yields each word as its batch
-    completes. Words are persisted inline so word_id is available immediately.
+    Splits the request into VOCAB_BATCH_SIZE-word batches run sequentially.
+    Each batch receives the growing exclude list so the AI never repeats words
+    from earlier batches. Words are persisted inline so word_id is ready
+    before the client receives the event.
 
     Event shapes:
       {"type": "start", "count": N, "topic": "...", "date": "YYYY-MM-DD"}
@@ -236,21 +235,15 @@ async def stream_personal_daily_words(
         count - VOCAB_BATCH_SIZE * (n_batches - 1)
     ]
 
-    sem = asyncio.Semaphore(_BATCH_CONCURRENCY)
-
-    async def _fetch_batch(bs: int) -> list[dict]:
-        async with sem:
-            return await ai_service.generate_vocabulary(
-                count=bs, band=band, topic=topic,
-                exclude_words=list(existing_lc),
-                plan=plan,
-            )
-
     emitted_lc: set[str] = set()
 
-    for fut in asyncio.as_completed([_fetch_batch(bs) for bs in batch_sizes]):
+    for bs in batch_sizes:
         try:
-            batch = await fut
+            batch = await ai_service.generate_vocabulary(
+                count=bs, band=band, topic=topic,
+                exclude_words=list(existing_lc | emitted_lc),
+                plan=plan,
+            )
         except Exception as exc:
             logger.warning("vocab stream: batch failed — %s", exc)
             continue
