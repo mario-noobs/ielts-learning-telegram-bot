@@ -43,3 +43,25 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
   return res.json()
 }
+
+/**
+ * Like apiFetch but returns the raw Response for streaming (SSE / NDJSON).
+ * Throws ApiError on non-2xx, same as apiFetch.
+ */
+export async function apiStream(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getToken()
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  })
+  if (!res.ok) {
+    const raw = await res.json().catch(() => null)
+    throw parseApiError(raw, res.status)
+  }
+  return res
+}

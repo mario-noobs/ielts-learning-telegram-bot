@@ -1,10 +1,15 @@
+import asyncio
 import json
 import logging
+import math
 import random
 
 from services import ai_service, firebase_service
 
 logger = logging.getLogger(__name__)
+
+VOCAB_BATCH_SIZE = 5    # max words per AI prompt — keeps output tokens ≤ ~3500
+_BATCH_CONCURRENCY = 3  # max parallel AI calls (Groq free: 30 RPM)
 
 # US-#226 — topic rotation. Picking a topic, we exclude the last
 # RECENT_TOPICS_AVOID entries from the candidate pool. Stored as a
@@ -190,6 +195,99 @@ async def generate_personal_daily_words(telegram_id: int, count: int = 10,
         logger.exception("Failed to persist user recent_personal_topics")
 
     return fresh, topic
+
+
+async def stream_personal_daily_words(
+    telegram_id: int,
+    count: int = 10,
+    band: float = 7.0,
+    topics: list | None = None,
+    plan: str | None = None,
+):
+    """Async generator: yields SSE event dicts for /vocabulary/daily/stream.
+
+    Splits the request into VOCAB_BATCH_SIZE-word batches, runs up to
+    _BATCH_CONCURRENCY concurrently, and yields each word as its batch
+    completes. Words are persisted inline so word_id is available immediately.
+
+    Event shapes:
+      {"type": "start", "count": N, "topic": "...", "date": "YYYY-MM-DD"}
+      {"type": "word",  "word": {word fields + word_id}}
+      {"type": "done"}
+    """
+    import config as _config
+
+    if not topics:
+        topics = ["education", "environment", "technology"]
+
+    user = firebase_service.get_user(telegram_id) or {}
+    recent = user.get("recent_personal_topics") or []
+    topic_id = _pick_topic_avoiding_recent(topics, recent)
+    topic = _load_topic_map().get(topic_id, topic_id)
+
+    existing_words = firebase_service.get_user_word_list(telegram_id)
+    existing_lc: set[str] = {w.lower() for w in existing_words}
+
+    date_str = _config.local_date_str()
+    yield {"type": "start", "count": count, "topic": topic, "date": date_str}
+
+    n_batches = math.ceil(count / VOCAB_BATCH_SIZE) if count > 0 else 1
+    batch_sizes = [VOCAB_BATCH_SIZE] * (n_batches - 1) + [
+        count - VOCAB_BATCH_SIZE * (n_batches - 1)
+    ]
+
+    sem = asyncio.Semaphore(_BATCH_CONCURRENCY)
+
+    async def _fetch_batch(bs: int) -> list[dict]:
+        async with sem:
+            return await ai_service.generate_vocabulary(
+                count=bs, band=band, topic=topic,
+                exclude_words=list(existing_lc),
+                plan=plan,
+            )
+
+    emitted_lc: set[str] = set()
+
+    for fut in asyncio.as_completed([_fetch_batch(bs) for bs in batch_sizes]):
+        try:
+            batch = await fut
+        except Exception as exc:
+            logger.warning("vocab stream: batch failed — %s", exc)
+            continue
+
+        for w in _filter_dupes_lc(batch, existing_lc | emitted_lc):
+            word_str = (w.get("word") or "").strip()
+            if not word_str:
+                continue
+            try:
+                word_id, _ = firebase_service.add_word_if_not_exists(
+                    telegram_id,
+                    {
+                        "word": word_str,
+                        "definition": w.get("definition_en", w.get("definition", "")),
+                        "definition_vi": w.get("definition_vi", ""),
+                        "ipa": w.get("ipa", ""),
+                        "part_of_speech": w.get("part_of_speech", ""),
+                        "topic": topic,
+                        "example_en": w.get("example_en", w.get("example", "")),
+                        "example_vi": w.get("example_vi", ""),
+                    },
+                )
+                w["word_id"] = word_id
+            except Exception as exc:
+                logger.warning("vocab stream: persist %r failed — %s", word_str, exc)
+                w["word_id"] = ""
+
+            emitted_lc.add(word_str.lower())
+            yield {"type": "word", "word": w}
+
+    next_recent = _push_recent_topic(recent, topic_id)
+    try:
+        firebase_service.update_user(telegram_id, {"recent_personal_topics": next_recent})
+    except Exception:
+        logger.exception("Failed to persist user recent_personal_topics")
+
+    yield {"type": "done"}
 
 
 def _build_word_doc(word_data: dict, topic: str) -> dict:

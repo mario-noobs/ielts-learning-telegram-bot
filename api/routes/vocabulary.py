@@ -1,7 +1,10 @@
 import asyncio
+import json
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 
 import config
 from api.auth import get_current_user
@@ -17,6 +20,7 @@ from services import firebase_service, vocab_service, word_service
 from services.srs_service import get_word_strength
 
 router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
+logger = logging.getLogger(__name__)
 
 
 def _to_vocab_word(doc: dict) -> VocabularyWord:
@@ -74,6 +78,91 @@ def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
             continue
         word_id, _ = firebase_service.add_word_if_not_exists(user_id, doc)
         w["word_id"] = word_id
+
+
+def _daily_word_dict(doc: dict) -> dict:
+    """Normalize a raw word doc to the shape the frontend expects."""
+    return {
+        "word": doc.get("word", ""),
+        "word_id": doc.get("word_id", ""),
+        "definition_en": doc.get("definition_en", doc.get("definition", "")),
+        "definition_vi": doc.get("definition_vi", ""),
+        "ipa": doc.get("ipa", ""),
+        "part_of_speech": doc.get("part_of_speech", ""),
+        "example_en": doc.get("example_en", doc.get("example", "")),
+        "example_vi": doc.get("example_vi", ""),
+    }
+
+
+async def _daily_sse_generator(
+    user_id: int,
+    date_str: str,
+    count: int,
+    band: float,
+    topics: list | None,
+):
+    def sse(event: dict) -> str:
+        return f"data: {json.dumps(event)}\n\n"
+
+    try:
+        cached = await asyncio.to_thread(
+            firebase_service.get_user_daily_words, user_id, date_str
+        )
+        if cached:
+            words = cached.get("words", []) or []
+            topic = cached.get("topic", "")
+            if words and any(not w.get("word_id") for w in words):
+                await asyncio.to_thread(_persist_daily_to_deck, user_id, words, topic)
+                await asyncio.to_thread(
+                    firebase_service.save_user_daily_words, user_id, date_str, words, topic
+                )
+            yield sse({"type": "start", "count": len(words), "topic": topic, "date": date_str})
+            for w in words:
+                yield sse({"type": "word", "word": _daily_word_dict(w)})
+            yield sse({"type": "done"})
+            return
+
+        accumulated: list[dict] = []
+        topic_name = ""
+
+        async for event in vocab_service.stream_personal_daily_words(
+            telegram_id=user_id, count=count, band=band, topics=topics
+        ):
+            if event["type"] == "start":
+                topic_name = event["topic"]
+                yield sse(event)
+            elif event["type"] == "word":
+                accumulated.append(event["word"])
+                yield sse({"type": "word", "word": _daily_word_dict(event["word"])})
+            elif event["type"] == "done":
+                if accumulated:
+                    await asyncio.to_thread(
+                        firebase_service.save_user_daily_words,
+                        user_id, date_str, accumulated, topic_name,
+                    )
+                yield sse(event)
+
+    except Exception as exc:
+        logger.error("vocab stream failed for user %s: %s", user_id, exc, exc_info=True)
+        yield sse({"type": "error", "code": "vocab.stream_failed"})
+
+
+@router.post("/daily/stream")
+async def stream_daily(
+    body: DailyGenerateRequest | None = None,
+    user: dict = Depends(get_current_user),
+):
+    """Stream today's personal daily words via SSE, one word at a time."""
+    date_str = config.local_date_str()
+    count = body.count if body and body.count else config.DEFAULT_WORD_COUNT
+    topics = body.topics if body and body.topics else user.get("topics") or None
+    band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+
+    return StreamingResponse(
+        _daily_sse_generator(user["id"], date_str, count, band, topics),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("", response_model=WordListResponse)
