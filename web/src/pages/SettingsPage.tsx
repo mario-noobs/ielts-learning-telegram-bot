@@ -858,7 +858,7 @@ export default function SettingsPage() {
               <button
                 onClick={() =>
                   save({
-                    daily_time: dailyTime || '',
+                    daily_time: dailyTime || null,
                     daily_words_count: dailyWordsCount,
                   })
                 }
