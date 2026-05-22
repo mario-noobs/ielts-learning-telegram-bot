@@ -83,13 +83,21 @@ export default function VocabHomePage() {
   const profile = useProfile()
   const showLinkPrompt = profile != null && profile.id.startsWith('web_')
   const [topics, setTopics] = useState<TopicSummary[]>([])
+  const [preferredSlugs, setPreferredSlugs] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    apiFetch<TopicsResponse>('/api/v1/topics')
-      .then((res) => !cancelled && setTopics(res.items))
+    Promise.all([
+      apiFetch<TopicsResponse>('/api/v1/topics'),
+      apiFetch<{ topics: string[] }>('/api/v1/me'),
+    ])
+      .then(([res, me]) => {
+        if (cancelled) return
+        setTopics(res.items)
+        setPreferredSlugs(Array.isArray(me.topics) ? me.topics : [])
+      })
       .catch((e) => !cancelled && setError(localizeError(e)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
@@ -102,11 +110,6 @@ export default function VocabHomePage() {
     const mastered = topics.reduce((sum, tp) => sum + tp.mastered_count, 0)
     return { total, mastered }
   }, [topics])
-
-  const preferredSlugs: string[] = useMemo(
-    () => (Array.isArray(profile?.topics) ? profile!.topics : []),
-    [profile],
-  )
 
   // Preferred topics: shown even with 0 words so the user sees their
   // settings reflected immediately. Sorted least-mastered first among
