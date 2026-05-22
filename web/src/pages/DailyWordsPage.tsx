@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
-import Pagination from '../components/Pagination'
 import PronunciationButton from '../components/PronunciationButton'
 import { apiStream } from '../lib/api'
 import { localizeError } from '../lib/apiError'
@@ -18,7 +17,13 @@ interface DailyWord {
   example_vi: string
 }
 
-const PAGE_SIZE = 10
+// Module-level cache: survives tab switches within the same session.
+// Keyed by date so it auto-invalidates the next day.
+let _cache: { date: string; words: DailyWord[]; topic: string } | null = null
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 function topicLabel(
   slug: string,
@@ -88,17 +93,20 @@ function WordSkeleton() {
 
 export default function DailyWordsPage() {
   const { t } = useTranslation('vocab')
-  const [words, setWords] = useState<DailyWord[]>([])
-  const [topic, setTopic] = useState('')
-  const [expectedCount, setExpectedCount] = useState(0)
-  const [streaming, setStreaming] = useState(true)
+  const cached = _cache?.date === todayKey() ? _cache : null
+  const [words, setWords] = useState<DailyWord[]>(cached?.words ?? [])
+  const [topic, setTopic] = useState(cached?.topic ?? '')
+  const [expectedCount, setExpectedCount] = useState(cached?.words.length ?? 0)
+  const [streaming, setStreaming] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
 
   useEffect(() => {
+    if (!streaming) return
     const controller = new AbortController()
 
     async function streamWords() {
+      const collected: DailyWord[] = []
+      let streamedTopic = ''
       try {
         const res = await apiStream('/api/v1/vocabulary/daily/stream', {
           method: 'POST',
@@ -125,9 +133,12 @@ export default function DailyWordsPage() {
               if (event.type === 'start') {
                 setExpectedCount(event.count)
                 setTopic(event.topic)
+                streamedTopic = event.topic
               } else if (event.type === 'word') {
+                collected.push(event.word)
                 setWords((prev) => [...prev, event.word])
               } else if (event.type === 'done') {
+                _cache = { date: todayKey(), words: collected, topic: streamedTopic }
                 setStreaming(false)
               } else if (event.type === 'error') {
                 setError(t('daily.loadError', { defaultValue: 'Failed to generate words.' }))
@@ -149,17 +160,9 @@ export default function DailyWordsPage() {
 
     streamWords()
     return () => controller.abort()
-  }, [t])
+  }, [streaming, t])
 
-  const totalSlots = streaming && expectedCount > 0 ? expectedCount : words.length
-  const totalPages = useMemo(() => Math.ceil(totalSlots / PAGE_SIZE) || 1, [totalSlots])
-
-  const pageStart = (page - 1) * PAGE_SIZE
-  const pageEnd = Math.min(pageStart + PAGE_SIZE, totalSlots)
-  const pageWords = words.slice(pageStart, Math.min(pageEnd, words.length))
-  const skeletonCount = Math.max(0, pageEnd - Math.max(pageStart, words.length))
-  const startNumber = pageStart + 1
-  const lastNumber = Math.min(pageStart + pageWords.length, words.length)
+  const skeletonCount = streaming && expectedCount > words.length ? expectedCount - words.length : 0
 
   if (error) {
     return (
@@ -196,27 +199,18 @@ export default function DailyWordsPage() {
                 count: words.length,
                 total: expectedCount || '…',
               })
-            : `${t('daily.pageOf', { current: page, total: totalPages })} · ${t('daily.wordRange', { first: startNumber, last: lastNumber, total: words.length })}`}
+            : t('daily.wordCount', { defaultValue: '{{count}} words', count: words.length })}
         </p>
       </header>
 
       <div className="space-y-3">
-        {pageWords.map((item, i) => (
-          <DailyWordCard key={`${item.word}-${i}`} item={item} index={startNumber + i} />
+        {words.map((item, i) => (
+          <DailyWordCard key={`${item.word}-${i}`} item={item} index={i + 1} />
         ))}
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <WordSkeleton key={`sk-${i}`} />
         ))}
       </div>
-
-      {totalPages > 1 && (
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPrev={() => setPage((p) => Math.max(1, p - 1))}
-          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
-        />
-      )}
 
       {!streaming && (
         <>
