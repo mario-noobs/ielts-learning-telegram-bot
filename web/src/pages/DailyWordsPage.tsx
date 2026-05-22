@@ -18,7 +18,7 @@ interface DailyWord {
   example_vi: string
 }
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
 
 function topicLabel(
   slug: string,
