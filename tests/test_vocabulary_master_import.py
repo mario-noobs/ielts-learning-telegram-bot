@@ -4,6 +4,7 @@ from scripts.import_vocabulary_master import (
     SOURCE,
     build_upsert_statement,
     candidate_id,
+    count_existing_master_words,
     normalize_word,
     parse_wordlevel_rows,
     split_csv_list,
@@ -63,3 +64,26 @@ def test_build_upsert_statement_handles_metadata_column_name():
     compiled = str(statement.compile())
     assert "vocabulary_master" in compiled
     assert "metadata" in compiled
+
+
+def test_count_existing_master_words_uses_vocabulary_master_table(monkeypatch):
+    captured = {}
+
+    class FakeSession:
+        def scalar(self, statement):
+            captured["statement"] = str(statement)
+            return 7
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+    monkeypatch.setattr(
+        "scripts.import_vocabulary_master.get_sync_session",
+        lambda: FakeSession(),
+    )
+
+    assert count_existing_master_words() == 7
+    assert "vocabulary_master" in captured["statement"]

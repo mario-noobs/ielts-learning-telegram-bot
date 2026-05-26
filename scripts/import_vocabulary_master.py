@@ -232,6 +232,11 @@ def load_topic_ids_by_slug() -> dict[str, int]:
         return dict(session.execute(select(Topic.slug, Topic.id)).all())
 
 
+def count_existing_master_words() -> int:
+    with get_sync_session() as session:
+        return session.scalar(select(func.count()).select_from(VocabularyMaster)) or 0
+
+
 def upsert_candidates(candidates: Iterable[MasterWordCandidate]) -> int:
     values = [candidate.to_insert_values() for candidate in candidates]
     if not values:
@@ -283,6 +288,11 @@ def summarize(candidates: list[MasterWordCandidate]) -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Write rows to Postgres.")
+    parser.add_argument(
+        "--if-empty",
+        action="store_true",
+        help="With --apply, skip import when vocabulary_master already has rows.",
+    )
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--source-url", default=WORDLEVEL_FULL_CSV_URL)
     return parser.parse_args()
@@ -290,6 +300,16 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.if_empty and not args.apply:
+        print("--if-empty only applies with --apply", file=sys.stderr)
+        return 2
+
+    if args.if_empty:
+        existing = count_existing_master_words()
+        if existing > 0:
+            print(f"vocabulary_master already seeded; existing={existing}")
+            return 0
+
     topic_ids_by_slug = load_topic_ids_by_slug() if args.apply else DEFAULT_TOPIC_IDS_BY_SLUG
     csv_text = fetch_text(args.source_url, args.timeout)
     candidates = parse_wordlevel_rows(csv_text, topic_ids_by_slug)

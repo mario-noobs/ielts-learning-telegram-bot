@@ -91,7 +91,8 @@ Redeploy the Render service.
 - Render Free services can sleep when idle, so the first API request after a
   quiet period may be slow.
 - Render Free does not support pre-deploy commands. `Dockerfile.api` runs
-  `alembic upgrade head` before starting Uvicorn.
+  `alembic upgrade head`, seeds `vocabulary_master` if it is empty, then starts
+  Uvicorn.
 - The Telegram bot is not deployed by this setup. Keep it on the existing VPS
   or add a separate paid/background worker later.
 - Do not commit real Firebase service account JSON. Encode it locally and paste

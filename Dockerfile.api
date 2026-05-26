@@ -18,4 +18,4 @@ COPY scripts ./scripts
 COPY services ./services
 
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && uvicorn api.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head && python scripts/import_vocabulary_master.py --apply --if-empty && uvicorn api.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]
