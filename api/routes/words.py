@@ -11,8 +11,8 @@ import config
 from api.auth import get_current_user
 from api.errors import ApiError, ERR
 from api.models.vocabulary import Collocation, EnrichedExample, EnrichedWord
-from api.permissions import enforce_ai_quota
 from services import word_service
+from services.admin import quota_service
 
 
 def _to_collocation(item) -> Collocation:
@@ -136,7 +136,6 @@ async def update_word_strength(
 @router.get(
     "/{word}",
     response_model=EnrichedWord,
-    dependencies=[Depends(enforce_ai_quota("words"))],
 )
 async def get_enriched_word(
     word: str,
@@ -151,7 +150,17 @@ async def get_enriched_word(
         )
 
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
-    data = await word_service.get_enriched_word(normalized, band)
+    data = await word_service.get_word_detail_fast(normalized, band)
+    if data is None:
+        quota_service.check_and_increment(
+            user_uid=str(user["id"]),
+            feature="words",
+            plan=user.get("plan", "free"),
+            quota_override=user.get("quota_override"),
+        )
+        data = await word_service.get_enriched_word(
+            normalized, band, block_backfill=False,
+        )
 
     raw_examples = data.get("examples_by_band", {}) or {}
     examples = {
@@ -164,8 +173,16 @@ async def get_enriched_word(
 
     raw_synonyms = data.get("synonyms")
     raw_antonyms = data.get("antonyms")
-    synonyms = raw_synonyms.get("words", []) if isinstance(raw_synonyms, dict) else []
-    antonyms = raw_antonyms.get("words", []) if isinstance(raw_antonyms, dict) else []
+    synonyms = (
+        raw_synonyms.get("words", [])
+        if isinstance(raw_synonyms, dict)
+        else (raw_synonyms or [])
+    )
+    antonyms = (
+        raw_antonyms.get("words", [])
+        if isinstance(raw_antonyms, dict)
+        else (raw_antonyms or [])
+    )
 
     return EnrichedWord(
         word=data.get("word", normalized),

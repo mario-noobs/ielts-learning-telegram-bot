@@ -41,7 +41,7 @@ def _enriched_fixture() -> dict:
 class TestEnrichedWord:
     def test_ac3_full_cache_hit_returns_enrichment(self, client):
         """AC3: GET /api/v1/words/ubiquitous returns full enrichment."""
-        with patch("api.routes.words.word_service.get_enriched_word",
+        with patch("api.routes.words.word_service.get_word_detail_fast",
                    new=AsyncMock(return_value=_enriched_fixture())) as mock_fn:
             response = client.get("/api/v1/words/ubiquitous")
 
@@ -64,7 +64,7 @@ class TestEnrichedWord:
             {"phrase": "pristine condition", "label": "neutral"},
             {"phrase": "pristine environment", "label": "academic"},
         ]
-        with patch("api.routes.words.word_service.get_enriched_word",
+        with patch("api.routes.words.word_service.get_word_detail_fast",
                    new=AsyncMock(return_value=data)):
             response = client.get("/api/v1/words/pristine")
 
@@ -77,7 +77,7 @@ class TestEnrichedWord:
 
     def test_word_is_normalized_before_lookup(self, client):
         """Leading/trailing whitespace and caps are stripped."""
-        with patch("api.routes.words.word_service.get_enriched_word",
+        with patch("api.routes.words.word_service.get_word_detail_fast",
                    new=AsyncMock(return_value=_enriched_fixture())) as mock_fn:
             response = client.get("/api/v1/words/%20UBIQUITOUS%20")
 
@@ -88,7 +88,7 @@ class TestEnrichedWord:
         """Cache miss / partial hit is handled by word_service — endpoint just serializes."""
         partial = _enriched_fixture()
         partial["examples_by_band"] = {}
-        with patch("api.routes.words.word_service.get_enriched_word",
+        with patch("api.routes.words.word_service.get_word_detail_fast",
                    new=AsyncMock(return_value=partial)):
             response = client.get("/api/v1/words/ubiquitous")
 
@@ -103,9 +103,34 @@ class TestEnrichedWord:
         }
         test_client = TestClient(app)
 
-        with patch("api.routes.words.word_service.get_enriched_word",
+        with patch("api.routes.words.word_service.get_word_detail_fast",
                    new=AsyncMock(return_value=_enriched_fixture())) as mock_fn:
             response = test_client.get("/api/v1/words/ubiquitous")
 
         assert response.status_code == 200
         mock_fn.assert_called_once_with("ubiquitous", 8.0)
+
+    def test_true_miss_charges_quota_and_calls_ai(self, client):
+        """Only true cache/master misses should consume AI quota."""
+        with patch("api.routes.words.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=None)), \
+             patch("api.routes.words.quota_service.check_and_increment") as quota, \
+             patch("api.routes.words.word_service.get_enriched_word",
+                   new=AsyncMock(return_value=_enriched_fixture())) as enrich:
+            response = client.get("/api/v1/words/ubiquitous")
+
+        assert response.status_code == 200
+        quota.assert_called_once()
+        enrich.assert_called_once_with("ubiquitous", 7.0, block_backfill=False)
+
+    def test_fast_hit_does_not_charge_quota(self, client):
+        with patch("api.routes.words.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=_enriched_fixture())), \
+             patch("api.routes.words.quota_service.check_and_increment") as quota, \
+             patch("api.routes.words.word_service.get_enriched_word",
+                   new=AsyncMock()) as enrich:
+            response = client.get("/api/v1/words/ubiquitous")
+
+        assert response.status_code == 200
+        quota.assert_not_called()
+        enrich.assert_not_awaited()

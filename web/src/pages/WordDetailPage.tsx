@@ -36,8 +36,10 @@ interface UserProfile {
 }
 
 function bandTier(band: number): string {
-  const rounded = Math.round(band)
-  return `band-${rounded}`
+  if (band >= 8) return '8'
+  if (band >= 7) return '7'
+  if (band >= 6) return '6'
+  return '5'
 }
 
 function PlayButton({ word }: { word: string }) {

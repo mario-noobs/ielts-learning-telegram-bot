@@ -100,3 +100,71 @@ async def test_empty_freedict_synonyms_do_not_call_gemini(monkeypatch):
     assert ants == []
     assert source == "freedict"
     gemini.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_fast_detail_cache_hit_schedules_backfill(monkeypatch):
+    cached = {
+        "word": "ubiquitous",
+        "definition_en": "Present everywhere.",
+        "examples_by_band": {"7": {"en": "Example.", "vi": ""}},
+        "synonyms": None,
+    }
+    scheduled = {}
+    monkeypatch.setattr(
+        word_service.firebase_service,
+        "get_enriched_word_doc",
+        lambda word: cached,
+    )
+    monkeypatch.setattr(
+        word_service,
+        "_schedule_metadata_backfill",
+        lambda word, data: scheduled.update({"word": word, "data": data}),
+    )
+
+    result = await word_service.get_word_detail_fast(" UBIQUITOUS ", 7.0)
+
+    assert result is cached
+    assert scheduled["word"] == "ubiquitous"
+
+
+@pytest.mark.asyncio
+async def test_fast_detail_uses_master_when_cache_misses(monkeypatch):
+    master = {
+        "word": "deficit",
+        "definition_en": "A shortfall.",
+        "examples_by_band": {"7": {"en": "A deficit grew.", "vi": ""}},
+        "synonyms": {"words": ["shortfall"], "source": "wordlevel"},
+    }
+    monkeypatch.setattr(
+        word_service.firebase_service,
+        "get_enriched_word_doc",
+        lambda word: None,
+    )
+    monkeypatch.setattr(word_service, "get_master_word_detail", lambda word, band: master)
+    monkeypatch.setattr(word_service, "_schedule_metadata_backfill", lambda word, data: None)
+
+    result = await word_service.get_word_detail_fast("deficit", 7.0)
+
+    assert result is master
+
+
+@pytest.mark.asyncio
+async def test_backfill_caches_master_detail(monkeypatch):
+    cached = {
+        "source": "vocabulary_master",
+        "word": "deficit",
+        "synonyms": {"words": ["shortfall"], "source": "wordlevel"},
+        "image_url": None,
+    }
+    writes = []
+    monkeypatch.setattr(
+        word_service.firebase_service,
+        "set_enriched_word_doc",
+        lambda word, data: writes.append((word, data)),
+    )
+    monkeypatch.setattr(word_service.config, "UNSPLASH_ACCESS_KEY", "")
+
+    await word_service._backfill_missing_metadata("deficit", cached)
+
+    assert writes == [("deficit", cached)]

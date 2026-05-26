@@ -7,9 +7,14 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+
 import config
 from services import ai_service, firebase_service
 from services.ai_service import BackgroundDisabled, RateLimitError
+from services.db import get_sync_session
+from services.db.models import VocabularyMaster
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +36,9 @@ STRENGTH_TARGETS: dict[StrengthLiteral, dict] = {
     "Good":     {"srs_interval": 14, "srs_reps": 3},
     "Mastered": {"srs_interval": 30, "srs_reps": 5},
 }
+
+MASTER_WORD_STATUSES = ("active", "candidate")
+_BACKFILL_IN_FLIGHT: set[str] = set()
 
 # Order used to compare "is the chosen tier higher than current?"
 _STRENGTH_RANK: dict[str, int] = {
@@ -170,6 +178,64 @@ async def _fetch_synonyms_antonyms(word: str) -> tuple[list[str], list[str], str
     return [], [], "gemini"
 
 
+async def _backfill_missing_metadata(word: str, cached: dict) -> None:
+    try:
+        if cached.get("source") == "vocabulary_master":
+            try:
+                await asyncio.to_thread(
+                    firebase_service.set_enriched_word_doc, word, cached,
+                )
+            except Exception:
+                logger.debug("master detail cache write failed for %s", word)
+
+        if cached.get("synonyms") is None:
+            try:
+                syns, ants, source = await _fetch_synonyms_antonyms(word)
+                await asyncio.to_thread(
+                    firebase_service.update_enriched_word_synonyms_antonyms,
+                    word, syns, ants, source,
+                )
+            except Exception:
+                logger.debug("synonyms/antonyms backfill failed for %s", word)
+
+        if cached.get("image_url") is None and getattr(config, "UNSPLASH_ACCESS_KEY", ""):
+            try:
+                url = await _fetch_image_url(word)
+                if url:
+                    await asyncio.to_thread(
+                        firebase_service.update_enriched_word_image_url, word, url,
+                    )
+            except Exception:
+                logger.debug("image_url backfill failed for %s", word)
+    finally:
+        _BACKFILL_IN_FLIGHT.discard(word)
+
+
+def _needs_metadata_backfill(data: dict) -> bool:
+    return data.get("synonyms") is None or (
+        data.get("image_url") is None and bool(getattr(config, "UNSPLASH_ACCESS_KEY", ""))
+    )
+
+
+def _schedule_metadata_backfill(word: str, data: dict) -> None:
+    if not _needs_metadata_backfill(data) or word in _BACKFILL_IN_FLIGHT:
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    _BACKFILL_IN_FLIGHT.add(word)
+    task = loop.create_task(_backfill_missing_metadata(word, dict(data)))
+    task.add_done_callback(lambda _: _BACKFILL_IN_FLIGHT.discard(word))
+
+
+def _apply_metadata_backfill_result(
+    cached: dict, syns: list[str], ants: list[str], source: str,
+) -> None:
+    cached["synonyms"] = {"words": syns, "source": source}
+    cached["antonyms"] = {"words": ants, "source": source}
+
+
 def normalize_word(raw: str) -> str:
     """Lowercase and strip whitespace."""
     return raw.strip().lower()
@@ -190,8 +256,78 @@ def band_tier(band: float) -> str:
         return "5"
 
 
+def _master_word_to_enriched(row: VocabularyMaster, tier: str) -> dict:
+    examples = {}
+    if row.example_en or row.example_vi:
+        examples[tier] = {
+            "en": row.example_en or "",
+            "vi": row.example_vi or "",
+        }
+    return {
+        "word": row.word,
+        "ipa": row.ipa or "",
+        "syllable_stress": "",
+        "part_of_speech": row.part_of_speech or "",
+        "definition_en": row.definition_en or "",
+        "definition_vi": row.definition_vi or "",
+        "word_family": row.word_family or [],
+        "collocations": row.collocations or [],
+        "examples_by_band": examples,
+        "ielts_tip": "",
+        "synonyms": {"words": row.synonyms or [], "source": row.source},
+        "antonyms": {"words": row.antonyms or [], "source": row.source},
+        "image_url": None,
+        "source": "vocabulary_master",
+    }
+
+
+def get_master_word_detail(word: str, band: float) -> dict | None:
+    normalized = normalize_word(word)
+    if not normalized:
+        return None
+    try:
+        with get_sync_session() as session:
+            row = session.execute(
+                select(VocabularyMaster).where(
+                    VocabularyMaster.normalized_word == normalized,
+                    VocabularyMaster.status.in_(MASTER_WORD_STATUSES),
+                )
+            ).scalar_one_or_none()
+    except SQLAlchemyError as exc:
+        logger.warning("vocab master detail lookup failed for %s: %s", normalized, exc)
+        return None
+    if row is None:
+        return None
+    return _master_word_to_enriched(row, band_tier(band))
+
+
+async def get_word_detail_fast(word: str, band: float) -> dict | None:
+    """Return detail without blocking on AI, dictionary, or image providers."""
+    normalized = normalize_word(word)
+    if not normalized:
+        return None
+
+    cached = await asyncio.to_thread(
+        firebase_service.get_enriched_word_doc, normalized,
+    )
+    if cached is not None:
+        logger.info("Word detail fast cache HIT: %s", normalized)
+        _schedule_metadata_backfill(normalized, cached)
+        return cached
+
+    master = await asyncio.to_thread(get_master_word_detail, normalized, band)
+    if master is not None:
+        logger.info("Word detail master HIT: %s", normalized)
+        _schedule_metadata_backfill(normalized, master)
+        return master
+
+    logger.info("Word detail fast MISS: %s", normalized)
+    return None
+
+
 async def get_enriched_word(word: str, band: float,
-                           priority: str = "foreground") -> dict:
+                           priority: str = "foreground",
+                           block_backfill: bool = True) -> dict:
     """Look up or generate enriched word data.
 
     Flow:
@@ -260,6 +396,10 @@ async def get_enriched_word(word: str, band: float,
         else:
             logger.info("Word cache HIT: %s (band %s)", normalized, tier)
 
+    if not block_backfill:
+        _schedule_metadata_backfill(normalized, cached)
+        return cached
+
     if cached.get("synonyms") is None:
         try:
             syns, ants, source = await _fetch_synonyms_antonyms(normalized)
@@ -267,8 +407,7 @@ async def get_enriched_word(word: str, band: float,
                 firebase_service.update_enriched_word_synonyms_antonyms,
                 normalized, syns, ants, source,
             )
-            cached["synonyms"] = {"words": syns, "source": source}
-            cached["antonyms"] = {"words": ants, "source": source}
+            _apply_metadata_backfill_result(cached, syns, ants, source)
         except Exception:
             logger.debug("synonyms/antonyms backfill failed for %s", normalized)
 
