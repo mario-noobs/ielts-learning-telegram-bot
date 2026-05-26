@@ -168,3 +168,24 @@ async def test_backfill_caches_master_detail(monkeypatch):
     await word_service._backfill_missing_metadata("deficit", cached)
 
     assert writes == [("deficit", cached)]
+
+
+def test_core_detail_complete_ignores_metadata(monkeypatch):
+    monkeypatch.setattr(word_service.config, "UNSPLASH_ACCESS_KEY", "key")
+    data = {
+        "ipa": "/test/",
+        "syllable_stress": "TEST",
+        "part_of_speech": "noun",
+        "definition_en": "A definition.",
+        "definition_vi": "Một định nghĩa.",
+        "collocations": [{"phrase": "test phrase", "label": "neutral"}],
+        "word_family": ["test"],
+        "ielts_tip": "Use it carefully.",
+        "examples_by_band": {"7": {"en": "Example.", "vi": "Ví dụ."}},
+        "synonyms": None,
+        "antonyms": None,
+        "image_url": None,
+    }
+
+    assert word_service.is_word_core_detail_complete(data, 7.0) is True
+    assert word_service.is_word_detail_complete(data, 7.0) is False

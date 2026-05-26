@@ -142,3 +142,20 @@ class TestEnrichedWord:
         assert response.status_code == 200
         quota.assert_not_called()
         enrich.assert_not_awaited()
+
+    def test_metadata_missing_does_not_charge_quota_or_block_on_ai(self, client):
+        data = _enriched_fixture()
+        data["synonyms"] = None
+        data["antonyms"] = None
+        data["image_url"] = None
+
+        with patch("api.routes.words.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=data)), \
+             patch("api.routes.words.quota_service.check_and_increment") as quota, \
+             patch("api.routes.words.word_service.get_complete_word_detail",
+                   new=AsyncMock()) as complete:
+            response = client.get("/api/v1/words/ubiquitous")
+
+        assert response.status_code == 200
+        quota.assert_not_called()
+        complete.assert_not_awaited()

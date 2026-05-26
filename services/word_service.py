@@ -39,8 +39,9 @@ STRENGTH_TARGETS: dict[StrengthLiteral, dict] = {
 
 MASTER_WORD_STATUSES = ("active", "candidate")
 _BACKFILL_IN_FLIGHT: set[str] = set()
-DETAIL_REQUIRED_FIELDS = (
+CORE_DETAIL_REQUIRED_FIELDS = (
     "ipa",
+    "syllable_stress",
     "part_of_speech",
     "definition_en",
     "definition_vi",
@@ -334,14 +335,20 @@ async def get_word_detail_fast(word: str, band: float) -> dict | None:
     return None
 
 
-def is_word_detail_complete(data: dict, band: float) -> bool:
+def is_word_core_detail_complete(data: dict, band: float) -> bool:
     tier = band_tier(band)
     examples = data.get("examples_by_band") or {}
     if tier not in examples:
         return False
-    for field in DETAIL_REQUIRED_FIELDS:
+    for field in CORE_DETAIL_REQUIRED_FIELDS:
         if not data.get(field):
             return False
+    return True
+
+
+def is_word_detail_complete(data: dict, band: float) -> bool:
+    if not is_word_core_detail_complete(data, band):
+        return False
     if data.get("synonyms") is None or data.get("antonyms") is None:
         return False
     if getattr(config, "UNSPLASH_ACCESS_KEY", "") and data.get("image_url") is None:
@@ -352,7 +359,7 @@ def is_word_detail_complete(data: dict, band: float) -> bool:
 async def get_complete_word_detail(word: str, band: float) -> dict:
     normalized = normalize_word(word)
     fast = await get_word_detail_fast(normalized, band)
-    if fast is not None and is_word_detail_complete(fast, band):
+    if fast is not None and is_word_core_detail_complete(fast, band):
         return fast
     if fast is not None:
         logger.info("Word detail incomplete; enriching with AI: %s", normalized)
