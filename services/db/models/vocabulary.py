@@ -114,6 +114,79 @@ class UserVocabulary(Base):
     )
 
 
+class VocabularyMaster(Base):
+    """Canonical vocabulary content shared across users.
+
+    ``user_vocabulary`` remains per-user SRS state. This table is the
+    reproducible source pool that daily generation can select from before
+    falling back to AI-generated candidates.
+    """
+
+    __tablename__ = "vocabulary_master"
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    word: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_word: Mapped[str] = mapped_column(Text, nullable=False)
+    part_of_speech: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    difficulty: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    cefr_level: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    topic_id: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, ForeignKey("topics.id"), nullable=True,
+    )
+    source_theme: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    definition_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    definition_vi: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    ipa: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    example_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    example_vi: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    synonyms: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"),
+    )
+    antonyms: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"),
+    )
+    collocations: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"),
+    )
+    word_family: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"),
+    )
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    source_ref: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    license: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[str] = mapped_column(Text, nullable=False, default="candidate")
+    metadata_json: Mapped[dict] = mapped_column(
+        "metadata", JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()"),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()"),
+    )
+
+    topic: Mapped[Optional[Topic]] = relationship("Topic", lazy="joined")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "normalized_word", name="uq_vocabulary_master_normalized_word",
+        ),
+        UniqueConstraint("source", "source_ref", name="uq_vocabulary_master_source_ref"),
+        CheckConstraint(
+            "difficulty IS NULL OR difficulty BETWEEN 1 AND 5",
+            name="ck_vocabulary_master_difficulty",
+        ),
+        CheckConstraint(
+            "status IN ('candidate', 'active', 'rejected')",
+            name="ck_vocabulary_master_status",
+        ),
+        Index("ix_vocabulary_master_status", "status"),
+        Index("ix_vocabulary_master_topic_status", "topic_id", "status"),
+        Index("ix_vocabulary_master_source_theme", "source_theme"),
+    )
+
+
 class ReviewEvent(Base):
     """Append-only audit log of SRS reviews.
 
@@ -150,4 +223,4 @@ class ReviewEvent(Base):
     )
 
 
-__all__ = ["Topic", "UserVocabulary", "ReviewEvent"]
+__all__ = ["Topic", "UserVocabulary", "VocabularyMaster", "ReviewEvent"]

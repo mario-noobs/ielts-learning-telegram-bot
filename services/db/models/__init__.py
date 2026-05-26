@@ -35,7 +35,7 @@ from services.db.models.progress import (
 from services.db.models.sessions import QuizSession, ReadingSession
 from services.db.models.team import Team, TeamMember
 from services.db.models.user import User
-from services.db.models.vocabulary import ReviewEvent, Topic, UserVocabulary
+from services.db.models.vocabulary import ReviewEvent, Topic, UserVocabulary, VocabularyMaster
 
 __all__ = [
     "AiProviderUsage",
@@ -72,5 +72,6 @@ __all__ = [
     "User",
     "UserDailyWords",
     "UserVocabulary",
+    "VocabularyMaster",
     "WritingHistory",
 ]

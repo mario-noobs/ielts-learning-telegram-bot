@@ -2,6 +2,8 @@ import json
 import logging
 import math
 import random
+import re
+import unicodedata
 
 from services import ai_service, firebase_service
 
@@ -14,6 +16,8 @@ VOCAB_BATCH_SIZE = 5  # max words per AI prompt — keeps output tokens ≤ ~350
 # bounded FIFO list on the group / user doc up to RECENT_TOPICS_KEEP.
 RECENT_TOPICS_AVOID = 3
 RECENT_TOPICS_KEEP = 5
+MASTER_WORD_STATUSES = ("active", "candidate")
+_PUNCT_RE = re.compile(r"[^\w\s-]", re.UNICODE)
 
 
 def _load_topic_map() -> dict[str, str]:
@@ -61,7 +65,7 @@ def _filter_dupes_lc(words: list[dict], existing_lc: set[str]) -> list[dict]:
     out: list[dict] = []
     seen_in_batch: set[str] = set()
     for w in words:
-        key = (w.get("word") or "").strip().lower()
+        key = _normalize_word_key(w.get("word") or "")
         if not key or key in existing_lc or key in seen_in_batch:
             continue
         seen_in_batch.add(key)
@@ -69,10 +73,112 @@ def _filter_dupes_lc(words: list[dict], existing_lc: set[str]) -> list[dict]:
     return out
 
 
+def _normalize_word_key(word: str) -> str:
+    if not word:
+        return ""
+    normalized = unicodedata.normalize("NFC", word).lower().strip()
+    normalized = _PUNCT_RE.sub("", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _target_master_difficulty(band: float) -> int:
+    if band >= 7.0:
+        return 5
+    if band >= 6.0:
+        return 4
+    return 3
+
+
+def _select_master_words(
+    *, count: int, topic: str, band: float, existing_lc: set[str],
+) -> list[dict]:
+    """Select reproducible public-source words before falling back to AI.
+
+    The table may not exist in older local/prod environments during rollout;
+    in that case we log and return an empty list so existing AI generation
+    keeps working.
+    """
+    if count <= 0:
+        return []
+    try:
+        from sqlalchemy import func, or_, select
+        from sqlalchemy.exc import SQLAlchemyError
+
+        from services.db import get_sync_session
+        from services.db.models import Topic, VocabularyMaster
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("vocab master unavailable: %s", exc)
+        return []
+
+    normalized_existing = {_normalize_word_key(w) for w in existing_lc if w}
+    normalized_existing.discard("")
+    target_difficulty = _target_master_difficulty(band)
+    selected: list[dict] = []
+    selected_keys: set[str] = set()
+
+    def run_query(topic_id: int | None, limit: int) -> list:
+        conditions = [
+            VocabularyMaster.status.in_(MASTER_WORD_STATUSES),
+            VocabularyMaster.normalized_word.notin_(normalized_existing | selected_keys),
+        ]
+        if topic_id is not None:
+            conditions.append(VocabularyMaster.topic_id == topic_id)
+        stmt = (
+            select(VocabularyMaster)
+            .where(*conditions)
+            .order_by(
+                func.abs(func.coalesce(VocabularyMaster.difficulty, target_difficulty) - target_difficulty),
+                func.random(),
+            )
+            .limit(limit)
+        )
+        with get_sync_session() as session:
+            return list(session.execute(stmt).scalars().all())
+
+    try:
+        with get_sync_session() as session:
+            topic_row = session.execute(
+                select(Topic.id).where(
+                    or_(
+                        func.lower(Topic.slug) == topic.strip().lower(),
+                        func.lower(Topic.name_en) == topic.strip().lower(),
+                    )
+                )
+            ).scalar_one_or_none()
+
+        for row in run_query(topic_row, count):
+            selected_keys.add(row.normalized_word)
+            selected.append(_master_row_to_word(row))
+        if len(selected) < count:
+            for row in run_query(None, count - len(selected)):
+                selected_keys.add(row.normalized_word)
+                selected.append(_master_row_to_word(row))
+    except SQLAlchemyError as exc:
+        logger.warning("vocab master selection failed: %s", exc)
+        return []
+
+    return selected[:count]
+
+
+def _master_row_to_word(row) -> dict:
+    return {
+        "word": row.word,
+        "definition_en": row.definition_en,
+        "definition_vi": row.definition_vi or "",
+        "ipa": row.ipa or "",
+        "part_of_speech": row.part_of_speech or "",
+        "example_en": row.example_en,
+        "example_vi": row.example_vi or "",
+        "synonyms": row.synonyms or [],
+        "source": row.source,
+    }
+
+
 async def _generate_with_dedup(
     *, count: int, band: float, topic: str, existing_lc: set[str],
     fallback_topic_id: str | None = None,  # kept for compat; unused
     context_words: list[str] | None = None,
+    plan: str | None = None,
 ) -> list[dict]:
     """Generate words in VOCAB_BATCH_SIZE chunks, each with the growing
     exclude list, so the AI never repeats earlier words and output-token
@@ -97,6 +203,7 @@ async def _generate_with_dedup(
             batch = await ai_service.generate_vocabulary(
                 count=bs, band=band, topic=context_topic,
                 exclude_words=list(emitted_lc),
+                plan=plan,
             )
         except Exception as exc:
             logger.warning("Vocab batch failed: %s — returning %d/%d words",
@@ -111,12 +218,35 @@ async def _generate_with_dedup(
             continue
         empty_batches = 0
         for w in fresh:
-            key = (w.get("word") or "").strip().lower()
+            key = _normalize_word_key(w.get("word") or "")
             if key:
                 emitted_lc.add(key)
         all_words.extend(fresh)
 
     return all_words[:count]
+
+
+async def _generate_with_master_first(
+    *, count: int, band: float, topic: str, existing_lc: set[str],
+    context_words: list[str] | None = None, plan: str | None = None,
+) -> list[dict]:
+    master_words = _select_master_words(
+        count=count, topic=topic, band=band, existing_lc=existing_lc,
+    )
+    if len(master_words) >= count:
+        return master_words[:count]
+
+    emitted_lc = set(existing_lc)
+    emitted_lc.update(_normalize_word_key(w.get("word", "")) for w in master_words)
+    fallback = await _generate_with_dedup(
+        count=count - len(master_words),
+        band=band,
+        topic=topic,
+        existing_lc=emitted_lc,
+        context_words=context_words,
+        plan=plan,
+    )
+    return (master_words + fallback)[:count]
 
 
 async def generate_daily_words(group_id: int, count: int = 10,
@@ -150,9 +280,9 @@ async def generate_daily_words(group_id: int, count: int = 10,
     existing_lc: set[str] = set()
     for user in users:
         words = firebase_service.get_user_word_list(int(user["id"]))
-        existing_lc.update(w.lower() for w in words)
+        existing_lc.update(_normalize_word_key(w) for w in words)
 
-    fresh = await _generate_with_dedup(
+    fresh = await _generate_with_master_first(
         count=count, band=band, topic=topic, existing_lc=existing_lc,
     )
 
@@ -189,9 +319,9 @@ async def generate_personal_daily_words(telegram_id: int, count: int = 10,
     topic = _load_topic_map().get(topic_id, topic_id)
 
     existing_words = firebase_service.get_user_word_list(telegram_id)
-    existing_lc = set(w.lower() for w in existing_words)
+    existing_lc = {_normalize_word_key(w) for w in existing_words}
 
-    fresh = await _generate_with_dedup(
+    fresh = await _generate_with_master_first(
         count=count, band=band, topic=topic, existing_lc=existing_lc,
         context_words=context_words,
     )
@@ -238,59 +368,44 @@ async def stream_personal_daily_words(
     topic = _load_topic_map().get(topic_id, topic_id)
 
     existing_words = firebase_service.get_user_word_list(telegram_id)
-    existing_lc: set[str] = {w.lower() for w in existing_words}
+    existing_lc: set[str] = {_normalize_word_key(w) for w in existing_words}
 
     date_str = _config.local_date_str()
     yield {"type": "start", "count": count, "topic": topic, "date": date_str}
 
-    n_batches = math.ceil(count / VOCAB_BATCH_SIZE) if count > 0 else 1
-    batch_sizes = [VOCAB_BATCH_SIZE] * (n_batches - 1) + [
-        count - VOCAB_BATCH_SIZE * (n_batches - 1)
-    ]
-
-    emitted_lc: set[str] = set()
-
-    context_topic = topic
-    if context_words and len(context_words) >= 3:
-        joined = ", ".join(context_words[:10])
-        context_topic = f"{topic} [CONTEXT: The learner is interested in words related to: {joined}. Prefer semantically related words.]"
-
-    for bs in batch_sizes:
-        try:
-            batch = await ai_service.generate_vocabulary(
-                count=bs, band=band, topic=context_topic,
-                exclude_words=list(existing_lc | emitted_lc),
-                plan=plan,
-            )
-        except Exception as exc:
-            logger.warning("vocab stream: batch failed — %s", exc)
+    words = await _generate_with_master_first(
+        count=count,
+        band=band,
+        topic=topic,
+        existing_lc=existing_lc,
+        context_words=context_words,
+        plan=plan,
+    )
+    for w in _filter_dupes_lc(words, existing_lc):
+        word_str = (w.get("word") or "").strip()
+        if not word_str:
             continue
+        try:
+            word_id, _ = firebase_service.add_word_if_not_exists(
+                telegram_id,
+                {
+                    "word": word_str,
+                    "definition": w.get("definition_en", w.get("definition", "")),
+                    "definition_vi": w.get("definition_vi", ""),
+                    "ipa": w.get("ipa", ""),
+                    "part_of_speech": w.get("part_of_speech", ""),
+                    "topic": topic,
+                    "example_en": w.get("example_en", w.get("example", "")),
+                    "example_vi": w.get("example_vi", ""),
+                },
+            )
+            w["word_id"] = word_id
+        except Exception as exc:
+            logger.warning("vocab stream: persist %r failed — %s", word_str, exc)
+            w["word_id"] = ""
 
-        for w in _filter_dupes_lc(batch, existing_lc | emitted_lc):
-            word_str = (w.get("word") or "").strip()
-            if not word_str:
-                continue
-            try:
-                word_id, _ = firebase_service.add_word_if_not_exists(
-                    telegram_id,
-                    {
-                        "word": word_str,
-                        "definition": w.get("definition_en", w.get("definition", "")),
-                        "definition_vi": w.get("definition_vi", ""),
-                        "ipa": w.get("ipa", ""),
-                        "part_of_speech": w.get("part_of_speech", ""),
-                        "topic": topic,
-                        "example_en": w.get("example_en", w.get("example", "")),
-                        "example_vi": w.get("example_vi", ""),
-                    },
-                )
-                w["word_id"] = word_id
-            except Exception as exc:
-                logger.warning("vocab stream: persist %r failed — %s", word_str, exc)
-                w["word_id"] = ""
-
-            emitted_lc.add(word_str.lower())
-            yield {"type": "word", "word": w}
+        existing_lc.add(_normalize_word_key(word_str))
+        yield {"type": "word", "word": w}
 
     next_recent = _push_recent_topic(recent, topic_id)
     try:

@@ -13,7 +13,6 @@ import pytest
 
 from services import vocab_service
 
-
 # ─── Topic rotation ────────────────────────────────────────────────────
 
 
@@ -104,3 +103,35 @@ async def test_generate_with_dedup_returns_short_when_topup_fails():
             count=5, band=7.0, topic="education", existing_lc=existing,
         )
     assert [w["word"] for w in out] == ["only_one"]
+
+
+@pytest.mark.asyncio
+async def test_generate_with_master_first_skips_ai_when_master_has_enough():
+    master = [
+        {"word": "deficit", "definition_en": "shortfall"},
+        {"word": "equilibrium", "definition_en": "balance"},
+    ]
+    with patch.object(vocab_service, "_select_master_words", return_value=master), \
+            patch.object(vocab_service.ai_service, "generate_vocabulary", AsyncMock()) as mock:
+        out = await vocab_service._generate_with_master_first(
+            count=2, band=7.0, topic="Economy & Business", existing_lc=set(),
+        )
+
+    assert [w["word"] for w in out] == ["deficit", "equilibrium"]
+    mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_generate_with_master_first_tops_up_with_ai_when_master_short():
+    master = [{"word": "deficit", "definition_en": "shortfall"}]
+    ai_words = [{"word": "tariff", "definition_en": "tax"}]
+    mock = AsyncMock(return_value=ai_words)
+    with patch.object(vocab_service, "_select_master_words", return_value=master), \
+            patch.object(vocab_service.ai_service, "generate_vocabulary", mock):
+        out = await vocab_service._generate_with_master_first(
+            count=2, band=7.0, topic="Economy & Business", existing_lc=set(),
+        )
+
+    assert [w["word"] for w in out] == ["deficit", "tariff"]
+    assert mock.await_count == 1
+    assert "deficit" in mock.await_args.kwargs["exclude_words"]
