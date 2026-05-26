@@ -18,6 +18,7 @@ import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import EmptyState from '../components/EmptyState'
 import { useProfile } from '../contexts/AuthContext'
+import Icon from '../components/Icon'
 
 interface TopicSummary {
   id: string
@@ -30,6 +31,20 @@ interface TopicSummary {
 interface TopicsResponse {
   items: TopicSummary[]
   total_words: number
+}
+
+interface VocabularyWord {
+  id: string
+  word: string
+  definition: string
+  definition_vi: string
+  ipa: string
+  part_of_speech: string
+}
+
+interface WordListResponse {
+  items: VocabularyWord[]
+  next_cursor: string | null
 }
 
 function topicLabel(
@@ -78,12 +93,47 @@ function TopicCard({
   )
 }
 
+function FavouriteWordRow({ word }: { word: VocabularyWord }) {
+  return (
+    <Link
+      to={`/learn/vocab/${encodeURIComponent(word.word)}`}
+      className="flex items-center gap-3 rounded-lg border border-transparent bg-surface-raised px-3 py-2.5 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <Icon name="Heart" size="sm" variant="danger" />
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-fg truncate">
+          {word.word}
+          {word.ipa && (
+            <span className="ml-1.5 text-xs font-normal text-muted-fg">
+              /{word.ipa}/
+            </span>
+          )}
+          {word.part_of_speech && (
+            <span className="ml-1.5 text-xs font-normal text-muted-fg">
+              {word.part_of_speech}
+            </span>
+          )}
+        </p>
+        {(word.definition_vi || word.definition) && (
+          <p className="text-xs text-muted-fg truncate mt-0.5">
+            {word.definition_vi || word.definition}
+          </p>
+        )}
+      </div>
+      <Icon name="ArrowRight" size="sm" variant="muted" />
+    </Link>
+  )
+}
+
 export default function VocabHomePage() {
   const { t } = useTranslation('vocab')
   const profile = useProfile()
   const showLinkPrompt = profile != null && profile.id.startsWith('web_')
   const [topics, setTopics] = useState<TopicSummary[]>([])
   const [preferredSlugs, setPreferredSlugs] = useState<string[]>([])
+  const [activeTab, setActiveTab] = useState<'topics' | 'favourites'>('topics')
+  const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
+  const [loadingFavourites, setLoadingFavourites] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -104,6 +154,21 @@ export default function VocabHomePage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'favourites') return
+    let cancelled = false
+    setLoadingFavourites(true)
+    apiFetch<WordListResponse>('/api/v1/vocabulary?favourite=true&limit=100')
+      .then((res) => {
+        if (!cancelled) setFavouriteWords(res.items)
+      })
+      .catch((e) => !cancelled && setError(localizeError(e)))
+      .finally(() => !cancelled && setLoadingFavourites(false))
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
 
   const stats = useMemo(() => {
     const total = topics.reduce((sum, tp) => sum + tp.word_count, 0)
@@ -202,6 +267,33 @@ export default function VocabHomePage() {
         )}
       </header>
 
+      <div className="mb-5 inline-flex rounded-lg border border-border bg-surface-raised p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('topics')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeTab === 'topics'
+              ? 'bg-primary text-primary-fg'
+              : 'text-muted-fg hover:text-fg'
+          }`}
+        >
+          <Icon name="BookOpen" size="sm" variant={activeTab === 'topics' ? 'fg' : 'muted'} />
+          {t('byTopic.tabs.topics', { defaultValue: 'Topics' })}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('favourites')}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeTab === 'favourites'
+              ? 'bg-primary text-primary-fg'
+              : 'text-muted-fg hover:text-fg'
+          }`}
+        >
+          <Icon name="Heart" size="sm" variant={activeTab === 'favourites' ? 'fg' : 'muted'} />
+          {t('byTopic.tabs.favourites', { defaultValue: 'Favourites' })}
+        </button>
+      </div>
+
       {showLinkPrompt && (
         <div
           role="region"
@@ -229,7 +321,35 @@ export default function VocabHomePage() {
         </div>
       )}
 
-      {loading ? (
+      {activeTab === 'favourites' ? (
+        loadingFavourites ? (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-surface-raised p-3 animate-pulse"
+              >
+                <div className="h-4 bg-border rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        ) : favouriteWords.length === 0 ? (
+          <EmptyState
+            illustration="empty-vocab"
+            title={t('empty.favourites.title', { defaultValue: 'No favourite words yet' })}
+            description={t('empty.favourites.description', {
+              defaultValue: 'Tap the heart on daily words or vocab rows to collect them here.',
+            })}
+            primaryAction={{ label: t('empty.favourites.cta', { defaultValue: 'View daily words' }), to: '/learn/daily' }}
+          />
+        ) : (
+          <div className="space-y-1.5">
+            {favouriteWords.map((word) => (
+              <FavouriteWordRow key={word.id} word={word} />
+            ))}
+          </div>
+        )
+      ) : loading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div

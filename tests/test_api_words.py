@@ -35,6 +35,8 @@ def _enriched_fixture() -> dict:
             }
         },
         "ielts_tip": "Strong Band 7+ vocabulary for Writing Task 2.",
+        "synonyms": {"words": ["common"], "source": "test"},
+        "antonyms": {"words": ["rare"], "source": "test"},
     }
 
 
@@ -85,15 +87,18 @@ class TestEnrichedWord:
         mock_fn.assert_called_once_with("ubiquitous", 7.0)
 
     def test_partial_cache_hit_path_returns_data(self, client):
-        """Cache miss / partial hit is handled by word_service — endpoint just serializes."""
+        """Partial detail hits are completed through the AI-backed path."""
         partial = _enriched_fixture()
         partial["examples_by_band"] = {}
         with patch("api.routes.words.word_service.get_word_detail_fast",
-                   new=AsyncMock(return_value=partial)):
+                   new=AsyncMock(return_value=partial)), \
+             patch("api.routes.words.quota_service.check_and_increment"), \
+             patch("api.routes.words.word_service.get_complete_word_detail",
+                   new=AsyncMock(return_value=_enriched_fixture())):
             response = client.get("/api/v1/words/ubiquitous")
 
         assert response.status_code == 200
-        assert response.json()["examples_by_band"] == {}
+        assert "7" in response.json()["examples_by_band"]
 
     def test_user_target_band_forwarded(self, client):
         """Band from user profile is used for enrichment."""
@@ -103,8 +108,11 @@ class TestEnrichedWord:
         }
         test_client = TestClient(app)
 
+        data = _enriched_fixture()
+        data["examples_by_band"]["8"] = data["examples_by_band"]["7"]
+
         with patch("api.routes.words.word_service.get_word_detail_fast",
-                   new=AsyncMock(return_value=_enriched_fixture())) as mock_fn:
+                   new=AsyncMock(return_value=data)) as mock_fn:
             response = test_client.get("/api/v1/words/ubiquitous")
 
         assert response.status_code == 200
@@ -115,13 +123,13 @@ class TestEnrichedWord:
         with patch("api.routes.words.word_service.get_word_detail_fast",
                    new=AsyncMock(return_value=None)), \
              patch("api.routes.words.quota_service.check_and_increment") as quota, \
-             patch("api.routes.words.word_service.get_enriched_word",
-                   new=AsyncMock(return_value=_enriched_fixture())) as enrich:
+             patch("api.routes.words.word_service.get_complete_word_detail",
+                   new=AsyncMock(return_value=_enriched_fixture())) as complete:
             response = client.get("/api/v1/words/ubiquitous")
 
         assert response.status_code == 200
         quota.assert_called_once()
-        enrich.assert_called_once_with("ubiquitous", 7.0, block_backfill=False)
+        complete.assert_called_once_with("ubiquitous", 7.0)
 
     def test_fast_hit_does_not_charge_quota(self, client):
         with patch("api.routes.words.word_service.get_word_detail_fast",

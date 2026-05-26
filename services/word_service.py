@@ -39,6 +39,15 @@ STRENGTH_TARGETS: dict[StrengthLiteral, dict] = {
 
 MASTER_WORD_STATUSES = ("active", "candidate")
 _BACKFILL_IN_FLIGHT: set[str] = set()
+DETAIL_REQUIRED_FIELDS = (
+    "ipa",
+    "part_of_speech",
+    "definition_en",
+    "definition_vi",
+    "collocations",
+    "word_family",
+    "ielts_tip",
+)
 
 # Order used to compare "is the chosen tier higher than current?"
 _STRENGTH_RANK: dict[str, int] = {
@@ -325,9 +334,35 @@ async def get_word_detail_fast(word: str, band: float) -> dict | None:
     return None
 
 
+def is_word_detail_complete(data: dict, band: float) -> bool:
+    tier = band_tier(band)
+    examples = data.get("examples_by_band") or {}
+    if tier not in examples:
+        return False
+    for field in DETAIL_REQUIRED_FIELDS:
+        if not data.get(field):
+            return False
+    if data.get("synonyms") is None or data.get("antonyms") is None:
+        return False
+    if getattr(config, "UNSPLASH_ACCESS_KEY", "") and data.get("image_url") is None:
+        return False
+    return True
+
+
+async def get_complete_word_detail(word: str, band: float) -> dict:
+    normalized = normalize_word(word)
+    fast = await get_word_detail_fast(normalized, band)
+    if fast is not None and is_word_detail_complete(fast, band):
+        return fast
+    if fast is not None:
+        logger.info("Word detail incomplete; enriching with AI: %s", normalized)
+    return await get_enriched_word(normalized, band, force_ai=fast is not None)
+
+
 async def get_enriched_word(word: str, band: float,
                            priority: str = "foreground",
-                           block_backfill: bool = True) -> dict:
+                           block_backfill: bool = True,
+                           force_ai: bool = False) -> dict:
     """Look up or generate enriched word data.
 
     Flow:
@@ -349,7 +384,7 @@ async def get_enriched_word(word: str, band: float,
 
     cached = firebase_service.get_enriched_word_doc(normalized)
 
-    if cached is None:
+    if cached is None or force_ai:
         logger.info("Word cache MISS: %s (band %s, priority %s)", normalized, tier, priority)
         # Cache miss — full enrichment
         result = await ai_service.enrich_word(normalized, band, priority=priority)

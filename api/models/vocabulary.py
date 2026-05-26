@@ -32,6 +32,7 @@ class WordListResponse(BaseModel):
 class DailyWord(BaseModel):
     word: str
     word_id: str = ""
+    is_favourite: bool = False
     definition_en: str = ""
     definition_vi: str = ""
     ipa: str = ""

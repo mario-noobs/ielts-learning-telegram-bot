@@ -51,6 +51,7 @@ def _to_daily_word(doc: dict) -> DailyWord:
     return DailyWord(
         word=doc.get("word", ""),
         word_id=doc.get("word_id", ""),
+        is_favourite=doc.get("is_favourite", False),
         definition_en=doc.get("definition_en", doc.get("definition", "")),
         definition_vi=doc.get("definition_vi", ""),
         ipa=doc.get("ipa", ""),
@@ -80,6 +81,8 @@ def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
             continue
         word_id, _ = firebase_service.add_word_if_not_exists(user_id, doc)
         w["word_id"] = word_id
+        saved = firebase_service.get_word_by_id(user_id, word_id) or {}
+        w["is_favourite"] = saved.get("is_favourite", False)
 
 
 def _daily_word_dict(doc: dict) -> dict:
@@ -87,6 +90,7 @@ def _daily_word_dict(doc: dict) -> dict:
     return {
         "word": doc.get("word", ""),
         "word_id": doc.get("word_id", ""),
+        "is_favourite": doc.get("is_favourite", False),
         "definition_en": doc.get("definition_en", doc.get("definition", "")),
         "definition_vi": doc.get("definition_vi", ""),
         "ipa": doc.get("ipa", ""),
@@ -118,6 +122,11 @@ async def _daily_sse_generator(
                 await asyncio.to_thread(
                     firebase_service.save_user_daily_words, user_id, date_str, words, topic
                 )
+            elif words and any("is_favourite" not in w for w in words if w.get("word_id")):
+                await asyncio.to_thread(_persist_daily_to_deck, user_id, words, topic)
+                await asyncio.to_thread(
+                    firebase_service.save_user_daily_words, user_id, date_str, words, topic
+                )
             yield sse({"type": "start", "count": len(words), "topic": topic, "date": date_str})
             for w in words:
                 yield sse({"type": "word", "word": _daily_word_dict(w)})
@@ -137,8 +146,10 @@ async def _daily_sse_generator(
                 topic_name = event["topic"]
                 yield sse(event)
             elif event["type"] == "word":
-                accumulated.append(event["word"])
-                yield sse({"type": "word", "word": _daily_word_dict(event["word"])})
+                word = event["word"]
+                await asyncio.to_thread(_persist_daily_to_deck, user_id, [word], topic_name)
+                accumulated.append(word)
+                yield sse({"type": "word", "word": _daily_word_dict(word)})
             elif event["type"] == "done":
                 if accumulated:
                     await asyncio.to_thread(

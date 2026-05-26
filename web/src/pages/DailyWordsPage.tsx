@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
+import Icon from '../components/Icon'
 import PronunciationButton from '../components/PronunciationButton'
-import { apiStream } from '../lib/api'
+import { apiFetch, apiStream } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 
 interface DailyWord {
   word: string
   word_id?: string
+  is_favourite?: boolean
   definition_en: string
   definition_vi: string
   ipa: string
@@ -33,7 +35,17 @@ function topicLabel(
   return t(`topicNames.${slug}`, { defaultValue: slug })
 }
 
-function DailyWordCard({ item, index }: { item: DailyWord; index: number }) {
+function DailyWordCard({
+  item,
+  index,
+  isFavourite,
+  onFavouriteToggle,
+}: {
+  item: DailyWord
+  index: number
+  isFavourite: boolean
+  onFavouriteToggle: () => void
+}) {
   return (
     <article className="bg-surface-raised rounded-xl shadow-sm p-5 border border-transparent">
       <header className="flex items-start justify-between gap-3">
@@ -49,7 +61,27 @@ function DailyWordCard({ item, index }: { item: DailyWord; index: number }) {
           </div>
           {item.ipa && <p className="text-xs text-muted-fg mt-1">/{item.ipa}/</p>}
         </div>
-        <PronunciationButton word={item.word} compact />
+        <div className="shrink-0 flex items-center gap-1.5">
+          <Link
+            to={`/learn/vocab/${encodeURIComponent(item.word)}`}
+            aria-label={`Xem chi tiết ${item.word}`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-fg hover:bg-surface hover:text-primary"
+          >
+            <Icon name="Eye" size="sm" />
+          </Link>
+          <button
+            type="button"
+            onClick={onFavouriteToggle}
+            disabled={!item.word_id}
+            aria-label={isFavourite ? 'Bỏ yêu thích' : 'Yêu thích'}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-40 ${
+              isFavourite ? 'text-danger' : 'text-muted-fg hover:bg-surface hover:text-danger'
+            }`}
+          >
+            <Icon name="Heart" size="sm" variant={isFavourite ? 'danger' : 'muted'} />
+          </button>
+          <PronunciationButton word={item.word} compact />
+        </div>
       </header>
       <div className="mt-3 space-y-1">
         {item.definition_en && <p className="text-fg">{item.definition_en}</p>}
@@ -95,6 +127,9 @@ export default function DailyWordsPage() {
   const { t } = useTranslation('vocab')
   const cached = _cache?.date === todayKey() ? _cache : null
   const [words, setWords] = useState<DailyWord[]>(cached?.words ?? [])
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(
+    () => new Set((cached?.words ?? []).filter((w) => w.is_favourite && w.word_id).map((w) => w.word_id as string)),
+  )
   const [topic, setTopic] = useState(cached?.topic ?? '')
   const [expectedCount, setExpectedCount] = useState(cached?.words.length ?? 0)
   const [streaming, setStreaming] = useState(!cached)
@@ -137,6 +172,9 @@ export default function DailyWordsPage() {
               } else if (event.type === 'word') {
                 collected.push(event.word)
                 setWords((prev) => [...prev, event.word])
+                if (event.word.is_favourite && event.word.word_id) {
+                  setFavouriteIds((prev) => new Set(prev).add(event.word.word_id))
+                }
               } else if (event.type === 'done') {
                 _cache = { date: todayKey(), words: collected, topic: streamedTopic }
                 setStreaming(false)
@@ -163,6 +201,42 @@ export default function DailyWordsPage() {
   }, [streaming, t])
 
   const skeletonCount = streaming && expectedCount > words.length ? expectedCount - words.length : 0
+
+  const toggleFavourite = async (word: DailyWord) => {
+    if (!word.word_id) return
+    const next = !favouriteIds.has(word.word_id)
+    const apply = (isFavourite: boolean) => {
+      setFavouriteIds((prev) => {
+        const updated = new Set(prev)
+        if (isFavourite) updated.add(word.word_id as string)
+        else updated.delete(word.word_id as string)
+        return updated
+      })
+      setWords((prev) =>
+        prev.map((w) =>
+          w.word_id === word.word_id ? { ...w, is_favourite: isFavourite } : w,
+        ),
+      )
+      if (_cache?.date === todayKey()) {
+        _cache = {
+          ..._cache,
+          words: _cache.words.map((w) =>
+            w.word_id === word.word_id ? { ...w, is_favourite: isFavourite } : w,
+          ),
+        }
+      }
+    }
+    apply(next)
+    try {
+      await apiFetch(`/api/v1/vocabulary/${word.word_id}/favourite`, {
+        method: 'POST',
+        body: JSON.stringify({ favourite: next }),
+      })
+    } catch (e) {
+      apply(!next)
+      setError(localizeError(e))
+    }
+  }
 
   if (error) {
     return (
@@ -205,7 +279,13 @@ export default function DailyWordsPage() {
 
       <div className="space-y-3">
         {words.map((item, i) => (
-          <DailyWordCard key={`${item.word}-${i}`} item={item} index={i + 1} />
+          <DailyWordCard
+            key={`${item.word}-${i}`}
+            item={item}
+            index={i + 1}
+            isFavourite={Boolean(item.word_id && favouriteIds.has(item.word_id))}
+            onFavouriteToggle={() => toggleFavourite(item)}
+          />
         ))}
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <WordSkeleton key={`sk-${i}`} />

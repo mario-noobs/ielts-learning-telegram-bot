@@ -119,6 +119,8 @@ class TestGenerateDaily:
              patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
              patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
                    side_effect=lambda uid, doc: (next(add_iter), True)), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   side_effect=lambda uid, wid: {"id": wid, "is_favourite": False}), \
              patch("api.routes.vocabulary.firebase_service.get_favourite_words",
                    return_value=[]), \
              patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
@@ -141,6 +143,8 @@ class TestGenerateDaily:
              patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
              patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
                    return_value=("wid", True)), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   return_value={"id": "wid", "is_favourite": False}), \
              patch("api.routes.vocabulary.firebase_service.get_favourite_words",
                    return_value=["climate", "carbon", "renewable"]), \
              patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
@@ -162,6 +166,7 @@ class TestGenerateDaily:
                 "word_id": "wid-cached",
                 "definition_en": "d",
                 "definition_vi": "v",
+                "is_favourite": False,
             }],
         }
         with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
@@ -194,7 +199,9 @@ class TestGenerateDaily:
                    return_value=cached), \
              patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
              patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
-                   side_effect=lambda uid, doc: (next(add_iter), True)):
+                   side_effect=lambda uid, doc: (next(add_iter), True)), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   side_effect=lambda uid, wid: {"id": wid, "is_favourite": False}):
             response = client.post("/api/v1/vocabulary/daily", json={})
 
         assert response.status_code == 200

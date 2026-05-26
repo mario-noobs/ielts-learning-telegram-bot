@@ -151,16 +151,14 @@ async def get_enriched_word(
 
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
     data = await word_service.get_word_detail_fast(normalized, band)
-    if data is None:
+    if data is None or not word_service.is_word_detail_complete(data, band):
         quota_service.check_and_increment(
             user_uid=str(user["id"]),
             feature="words",
             plan=user.get("plan", "free"),
             quota_override=user.get("quota_override"),
         )
-        data = await word_service.get_enriched_word(
-            normalized, band, block_backfill=False,
-        )
+        data = await word_service.get_complete_word_detail(normalized, band)
 
     raw_examples = data.get("examples_by_band", {}) or {}
     examples = {
