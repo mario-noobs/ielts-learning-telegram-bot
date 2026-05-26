@@ -19,6 +19,13 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _stub_quota():
+    with patch("api.permissions.quota_service.check_and_increment"), \
+         patch("api.routes.quiz.quota_service.check_and_increment"):
+        yield
+
+
 def _mc_question(i: int, word_id: str) -> dict:
     return {
         "type": "multiple_choice",
@@ -147,6 +154,35 @@ class TestAnswerQuiz:
         assert response.status_code == 200
         passed_answer = check.call_args.args[1]
         assert passed_answer == "C"
+
+    def test_paraphrase_answer_is_quota_gated(self, client):
+        session = {
+            "questions": [{
+                "id": "q0",
+                "type": "paraphrase",
+                "question": "Rewrite this sentence.",
+                "word": "ubiquitous",
+                "sample_answer": "It is everywhere.",
+                "word_id": "word-0",
+            }],
+            "answered_ids": [],
+        }
+        word = {"id": "word-0", "srs_interval": 1, "times_correct": 0}
+        with patch("api.routes.quiz.firebase_service.get_quiz_session",
+                   return_value=session), \
+             patch("api.routes.quiz.firebase_service.get_word_by_id",
+                   return_value=word), \
+             patch("api.routes.quiz.quota_service.check_and_increment") as quota, \
+             patch("api.routes.quiz.quiz_service.check_answer",
+                   new=AsyncMock(return_value=(True, "ok"))), \
+             patch("api.routes.quiz.firebase_service.mark_session_question_answered"):
+            response = client.post(
+                "/api/v1/quiz/answer",
+                json={"session_id": "s1", "question_id": "q0", "answer": "Everywhere."},
+            )
+
+        assert response.status_code == 200
+        quota.assert_called_once()
 
     def test_404_for_missing_session(self, client):
         with patch("api.routes.quiz.firebase_service.get_quiz_session",

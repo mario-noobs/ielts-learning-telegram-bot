@@ -85,11 +85,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function WordImage({ url, word }: { url: string; word: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <div aria-hidden="true" className="w-24 h-24 rounded-xl bg-surface shrink-0" />
+  }
   return (
     <img
       src={url}
       alt={word}
       loading="lazy"
+      onError={() => setFailed(true)}
       className="w-24 h-24 rounded-xl object-cover shrink-0"
     />
   )

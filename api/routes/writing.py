@@ -111,11 +111,10 @@ async def _score_and_store(
 @router.post(
     "/submit",
     response_model=WritingSubmission,
-    dependencies=[Depends(enforce_ai_quota("writing"))],
 )
 async def submit_writing(
     body: WritingSubmitRequest,
-    user: dict = Depends(get_current_user),
+    user: dict = Depends(enforce_ai_quota("writing")),
 ) -> WritingSubmission:
     return await _score_and_store(user, body.text, body.task_type, body.prompt)
 
@@ -123,7 +122,7 @@ async def submit_writing(
 @router.post("/prompt", response_model=TaskPromptResponse)
 async def generate_prompt(
     body: TaskPromptRequest,
-    user: dict = Depends(get_current_user),
+    user: dict = Depends(enforce_ai_quota("writing")),
 ) -> TaskPromptResponse:
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
     result = await writing_service.generate_task_prompt(body.task_type, band)
@@ -157,7 +156,7 @@ async def get_writing(
 async def revise_writing(
     submission_id: str,
     body: WritingReviseRequest,
-    user: dict = Depends(get_current_user),
+    user: dict = Depends(enforce_ai_quota("writing")),
 ) -> WritingSubmission:
     original = await asyncio.to_thread(
         firebase_service.get_writing_submission, user["id"], submission_id

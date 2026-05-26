@@ -117,7 +117,7 @@ async def generate_vocabulary(
     if exclude_words:
         exclude_clause = (
             f"\nDo NOT include these words (already learned): "
-            f"{', '.join(exclude_words[:100])}"
+            f"{', '.join(exclude_words)}"
         )
     prompt = GENERATE_VOCABULARY.format(
         count=count, band=band, topic=topic, exclude_clause=exclude_clause,

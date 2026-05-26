@@ -152,7 +152,7 @@ def _fetch_synonyms_antonyms_sync(word: str) -> tuple[list[str], list[str], str]
 
 async def _fetch_synonyms_antonyms(word: str) -> tuple[list[str], list[str], str]:
     synonyms, antonyms, source = await asyncio.to_thread(_fetch_synonyms_antonyms_sync, word)
-    if synonyms or antonyms:
+    if source == "freedict" or synonyms or antonyms:
         return synonyms, antonyms, source
     try:
         result = await ai_service.generate_json(

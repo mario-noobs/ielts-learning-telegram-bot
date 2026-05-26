@@ -63,7 +63,7 @@ class TestListVocabulary:
         assert body["items"][0]["srs_ease"] == 2.5
         assert "strength" in body["items"][0]
         assert body["next_cursor"] is None  # fewer than limit
-        mock_fn.assert_called_once_with("test-user-1", 20, None, None)
+        mock_fn.assert_called_once_with("test-user-1", 20, None, None, None)
 
     def test_next_cursor_populated_when_page_full(self, client):
         """When items count equals limit, next_cursor is the last added_at."""
@@ -119,6 +119,8 @@ class TestGenerateDaily:
              patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
              patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
                    side_effect=lambda uid, doc: (next(add_iter), True)), \
+             patch("api.routes.vocabulary.firebase_service.get_favourite_words",
+                   return_value=[]), \
              patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
                    new=AsyncMock(return_value=(generated, "Education & Learning"))):
             response = client.post("/api/v1/vocabulary/daily", json={})
@@ -131,6 +133,24 @@ class TestGenerateDaily:
         # word_id is persisted into the response so fill-blank quizzes can
         # target today's new words.
         assert body["words"][0]["word_id"] == "wid0"
+
+    def test_daily_generation_passes_favourite_context(self, client):
+        generated = [{"word": "thematic", "definition_en": "d"}]
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=None), \
+             patch("api.routes.vocabulary.firebase_service.save_user_daily_words"), \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   return_value=("wid", True)), \
+             patch("api.routes.vocabulary.firebase_service.get_favourite_words",
+                   return_value=["climate", "carbon", "renewable"]), \
+             patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
+                   new=AsyncMock(return_value=(generated, "Environment"))) as mock_gen:
+            response = client.post("/api/v1/vocabulary/daily", json={})
+
+        assert response.status_code == 200
+        assert mock_gen.call_args.kwargs["context_words"] == [
+            "climate", "carbon", "renewable",
+        ]
 
     def test_returns_cached_when_already_generated(self, client):
         ts = datetime(2026, 4, 17, tzinfo=timezone.utc)

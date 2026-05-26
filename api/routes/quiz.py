@@ -13,6 +13,7 @@ from api.models.quiz import (
     SRSUpdate,
 )
 from api.permissions import enforce_ai_quota
+from services.admin import quota_service
 from services import firebase_service, quiz_service
 from services.srs_service import get_word_strength
 
@@ -123,6 +124,13 @@ async def answer_quiz(
     old_strength = get_word_strength(old_word or {})
 
     normalized = _normalize_answer(body.answer, question)
+    if question.get("type") == "paraphrase":
+        quota_service.check_and_increment(
+            user_uid=str(user["id"]),
+            feature="quiz",
+            plan=user.get("plan", "free"),
+            quota_override=user.get("quota_override"),
+        )
     is_correct, feedback = await quiz_service.check_answer(
         question, normalized, user["id"], plan=user.get("plan"),
     )

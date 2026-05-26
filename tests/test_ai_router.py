@@ -129,11 +129,32 @@ async def test_fallback_on_rate_limit(fake_groq, fake_gemini):
 
 
 @pytest.mark.asyncio
-async def test_fatal_error_bubbles(fake_groq, fake_gemini):
-    """Programmer/config error must NOT be swallowed by fallback."""
+async def test_missing_provider_config_falls_forward(fake_groq, fake_gemini):
+    """Missing Groq config should not block Gemini fallback."""
     fake_groq.behaviours = {
         "llama-3.3-70b-versatile": ProviderFatalError(
             "groq", "llama-3.3-70b-versatile", "GROQ_API_KEY not set",
+        ),
+    }
+    fake_gemini.behaviours = {
+        "gemini-2.5-flash-lite": "served-by-gemini",
+    }
+    chain = [
+        {"provider": "groq", "model": "llama-3.3-70b-versatile"},
+        {"provider": "gemini", "model": "gemini-2.5-flash-lite"},
+    ]
+    with _stub_chain(chain):
+        text = await router.generate("p", plan="personal_pro", quality="premium")
+    assert text == "served-by-gemini"
+    assert [c[0] for c in fake_gemini.calls] == ["gemini-2.5-flash-lite"]
+
+
+@pytest.mark.asyncio
+async def test_non_config_fatal_error_bubbles(fake_groq, fake_gemini):
+    """Auth / prompt-shape fatal errors must still bubble."""
+    fake_groq.behaviours = {
+        "llama-3.3-70b-versatile": ProviderFatalError(
+            "groq", "llama-3.3-70b-versatile", "auth_error_401",
         ),
     }
     chain = [
@@ -142,7 +163,6 @@ async def test_fatal_error_bubbles(fake_groq, fake_gemini):
     ]
     with _stub_chain(chain), pytest.raises(ProviderFatalError):
         await router.generate("p", plan="personal_pro", quality="premium")
-    # Gemini fallback NOT attempted — fatal must bubble immediately.
     assert fake_gemini.calls == []
 
 

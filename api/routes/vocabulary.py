@@ -256,9 +256,11 @@ async def generate_daily(
              else int(user.get("daily_words_count") or config.DEFAULT_WORD_COUNT))
     topics = (body.topics if body and body.topics else user.get("topics") or None)
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+    fav_words = await asyncio.to_thread(firebase_service.get_favourite_words, user["id"], 10)
 
     words, topic = await vocab_service.generate_personal_daily_words(
-        telegram_id=user["id"], count=count, band=band, topics=topics
+        telegram_id=user["id"], count=count, band=band, topics=topics,
+        context_words=fav_words if len(fav_words) >= 3 else [],
     )
 
     await asyncio.to_thread(

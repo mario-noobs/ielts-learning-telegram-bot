@@ -81,17 +81,18 @@ async def _generate_with_dedup(
     emitted_lc: set[str] = set(existing_lc)
     all_words: list[dict] = []
 
-    n_batches = math.ceil(count / VOCAB_BATCH_SIZE)
-    batch_sizes = [VOCAB_BATCH_SIZE] * (n_batches - 1) + [
-        count - VOCAB_BATCH_SIZE * (n_batches - 1)
-    ]
-
     context_topic = topic
     if context_words and len(context_words) >= 3:
         joined = ", ".join(context_words[:10])
         context_topic = f"{topic} [CONTEXT: The learner is interested in words related to: {joined}. Prefer semantically related words.]"
 
-    for bs in batch_sizes:
+    max_batches = math.ceil(count / VOCAB_BATCH_SIZE) + 3
+    empty_batches = 0
+    for _ in range(max_batches):
+        remaining = count - len(all_words)
+        if remaining <= 0:
+            break
+        bs = min(VOCAB_BATCH_SIZE, remaining)
         try:
             batch = await ai_service.generate_vocabulary(
                 count=bs, band=band, topic=context_topic,
@@ -103,14 +104,17 @@ async def _generate_with_dedup(
             break
 
         fresh = _filter_dupes_lc(batch, emitted_lc)
+        if not fresh:
+            empty_batches += 1
+            if empty_batches >= 2:
+                break
+            continue
+        empty_batches = 0
         for w in fresh:
             key = (w.get("word") or "").strip().lower()
             if key:
                 emitted_lc.add(key)
         all_words.extend(fresh)
-
-        if len(all_words) >= count:
-            break
 
     return all_words[:count]
 

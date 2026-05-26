@@ -72,6 +72,10 @@ def _get_provider(name: str) -> AiProvider:
     return _PROVIDERS[name]
 
 
+def _is_missing_config(exc: ProviderFatalError) -> bool:
+    return "not set" in exc.cause.lower()
+
+
 def register_provider(name: str, provider: AiProvider) -> None:
     """Test seam — `tests/fakes/fake_provider.py` registers a stub here.
 
@@ -127,6 +131,12 @@ async def _walk_chain(
             )
             return result
         except ProviderFatalError as exc:
+            if _is_missing_config(exc):
+                logger.warning(
+                    "ai.router missing config plan=%s hop=%d provider=%s model=%s: %s",
+                    plan, i, provider_name, model, exc.cause,
+                )
+                continue
             # Auth / bad request — bubble. Falling forward would mask a bug.
             logger.error(
                 "ai.router fatal plan=%s hop=%d provider=%s model=%s: %s",

@@ -54,6 +54,12 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _stub_quota():
+    with patch("api.permissions.quota_service.check_and_increment"):
+        yield
+
+
 class TestSubmit:
     def test_submit_returns_scores_and_annotations(self, client):
         submission_id = "sub123"

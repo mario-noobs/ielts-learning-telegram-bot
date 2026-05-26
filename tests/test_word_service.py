@@ -1,5 +1,10 @@
-"""Tests for services/word_service.py — normalize_word and band_tier."""
+"""Tests for services/word_service.py."""
 
+from unittest.mock import AsyncMock
+
+import pytest
+
+from services import word_service
 from services.word_service import band_tier, normalize_word
 
 # ---------------------------------------------------------------------------
@@ -77,3 +82,21 @@ class TestBandTier:
 
     def test_low_band_returns_5(self):
         assert band_tier(4.0) == "5"
+
+
+@pytest.mark.asyncio
+async def test_empty_freedict_synonyms_do_not_call_gemini(monkeypatch):
+    monkeypatch.setattr(
+        word_service,
+        "_fetch_synonyms_antonyms_sync",
+        lambda word: ([], [], "freedict"),
+    )
+    gemini = AsyncMock()
+    monkeypatch.setattr(word_service.ai_service, "generate_json", gemini)
+
+    syns, ants, source = await word_service._fetch_synonyms_antonyms("opaque")
+
+    assert syns == []
+    assert ants == []
+    assert source == "freedict"
+    gemini.assert_not_awaited()
