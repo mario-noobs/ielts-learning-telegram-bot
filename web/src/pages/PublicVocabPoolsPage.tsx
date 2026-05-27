@@ -44,6 +44,21 @@ interface PublicPoolsResponse {
   items: PublicPool[]
 }
 
+interface RecommendationReason {
+  code: string
+  topic?: string | null
+}
+
+interface PublicPoolRecommendation extends PublicPool {
+  reasons: RecommendationReason[]
+}
+
+interface PublicPoolRecommendationsResponse {
+  enabled: boolean
+  target_difficulty: number | null
+  items: PublicPoolRecommendation[]
+}
+
 interface PublicPoolDetailResponse {
   enabled: boolean
   pool: PublicPool
@@ -72,6 +87,7 @@ export default function PublicVocabPoolsPage() {
   const difficulty = searchParams.get('difficulty') || ''
   const topic = searchParams.get('topic') || ''
   const [pools, setPools] = useState<PublicPool[] | null>(null)
+  const [recommendations, setRecommendations] = useState<PublicPoolRecommendation[]>([])
   const [detail, setDetail] = useState<PublicPoolDetailResponse | null>(null)
   const [savingWordIds, setSavingWordIds] = useState<Set<string>>(() => new Set())
   const [enabled, setEnabled] = useState(true)
@@ -100,12 +116,25 @@ export default function PublicVocabPoolsPage() {
         .catch((e) => !cancelled && setError(localizeError(e)))
     } else {
       setPools(null)
-      apiFetch<PublicPoolsResponse>(`/api/v1/vocabulary/public-pools${query}`)
-        .then((res) => {
+      const recommendationsRequest = apiFetch<PublicPoolRecommendationsResponse>(
+        '/api/v1/vocabulary/public-pools/recommendations',
+      ).catch(() => ({ enabled: false, target_difficulty: null, items: [] }))
+      Promise.all([
+        apiFetch<PublicPoolsResponse>(`/api/v1/vocabulary/public-pools${query}`),
+        recommendationsRequest,
+      ])
+        .then(([res, recs]) => {
           if (cancelled) return
           setEnabled(res.enabled)
           setPools(res.items)
+          setRecommendations(recs.enabled ? recs.items : [])
           track('public_vocab_pools_opened')
+          if (recs.enabled && recs.items.length > 0) {
+            track('public_vocab_roadmap_recommendations_viewed', {
+              count: recs.items.length,
+              pool_ids: recs.items.map((pool) => pool.id),
+            })
+          }
         })
         .catch((e) => !cancelled && setError(localizeError(e)))
     }
@@ -203,6 +232,10 @@ export default function PublicVocabPoolsPage() {
         <p className="mt-1 max-w-2xl text-sm text-muted-fg">{t('publicPools.subtitle')}</p>
       </header>
 
+      {!detail && recommendations.length > 0 && (
+        <RecommendationStrip recommendations={recommendations} t={t} />
+      )}
+
       <div className="mb-5 flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 sm:flex-row sm:items-end">
         <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-muted-fg">
           {t('publicPools.filters.difficulty')}
@@ -257,6 +290,66 @@ export default function PublicVocabPoolsPage() {
         />
       )}
     </div>
+  )
+}
+
+function reasonLabel(
+  reason: RecommendationReason,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+) {
+  const topic = reason.topic
+    ? t(`topicNames.${reason.topic}`, { defaultValue: reason.topic })
+    : ''
+  return t(`publicPools.recommendations.reasons.${reason.code}`, { topic })
+}
+
+function RecommendationStrip({
+  recommendations,
+  t,
+}: {
+  recommendations: PublicPoolRecommendation[]
+  t: (key: string, opts?: Record<string, unknown>) => string
+}) {
+  return (
+    <section className="mb-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-fg">
+            {t('publicPools.recommendations.heading')}
+          </h2>
+          <p className="text-sm text-muted-fg">
+            {t('publicPools.recommendations.subtitle')}
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {recommendations.map((pool) => (
+          <Link
+            key={pool.id}
+            to={`/learn/vocab/pools/${encodeURIComponent(pool.id)}`}
+            onClick={() => track('public_vocab_roadmap_recommendation_clicked', { pool_id: pool.id })}
+            className="rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/60"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-primary">
+                  {difficultyLabel(pool.difficulty, t)}
+                </p>
+                <h3 className="mt-1 text-base font-semibold text-fg">{pool.title}</h3>
+              </div>
+              <Icon name="ArrowRight" size="sm" variant="primary" />
+            </div>
+            <ul className="mt-3 space-y-1">
+              {(pool.reasons || []).slice(0, 2).map((reason, index) => (
+                <li key={`${reason.code}-${reason.topic || index}`} className="text-xs text-muted-fg">
+                  {reasonLabel(reason, t)}
+                </li>
+              ))}
+            </ul>
+          </Link>
+        ))}
+      </div>
+    </section>
   )
 }
 

@@ -22,6 +22,7 @@ from api.models.vocabulary import (
     ImportWordsRequest,
     ImportWordsResponse,
     PublicVocabPoolDetailResponse,
+    PublicVocabPoolRecommendationsResponse,
     PublicVocabPoolSaveResponse,
     PublicVocabPoolsResponse,
     VocabularyDraftResponse,
@@ -32,6 +33,7 @@ from services import (
     feature_flag_service,
     firebase_service,
     public_vocab_pool_service,
+    vocab_roadmap_service,
     vocab_service,
     word_service,
 )
@@ -300,6 +302,22 @@ async def list_public_vocab_pools(
         topic=topic,
     )
     return PublicVocabPoolsResponse(enabled=True, items=items)
+
+
+@router.get(
+    "/public-pools/recommendations",
+    response_model=PublicVocabPoolRecommendationsResponse,
+)
+async def recommend_public_vocab_pools(
+    user: dict = Depends(get_current_user),
+) -> PublicVocabPoolRecommendationsResponse:
+    if not _public_pools_enabled(user):
+        return PublicVocabPoolRecommendationsResponse(enabled=False, items=[])
+    result = await asyncio.to_thread(
+        vocab_roadmap_service.recommend_public_pools,
+        user,
+    )
+    return PublicVocabPoolRecommendationsResponse(enabled=True, **result)
 
 
 @router.get("/public-pools/{pool_id}", response_model=PublicVocabPoolDetailResponse)
