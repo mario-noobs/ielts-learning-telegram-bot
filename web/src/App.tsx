@@ -63,7 +63,8 @@ function ProtectedShell() {
     )
   }
   if (!user && !profile) return <Navigate to="/login" replace />
-  return <AppShell />
+  const accountKey = profile?.id ?? user?.uid ?? 'authenticated'
+  return <AppShell key={accountKey} />
 }
 
 function ProtectedAdminShell() {
@@ -102,7 +103,8 @@ function RootRoute() {
     )
   }
   if (!user && !profile) return <LandingPage />
-  return <AppShell />
+  const accountKey = profile?.id ?? user?.uid ?? 'authenticated'
+  return <AppShell key={accountKey} />
 }
 
 export default function App() {

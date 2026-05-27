@@ -7,7 +7,13 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { type User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
+import {
+  type User,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+} from 'firebase/auth'
 import { apiFetch } from '../lib/api'
 import { auth, googleProvider } from '../lib/firebase'
 
@@ -41,7 +47,7 @@ interface AuthContextType {
   user: User | null
   profile: BackendProfile | null
   loading: boolean
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (options?: { redirect?: boolean }) => Promise<void>
   signInLocal: (email: string, password: string) => Promise<void>
   registerLocal: (data: LocalRegisterData) => Promise<void>
   logout: () => Promise<void>
@@ -83,23 +89,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<BackendProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  // Prevents onAuthStateChanged from re-fetching profile mid-logout, which
-  // would race against setProfile(null) and restore the session.
-  const loggingOutRef = useRef(false)
+  // Prevents onAuthStateChanged from re-fetching profile mid auth transitions,
+  // which would race against setProfile(null) and restore the previous session.
+  const authTransitionRef = useRef(false)
+  const profileRequestRef = useRef(0)
 
   const fetchProfile = useCallback(async ({ rethrow = false } = {}) => {
+    const requestId = ++profileRequestRef.current
     try {
       const me = await apiFetch<unknown>('/api/v1/me')
-      setProfile(normalize(me))
+      if (requestId === profileRequestRef.current) setProfile(normalize(me))
     } catch (err) {
-      setProfile(null)
+      if (requestId === profileRequestRef.current) setProfile(null)
       if (rethrow) throw err
     }
   }, [])
 
+  const clearLocalSession = useCallback(async () => {
+    try {
+      await apiFetch('/api/v1/auth/local/logout', { method: 'POST' })
+    } catch {
+      // Best-effort cleanup. The next API request will still prefer Bearer auth.
+    }
+  }, [])
+
+  const beginAuthTransition = () => {
+    authTransitionRef.current = true
+    profileRequestRef.current += 1
+    setProfile(null)
+  }
+
+  const endAuthTransition = () => {
+    authTransitionRef.current = false
+    setLoading(false)
+  }
+
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
-      if (loggingOutRef.current) return
+      if (authTransitionRef.current) return
       setUser(u)
       // Always attempt profile fetch — works for Firebase Bearer (when u is set)
       // and for local auth via httpOnly cookie (when u is null).
@@ -108,38 +135,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [fetchProfile])
 
-  const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider)
-    // onAuthStateChanged fires and fetches profile
+  const signInWithGoogle = async (options?: { redirect?: boolean }) => {
+    beginAuthTransition()
+    try {
+      await clearLocalSession()
+      if (options?.redirect) {
+        await signInWithRedirect(auth, googleProvider)
+        return
+      }
+      const result = await signInWithPopup(auth, googleProvider)
+      setUser(result.user)
+      await fetchProfile({ rethrow: true })
+    } finally {
+      endAuthTransition()
+    }
   }
 
   const signInLocal = async (email: string, password: string) => {
-    await apiFetch('/api/v1/auth/local/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
-    await fetchProfile({ rethrow: true })
+    beginAuthTransition()
+    setUser(null)
+    try {
+      if (auth.currentUser) await signOut(auth)
+      await clearLocalSession()
+      await apiFetch('/api/v1/auth/local/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
+      await fetchProfile({ rethrow: true })
+    } finally {
+      endAuthTransition()
+    }
   }
 
   const registerLocal = async (data: LocalRegisterData) => {
-    await apiFetch('/api/v1/auth/local/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-    await fetchProfile({ rethrow: true })
+    beginAuthTransition()
+    setUser(null)
+    try {
+      if (auth.currentUser) await signOut(auth)
+      await clearLocalSession()
+      await apiFetch('/api/v1/auth/local/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      await fetchProfile({ rethrow: true })
+    } finally {
+      endAuthTransition()
+    }
   }
 
   const logout = async () => {
-    loggingOutRef.current = true
+    beginAuthTransition()
+    setUser(null)
+    setProfile(null)
     try {
       // Always try to clear server-side session cookie, regardless of auth method.
       // For Firebase-only users this is a no-op; for local auth it revokes the cookie.
-      await apiFetch('/api/v1/auth/local/logout', { method: 'POST' })
-    } catch { /* best-effort */ }
-    await signOut(auth)
-    setUser(null)
-    setProfile(null)
-    loggingOutRef.current = false
+      await clearLocalSession()
+      if (auth.currentUser) await signOut(auth)
+    } catch {
+      // Client state is already cleared; keep logout deterministic for the UI.
+    } finally {
+      setUser(null)
+      setProfile(null)
+      endAuthTransition()
+    }
   }
 
   return (
