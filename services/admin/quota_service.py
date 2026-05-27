@@ -74,10 +74,19 @@ def check_and_increment(
         raise ApiError(
             ERR.quota_daily_exceeded,
             plan_quota=cap,
+            plan=plan,
             used=day_total,
             feature=feature,
+            reset_at=_next_utc_midnight().isoformat(),
         )
     return day_total
+
+
+def _next_utc_midnight() -> datetime:
+    today = datetime.now(timezone.utc).date()
+    return datetime.combine(
+        today + timedelta(days=1), time.min, tzinfo=timezone.utc,
+    )
 
 
 def get_usage_snapshot(
@@ -101,10 +110,7 @@ def get_usage_snapshot(
     cap = effective_daily_cap(plan, quota_override)
     by_feature = get_ai_usage_repo().get_today(user_uid)
     raw_used = sum(by_feature.values())
-    today = datetime.now(timezone.utc).date()
-    reset_at = datetime.combine(
-        today + timedelta(days=1), time.min, tzinfo=timezone.utc,
-    ).isoformat()
+    reset_at = _next_utc_midnight().isoformat()
     return {
         "plan": plan,
         "used": min(raw_used, cap),

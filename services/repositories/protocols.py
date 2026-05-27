@@ -108,6 +108,8 @@ class VocabRepo(Protocol):
 
     def list_word_strings(self, user_id: UserId) -> list[str]: ...
 
+    def count_by_user(self, user_id: UserId) -> int: ...
+
     def list_page(
         self,
         user_id: UserId,

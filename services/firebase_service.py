@@ -125,6 +125,10 @@ def get_user_word_list(telegram_id: int) -> list[str]:
     return get_vocab_repo().list_word_strings(telegram_id)
 
 
+def count_user_vocabulary(telegram_id: int) -> int:
+    return get_vocab_repo().count_by_user(telegram_id)
+
+
 def get_word_by_text(telegram_id: int, word: str) -> Optional[dict]:
     item = get_vocab_repo().get_by_word(telegram_id, word)
     return item.model_dump() if item else None

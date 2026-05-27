@@ -46,6 +46,15 @@ describe('<VocabHomePage>', () => {
     apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
       if (url === '/api/v1/topics') return Promise.resolve({ items: [], total_words: 0 })
       if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/me/ai-usage') {
+        return Promise.resolve({
+          plan: 'free',
+          quota_daily: 10,
+          used_today: 3,
+          by_feature: [{ feature: 'vocab', count: 3 }],
+          reset_at: '2026-05-28T00:00:00+00:00',
+        })
+      }
       if (url === '/api/v1/vocabulary?limit=100') {
         return Promise.resolve({ items: [], next_cursor: null })
       }
@@ -91,6 +100,7 @@ describe('<VocabHomePage>', () => {
     render_()
 
     await userEvent.type(await screen.findByLabelText(/addWord\.inputLabel/), 'latency')
+    expect(await screen.findByText(/limits\.aiUsage/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /addWord\.generate/ }))
 
     expect(await screen.findByText('delay before transfer')).toBeInTheDocument()

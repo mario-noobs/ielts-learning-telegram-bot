@@ -33,10 +33,27 @@ router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
 logger = logging.getLogger(__name__)
 EXTRA_DAILY_WORD_LIMIT = 5
 EXTRA_DAILY_SOURCE = "extra"
-IMPORT_LIMITS_BY_PLAN = {
-    "free": {"max_candidates": 5, "max_input_chars": 1000},
-    "personal_pro": {"max_candidates": 20, "max_input_chars": 3000},
-    "team_member": {"max_candidates": 30, "max_input_chars": 5000},
+VOCAB_LIMITS_BY_PLAN = {
+    "free": {
+        "max_private_words": 100,
+        "max_import_candidates": 5,
+        "max_import_input_chars": 1000,
+    },
+    "personal_pro": {
+        "max_private_words": 1000,
+        "max_import_candidates": 20,
+        "max_import_input_chars": 3000,
+    },
+    "team_member": {
+        "max_private_words": 5000,
+        "max_import_candidates": 30,
+        "max_import_input_chars": 5000,
+    },
+    "org_member": {
+        "max_private_words": 10000,
+        "max_import_candidates": 30,
+        "max_import_input_chars": 5000,
+    },
 }
 VOCAB_SOURCE_BY_ID = {
     1: "daily",
@@ -73,8 +90,8 @@ def _parse_vocab_source_filter(source: str | None) -> int | None:
     return source_id
 
 
-def _import_limits(plan: str | None) -> dict[str, int]:
-    return IMPORT_LIMITS_BY_PLAN.get(plan or "free", IMPORT_LIMITS_BY_PLAN["free"])
+def _vocab_limits(plan: str | None) -> dict[str, int]:
+    return VOCAB_LIMITS_BY_PLAN.get(plan or "free", VOCAB_LIMITS_BY_PLAN["free"])
 
 
 def _user_timezone(user: dict) -> str:
@@ -613,6 +630,31 @@ def _candidate_from_generated(
     )
 
 
+async def _enforce_private_vocab_cap(user: dict, normalized: str) -> None:
+    existing = await asyncio.to_thread(
+        firebase_service.get_word_by_text, user["id"], normalized,
+    )
+    if existing:
+        raise ApiError(ERR.vocab_word_duplicate, word=normalized)
+
+    limits = _vocab_limits(user.get("plan", "free"))
+    used = await asyncio.to_thread(
+        firebase_service.count_user_vocabulary, user["id"],
+    )
+    cap = limits["max_private_words"]
+    if used >= cap:
+        logger.info(
+            "vocab private word cap blocked user=%s plan=%s used=%s cap=%s",
+            user["id"], user.get("plan", "free"), used, cap,
+        )
+        raise ApiError(
+            ERR.vocab_private_word_limit_exceeded,
+            plan=user.get("plan", "free"),
+            limit=cap,
+            used=used,
+        )
+
+
 async def _prepare_extra_daily_words(words: list[dict], band: float) -> list[dict]:
     prepared = []
     for word in words:
@@ -729,17 +771,17 @@ async def draft_import_words(
     if not raw_input:
         raise ApiError(ERR.vocab_word_empty)
 
-    limits = _import_limits(user.get("plan", "free"))
-    if len(raw_input) > limits["max_input_chars"]:
+    limits = _vocab_limits(user.get("plan", "free"))
+    if len(raw_input) > limits["max_import_input_chars"]:
         raise ApiError(
             ERR.vocab_import_input_too_long,
-            max_chars=limits["max_input_chars"],
+            max_chars=limits["max_import_input_chars"],
             got=len(raw_input),
         )
-    if body.count > limits["max_candidates"]:
+    if body.count > limits["max_import_candidates"]:
         raise ApiError(
             ERR.vocab_import_count_exceeded,
-            max_candidates=limits["max_candidates"],
+            max_candidates=limits["max_import_candidates"],
             got=body.count,
         )
 
@@ -795,8 +837,8 @@ async def draft_import_words(
         input=raw_input,
         candidates=candidates,
         duplicate_count=sum(1 for candidate in candidates if candidate.already_exists),
-        max_candidates=limits["max_candidates"],
-        max_input_chars=limits["max_input_chars"],
+        max_candidates=limits["max_import_candidates"],
+        max_input_chars=limits["max_import_input_chars"],
     )
 
 
@@ -814,6 +856,8 @@ async def add_word(
     normalized = word_service.normalize_word(body.word)
     if not normalized:
         raise ApiError(ERR.vocab_word_empty)
+
+    await _enforce_private_vocab_cap(user, normalized)
 
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
     has_preview_data = any([

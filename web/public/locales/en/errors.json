@@ -82,7 +82,7 @@
     "provider_unavailable": "AI service is currently unavailable. Please try again."
   },
   "quota": {
-    "daily_exceeded": "You've used {used} of {plan_quota} AI calls today on this plan. Resets at midnight UTC."
+    "daily_exceeded": "You've used {used} of {plan_quota} AI calls today on the {plan} plan. Resets at {reset_at}."
   },
   "users": {
     "daily_words_count": {
@@ -94,6 +94,7 @@
     "word_duplicate": "\"{word}\" is already in My Words.",
     "import_input_too_long": "This input is too long for your plan. Limit: {max_chars} characters.",
     "import_count_exceeded": "Your plan can preview up to {max_candidates} words at a time.",
+    "private_word_limit_exceeded": "You've saved {used}/{limit} private words on the {plan} plan. Upgrade or remove words to add more.",
     "daily_not_found": "Generate today's vocabulary before adding extra words.",
     "extra_limit_exceeded": "You've used all {limit} extra words for today. Resets at {next_reset_at}."
   }

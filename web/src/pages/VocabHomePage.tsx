@@ -71,6 +71,13 @@ interface ImportWordsResponse {
   max_input_chars: number
 }
 
+interface AiUsage {
+  plan: string
+  quota_daily: number
+  used_today: number
+  reset_at: string
+}
+
 interface DailyHistoryWord {
   word: string
   word_id: string
@@ -122,6 +129,27 @@ const HISTORY_STATS = [
   ['weak', 'weak_count'],
   ['mastered', 'mastered_count'],
 ] as const
+
+function AiUsageNote({
+  usage,
+  t,
+}: {
+  usage: AiUsage | null
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
+  if (!usage) return null
+  const remaining = Math.max(0, usage.quota_daily - usage.used_today)
+  return (
+    <p className="mt-3 rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted-fg">
+      {t('limits.aiUsage', {
+        remaining,
+        quota: usage.quota_daily,
+        used: usage.used_today,
+        reset: usage.reset_at,
+      })}
+    </p>
+  )
+}
 
 function topicLabel(
   slug: string,
@@ -833,6 +861,7 @@ export default function VocabHomePage() {
   const [myWords, setMyWords] = useState<VocabularyWord[]>([])
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null)
   const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
   const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[] | null>(null)
   const [openHistoryDate, setOpenHistoryDate] = useState<string | null>(null)
@@ -878,6 +907,23 @@ export default function VocabHomePage() {
       cancelled = true
     }
   }, [activeTab, sourceFilter])
+
+  useEffect(() => {
+    if (activeTab !== 'myWords') return
+    let cancelled = false
+    async function loadAiUsage() {
+      try {
+        const res = await apiFetch<AiUsage>('/api/v1/me/ai-usage')
+        if (!cancelled) setAiUsage(res)
+      } catch {
+        if (!cancelled) setAiUsage(null)
+      }
+    }
+    void loadAiUsage()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (activeTab !== 'favourites') return
@@ -1203,6 +1249,7 @@ export default function VocabHomePage() {
         )
       ) : activeTab === 'myWords' ? (
         <section className="space-y-4">
+          <AiUsageNote usage={aiUsage} t={t} />
           <AddWordWithAi
             t={t}
             onSaved={(word) => {

@@ -101,6 +101,9 @@
       "all": "Tất cả trạng thái"
     }
   },
+  "limits": {
+    "aiUsage": "Còn {remaining}/{quota} lượt AI hôm nay. Đã dùng {used}. Làm mới lúc {reset}."
+  },
   "addWord": {
     "title": "Tạo từ vựng với AI",
     "description": "Nhập một từ hoặc cụm từ ngắn. Xem trước thẻ IELTS trước khi lưu vào Từ của tôi.",
