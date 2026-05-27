@@ -360,6 +360,64 @@ async def generate_extra_daily_words(
     )
 
 
+async def generate_import_candidates(
+    *,
+    mode: str,
+    input_text: str,
+    count: int,
+    band: float,
+    exclude_words: list[str] | None = None,
+    plan: str | None = None,
+) -> list[dict]:
+    """Generate unsaved candidate words for topic/text import."""
+    if mode == "topic":
+        return await ai_service.generate_vocabulary(
+            count=count,
+            band=band,
+            topic=input_text,
+            exclude_words=exclude_words or [],
+            plan=plan,
+        )
+
+    exclude_clause = ""
+    if exclude_words:
+        exclude_clause = (
+            "Do NOT include these already-saved words: "
+            f"{', '.join(exclude_words[:100])}."
+        )
+    prompt = f"""Extract {count} IELTS-relevant vocabulary items from this English text for a Band {band} learner.
+
+{exclude_clause}
+
+Rules:
+- Prefer important academic, topic-specific, or collocation-friendly words and short phrases.
+- Do not invent words that are unrelated to the text.
+- Every word must be unique.
+- definition_en: max 15 words.
+- definition_vi and example_vi are required Vietnamese translations.
+- example_en must be a short sentence using the word naturally.
+- Return JSON only.
+
+Text:
+\"\"\"{input_text}\"\"\"
+
+Return ONLY this JSON format:
+[
+  {{
+    "word": "resilience",
+    "ipa": "/rɪˈzɪliəns/",
+    "part_of_speech": "noun",
+    "definition_en": "ability to recover after difficulty",
+    "definition_vi": "khả năng phục hồi sau khó khăn",
+    "example_en": "Urban resilience is vital during climate emergencies.",
+    "example_vi": "Khả năng phục hồi đô thị rất quan trọng trong khủng hoảng khí hậu.",
+    "ielts_tip": "Use it in essays about cities, health, or climate."
+  }}
+]"""
+    result = await ai_service.generate_json(prompt, plan=plan, quality="cheap")
+    return result if isinstance(result, list) else []
+
+
 async def stream_personal_daily_words(
     telegram_id: int,
     count: int = 10,

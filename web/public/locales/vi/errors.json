@@ -92,6 +92,8 @@
   "vocab": {
     "word_empty": "Nhập một từ hoặc cụm từ ngắn.",
     "word_duplicate": "\"{word}\" đã có trong Từ của tôi.",
+    "import_input_too_long": "Nội dung này quá dài so với gói của bạn. Giới hạn: {max_chars} ký tự.",
+    "import_count_exceeded": "Gói của bạn có thể xem trước tối đa {max_candidates} từ mỗi lần.",
     "daily_not_found": "Hãy tạo từ vựng hôm nay trước khi thêm từ học thêm.",
     "extra_limit_exceeded": "Bạn đã dùng hết {limit} từ học thêm hôm nay. Làm mới lúc {next_reset_at}."
   }

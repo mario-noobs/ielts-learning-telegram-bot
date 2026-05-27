@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -109,6 +110,21 @@ class VocabularyDraftResponse(BaseModel):
     ielts_tip: str = ""
     already_exists: bool = False
     existing_word_id: str | None = None
+
+
+class ImportWordsRequest(BaseModel):
+    mode: Literal["topic", "text"]
+    input: str = Field(min_length=1, max_length=5000)
+    count: int = Field(default=8, ge=1, le=30)
+
+
+class ImportWordsResponse(BaseModel):
+    mode: Literal["topic", "text"]
+    input: str
+    candidates: list[VocabularyDraftResponse]
+    duplicate_count: int = 0
+    max_candidates: int
+    max_input_chars: int
 
 
 class EnrichedExample(BaseModel):

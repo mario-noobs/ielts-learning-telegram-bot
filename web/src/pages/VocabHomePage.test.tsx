@@ -103,6 +103,95 @@ describe('<VocabHomePage>', () => {
     })
   })
 
+  it('imports candidates from text and saves selected non-duplicates', async () => {
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/topics') return Promise.resolve({ items: [], total_words: 0 })
+      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/vocabulary?limit=100') {
+        return Promise.resolve({ items: [], next_cursor: null })
+      }
+      if (url === '/api/v1/vocabulary/import/draft') {
+        expect(options?.method).toBe('POST')
+        expect(JSON.parse(String(options?.body))).toMatchObject({
+          mode: 'text',
+          input: 'Cities need resilience and adaptation.',
+          count: 5,
+        })
+        return Promise.resolve({
+          mode: 'text',
+          input: 'Cities need resilience and adaptation.',
+          candidates: [
+            {
+              word: 'resilience',
+              definition: 'ability to recover',
+              definition_vi: 'kha nang phuc hoi',
+              ipa: '',
+              part_of_speech: 'noun',
+              topic: '',
+              example_en: '',
+              example_vi: '',
+              ielts_tip: '',
+              already_exists: true,
+              existing_word_id: 'w-existing',
+            },
+            {
+              word: 'adaptation',
+              definition: 'change to fit conditions',
+              definition_vi: 'su thich nghi',
+              ipa: '',
+              part_of_speech: 'noun',
+              topic: '',
+              example_en: '',
+              example_vi: '',
+              ielts_tip: '',
+              already_exists: false,
+              existing_word_id: null,
+            },
+          ],
+          duplicate_count: 1,
+          max_candidates: 5,
+          max_input_chars: 1000,
+        })
+      }
+      if (url === '/api/v1/vocabulary') {
+        expect(options?.method).toBe('POST')
+        expect(JSON.parse(String(options?.body))).toMatchObject({
+          word: 'adaptation',
+          use_ai: false,
+        })
+        return Promise.resolve({
+          id: 'w-adaptation',
+          word: 'adaptation',
+          definition: 'change to fit conditions',
+          definition_vi: 'su thich nghi',
+          ipa: '',
+          part_of_speech: 'noun',
+          topic: '',
+          strength: 'New',
+          source: 'manual',
+          is_favourite: false,
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+
+    await userEvent.click(await screen.findByRole('button', { name: /importWords\.modes\.text/ }))
+    await userEvent.type(screen.getByLabelText(/importWords\.textLabel/), 'Cities need resilience and adaptation.')
+    await userEvent.click(screen.getByRole('button', { name: /importWords\.generate/ }))
+
+    expect(await screen.findByText('adaptation')).toBeInTheDocument()
+    expect(screen.getByText(/importWords\.duplicate/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /importWords\.saveSelected/ }))
+
+    expect(await screen.findByRole('link', { name: /adaptation/ })).toBeInTheDocument()
+    expect(apiFetchMock).not.toHaveBeenCalledWith(
+      '/api/v1/vocabulary',
+      expect.objectContaining({ body: expect.stringContaining('resilience') }),
+    )
+  })
+
   it('renders My Words by default and filters by source/status', async () => {
     apiFetchMock.mockImplementation((url: string) => {
       if (url === '/api/v1/topics') {

@@ -235,6 +235,95 @@ class TestAddWordWithAi:
         assert word_data["source"] == 3
 
 
+class TestImportWords:
+    def test_import_from_topic_returns_candidates(self, client):
+        generated = [
+            {
+                "word": "sustainability",
+                "definition_en": "ability to continue over time",
+                "definition_vi": "tính bền vững",
+                "part_of_speech": "noun",
+                "example_en": "Sustainability is central to urban planning.",
+                "example_vi": "Tính bền vững là trọng tâm trong quy hoạch đô thị.",
+                "ielts_tip": "Use it in environment essays.",
+            }
+        ]
+        with patch("api.routes.vocabulary.quota_service.check_and_increment") as quota, \
+             patch("api.routes.vocabulary.firebase_service.get_user_word_list",
+                   return_value=[]), \
+             patch("api.routes.vocabulary.vocab_service.generate_import_candidates",
+                   new=AsyncMock(return_value=generated)) as mock_gen:
+            response = client.post("/api/v1/vocabulary/import/draft", json={
+                "mode": "topic",
+                "input": "environment",
+                "count": 1,
+            })
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["mode"] == "topic"
+        assert body["candidates"][0]["word"] == "sustainability"
+        assert body["candidates"][0]["topic"] == "environment"
+        assert body["duplicate_count"] == 0
+        quota.assert_called_once()
+        mock_gen.assert_awaited_once()
+
+    def test_import_from_text_marks_duplicates(self, client):
+        generated = [
+            {"word": "resilience", "definition_en": "ability to recover"},
+            {"word": "adaptation", "definition_en": "change to fit conditions"},
+        ]
+        with patch("api.routes.vocabulary.quota_service.check_and_increment"), \
+             patch("api.routes.vocabulary.firebase_service.get_user_word_list",
+                   return_value=["resilience"]), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value={"id": "existing-id", "word": "resilience"}), \
+             patch("api.routes.vocabulary.vocab_service.generate_import_candidates",
+                   new=AsyncMock(return_value=generated)):
+            response = client.post("/api/v1/vocabulary/import/draft", json={
+                "mode": "text",
+                "input": "Cities need resilience and adaptation to climate risks.",
+                "count": 2,
+            })
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["duplicate_count"] == 1
+        assert body["candidates"][0]["already_exists"] is True
+        assert body["candidates"][0]["existing_word_id"] == "existing-id"
+        assert body["candidates"][1]["already_exists"] is False
+
+    def test_import_rejects_count_above_plan_limit_before_ai(self, client):
+        with patch("api.routes.vocabulary.quota_service.check_and_increment") as quota, \
+             patch("api.routes.vocabulary.vocab_service.generate_import_candidates",
+                   new=AsyncMock()) as mock_gen:
+            response = client.post("/api/v1/vocabulary/import/draft", json={
+                "mode": "topic",
+                "input": "technology",
+                "count": 6,
+            })
+
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == ERR.vocab_import_count_exceeded.code
+        quota.assert_not_called()
+        mock_gen.assert_not_awaited()
+
+    def test_import_rate_limit_does_not_call_ai(self, client):
+        with patch("api.routes.vocabulary.quota_service.check_and_increment",
+                   side_effect=ApiError(ERR.quota_daily_exceeded, plan_quota=1, used=2, feature="vocab")), \
+             patch("api.routes.vocabulary.vocab_service.generate_import_candidates",
+                   new=AsyncMock()) as mock_gen:
+            response = client.post("/api/v1/vocabulary/import/draft", json={
+                "mode": "topic",
+                "input": "technology",
+                "count": 1,
+            })
+
+        assert response.status_code == 429
+        assert response.json()["error"]["code"] == ERR.quota_daily_exceeded.code
+        mock_gen.assert_not_awaited()
+
+
 class TestGenerateDaily:
     def test_ac2_generates_daily_words_when_none_cached(self, client):
         """AC2: POST /api/v1/vocabulary/daily generates and returns 10 words."""

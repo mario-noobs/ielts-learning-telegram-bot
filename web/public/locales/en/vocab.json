@@ -116,6 +116,26 @@
     "saved": "\"{word}\" saved to My Words.",
     "alreadyExists": "\"{word}\" is already in My Words."
   },
+  "importWords": {
+    "title": "Import words from topic or text",
+    "description": "Generate candidate IELTS words from a topic, or extract useful words from English text. Choose what to save.",
+    "modes": {
+      "topic": "Topic",
+      "text": "Text"
+    },
+    "topicLabel": "Topic",
+    "textLabel": "English text",
+    "topicPlaceholder": "e.g. climate change, education, public transport",
+    "textPlaceholder": "Paste an English paragraph to extract important vocabulary...",
+    "countLabel": "Candidates",
+    "generate": "Preview candidates",
+    "generating": "Generating…",
+    "previewSummary": "{count} candidates, {duplicates} already in My Words",
+    "duplicate": "Already saved",
+    "saveSelected": "Save {count}",
+    "saving": "Saving…",
+    "savedSummary": "Saved {count} words to My Words."
+  },
   "loadMore": "Load more",
   "loadingMore": "Loading…",
   "empty": {

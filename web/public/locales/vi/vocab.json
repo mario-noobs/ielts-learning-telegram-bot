@@ -116,6 +116,26 @@
     "saved": "Đã lưu \"{word}\" vào Từ của tôi.",
     "alreadyExists": "\"{word}\" đã có trong Từ của tôi."
   },
+  "importWords": {
+    "title": "Nhập từ theo chủ đề hoặc đoạn văn",
+    "description": "Tạo gợi ý từ IELTS theo chủ đề, hoặc trích xuất từ hữu ích từ đoạn tiếng Anh. Chọn từ muốn lưu.",
+    "modes": {
+      "topic": "Chủ đề",
+      "text": "Đoạn văn"
+    },
+    "topicLabel": "Chủ đề",
+    "textLabel": "Đoạn tiếng Anh",
+    "topicPlaceholder": "VD: climate change, education, public transport",
+    "textPlaceholder": "Dán một đoạn tiếng Anh để trích xuất từ quan trọng...",
+    "countLabel": "Số gợi ý",
+    "generate": "Xem trước gợi ý",
+    "generating": "Đang tạo…",
+    "previewSummary": "{count} gợi ý, {duplicates} từ đã có trong Từ của tôi",
+    "duplicate": "Đã lưu",
+    "saveSelected": "Lưu {count}",
+    "saving": "Đang lưu…",
+    "savedSummary": "Đã lưu {count} từ vào Từ của tôi."
+  },
   "loadMore": "Tải thêm",
   "loadingMore": "Đang tải…",
   "empty": {
