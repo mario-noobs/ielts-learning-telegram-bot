@@ -81,11 +81,17 @@ describe('ApiError.localize (AC3)', () => {
     await i18n.changeLanguage('en')
     const err = new ApiError({
       code: 'quota.daily_exceeded',
-      params: { plan_quota: 10, used: 11, feature: 'quiz' },
+      params: {
+        plan: 'free',
+        plan_quota: 10,
+        reset_at: 'midnight UTC',
+        used: 11,
+        feature: 'quiz',
+      },
       http_status: 429,
     })
     expect(err.localize()).toBe(
-      "You've used 11 of 10 AI calls today on this plan. Resets at midnight UTC.",
+      "You've used 11 of 10 AI calls today on the free plan. Resets at midnight UTC.",
     )
   })
 })
