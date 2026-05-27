@@ -27,3 +27,103 @@
     border-radius: inherit;
   }
 }
+
+@layer components {
+  .study-loader-ring {
+    animation: study-loader-pulse 1.9s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  }
+
+  .study-loader-ring-delay {
+    animation-delay: 280ms;
+  }
+
+  .study-loader-token {
+    position: absolute;
+    display: grid;
+    min-width: 2.25rem;
+    height: 1.75rem;
+    place-items: center;
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 999px;
+    background: rgb(var(--color-surface-raised));
+    color: rgb(var(--color-fg));
+    box-shadow: 0 10px 24px rgb(15 23 42 / 0.08);
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+
+  .study-loader-token-one {
+    left: 0.125rem;
+    top: 1.5rem;
+    color: rgb(var(--color-primary));
+    animation: study-loader-float 2.4s ease-in-out infinite;
+  }
+
+  .study-loader-token-two {
+    right: -0.125rem;
+    top: 2.25rem;
+    color: rgb(var(--color-success));
+    animation: study-loader-float 2.4s ease-in-out 160ms infinite;
+  }
+
+  .study-loader-token-three {
+    bottom: 0.5rem;
+    left: 50%;
+    color: rgb(var(--color-accent));
+    transform: translateX(-50%);
+    animation: study-loader-float-center 2.4s ease-in-out 320ms infinite;
+  }
+
+  .study-loader-meter {
+    animation: study-loader-meter 1.35s ease-in-out infinite;
+  }
+}
+
+@keyframes study-loader-pulse {
+  0% {
+    transform: scale(0.86);
+    opacity: 0.45;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 0;
+  }
+}
+
+@keyframes study-loader-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.45rem);
+  }
+}
+
+@keyframes study-loader-float-center {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-0.45rem);
+  }
+}
+
+@keyframes study-loader-meter {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-loader-ring,
+  .study-loader-token,
+  .study-loader-meter {
+    animation: none;
+  }
+}

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AdminGate from './components/AdminGate'
 import AdminShell from './components/AdminShell'
 import AppShell from './components/AppShell'
+import LoadingScreen from './components/LoadingScreen'
 import PublicLayout from './layouts/PublicLayout'
 import LandingPage from './pages/LandingPage'
 import LegalPage from './pages/LegalPage'
@@ -47,21 +48,13 @@ const AdminOrgsPage = lazy(() => import('./pages/admin/OrgsPage'))
 const AdminOrgDetailPage = lazy(() => import('./pages/admin/OrgDetailPage'))
 
 function AdminFallback() {
-  return (
-    <div className="flex items-center justify-center h-[60vh] text-muted-fg">
-      Loading…
-    </div>
-  )
+  return <LoadingScreen className="h-[60vh]" />
 }
 
 function ProtectedShell() {
   const { user, profile, loading } = useAuth()
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-dvh text-muted-fg">
-        Đang tải...
-      </div>
-    )
+    return <LoadingScreen fullScreen />
   }
   if (!user && !profile) return <Navigate to="/login" replace />
   const accountKey = profile?.id ?? user?.uid ?? 'authenticated'
@@ -97,11 +90,7 @@ function LegacyReadingRedirect() {
 function RootRoute() {
   const { user, profile, loading } = useAuth()
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-dvh text-muted-fg">
-        Đang tải...
-      </div>
-    )
+    return <LoadingScreen fullScreen />
   }
   if (!user && !profile) return <LandingPage />
   const accountKey = profile?.id ?? user?.uid ?? 'authenticated'

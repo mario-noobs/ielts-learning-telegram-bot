@@ -25,6 +25,10 @@
     "offline": "Mất kết nối",
     "empty": "Chưa có gì ở đây"
   },
+  "loadingScreen": {
+    "title": "Đang chuẩn bị bài học",
+    "subtitle": "Đồng bộ từ vựng, ôn tập và tiến độ của bạn."
+  },
   "nav": {
     "dashboard": "Trang chính",
     "vocab": "Từ vựng",

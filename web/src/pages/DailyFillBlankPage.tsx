@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
+import LoadingScreen from '../components/LoadingScreen'
 import MultipleChoiceQuestion from '../components/MultipleChoiceQuestion'
 import QuizFeedbackOverlay from '../components/QuizFeedbackOverlay'
 import QuizSessionSummary from '../components/QuizSessionSummary'
@@ -120,11 +121,7 @@ export default function DailyFillBlankPage() {
   const currentQuestion = useMemo(() => questions[index], [questions, index])
 
   if (phase === 'loading') {
-    return (
-      <div className="max-w-2xl mx-auto p-4 text-center text-muted-fg">
-        {t('daily.loading')}
-      </div>
-    )
+    return <LoadingScreen className="mx-auto max-w-2xl p-4" title={t('daily.loading')} />
   }
 
   if (phase === 'error') {
