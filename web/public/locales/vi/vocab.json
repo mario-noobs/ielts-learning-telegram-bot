@@ -88,6 +88,11 @@
       "license": "Giấy phép",
       "provenance": "Nguồn gốc"
     },
+    "word": {
+      "save": "Lưu vào Từ của tôi",
+      "saving": "Đang lưu...",
+      "alreadySaved": "Đã có trong Từ của tôi"
+    },
     "disabled": {
       "title": "Kho từ công khai chưa khả dụng",
       "description": "Nguồn từ này vẫn đang trong giai đoạn rollout.",
@@ -174,7 +179,8 @@
       "daily": "Hằng ngày",
       "manual": "Tự thêm",
       "quiz": "Quiz",
-      "reading": "Reading"
+      "reading": "Reading",
+      "public_pool": "Kho công khai"
     },
     "statuses": {
       "all": "Tất cả trạng thái"

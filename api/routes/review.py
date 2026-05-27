@@ -22,6 +22,7 @@ VOCAB_SOURCE_BY_ID = {
     2: "quiz",
     3: "manual",
     4: "reading",
+    5: "public_pool",
 }
 VOCAB_SOURCE_ID_BY_NAME = {name: source_id for source_id, name in VOCAB_SOURCE_BY_ID.items()}
 

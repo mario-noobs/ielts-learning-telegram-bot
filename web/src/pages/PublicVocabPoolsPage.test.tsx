@@ -69,7 +69,7 @@ describe('<PublicVocabPoolsPage>', () => {
     expect(trackMock).toHaveBeenCalledWith('public_vocab_pools_opened')
   })
 
-  it('opens pool detail and keeps words read-only', async () => {
+  it('opens pool detail with save state', async () => {
     apiFetchMock.mockResolvedValue({
       enabled: true,
       pool: {
@@ -94,9 +94,13 @@ describe('<PublicVocabPoolsPage>', () => {
           definition_vi: 'kha nang mo rong',
           ipa: 'skaelability',
           part_of_speech: 'noun',
+          example_en: 'Scalability matters.',
+          example_vi: 'Kha nang mo rong rat quan trong.',
           difficulty: 5,
           topic: 'technology',
           source_ref: 'unit-1',
+          already_saved: false,
+          existing_word_id: null,
         },
       ],
     })
@@ -107,8 +111,71 @@ describe('<PublicVocabPoolsPage>', () => {
     expect(screen.getByText('ability to be enlarged or increased')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'publicPools.detail.sourceLink' }))
       .toHaveAttribute('href', 'https://example.test/source')
-    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'publicPools.word.save' })).toBeEnabled()
     expect(trackMock).toHaveBeenCalledWith('public_vocab_pool_detail_opened', { pool_id: 'pool-1' })
+  })
+
+  it('saves a pool word into My Words and disables duplicate saves', async () => {
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/vocabulary/public-pools/pool-1' && !options) {
+        return Promise.resolve({
+          enabled: true,
+          pool: {
+            id: 'pool-1',
+            title: 'Vocabulary In Use Advanced',
+            source: 'cambridge',
+            source_theme: 'advanced',
+            word_count: 1,
+            difficulty: 5,
+            difficulty_min: 5,
+            difficulty_max: 5,
+            topics: ['technology'],
+            source_url: '',
+            license: 'CC BY 4.0',
+            provenance: 'Seed import',
+          },
+          words: [
+            {
+              id: 'w1',
+              word: 'scalability',
+              definition_en: 'ability to be enlarged or increased',
+              definition_vi: '',
+              ipa: '',
+              part_of_speech: 'noun',
+              example_en: '',
+              example_vi: '',
+              difficulty: 5,
+              topic: 'technology',
+              source_ref: 'unit-1',
+              already_saved: false,
+              existing_word_id: null,
+            },
+          ],
+        })
+      }
+      if (url === '/api/v1/vocabulary/public-pools/pool-1/words/w1/save') {
+        expect(options?.method).toBe('POST')
+        return Promise.resolve({
+          created: true,
+          already_saved: false,
+          word: { id: 'user-word-1', word: 'scalability' },
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    renderAt('/learn/vocab/pools/pool-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'publicPools.word.save' }))
+
+    expect(await screen.findByRole('button', { name: 'publicPools.word.alreadySaved' }))
+      .toBeDisabled()
+    expect(trackMock).toHaveBeenCalledWith('public_vocab_pool_word_saved', {
+      pool_id: 'pool-1',
+      word_id: 'w1',
+      created: true,
+      already_saved: false,
+    })
   })
 
   it('applies difficulty and topic filters through the query string', async () => {

@@ -54,6 +54,19 @@ def test_due_review_forwards_my_words_filters(client):
     mock_due.assert_called_once_with("test-user-1", 10, 3, "society", "New")
 
 
+def test_due_review_accepts_public_pool_source(client):
+    with patch("api.routes.review.firebase_service.get_due_words",
+               return_value=[_word_doc(source=5)]) as mock_due:
+        response = client.post("/api/v1/review/due", json={
+            "limit": 10,
+            "source": "public_pool",
+        })
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["source"] == "public_pool"
+    mock_due.assert_called_once_with("test-user-1", 10, 5, None, None)
+
+
 def test_due_review_rejects_invalid_source(client):
     response = client.post("/api/v1/review/due", json={"source": "unknown"})
 

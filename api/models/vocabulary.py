@@ -188,9 +188,13 @@ class PublicVocabPoolWord(BaseModel):
     definition_vi: str = ""
     ipa: str = ""
     part_of_speech: str = ""
+    example_en: str = ""
+    example_vi: str = ""
     difficulty: int | None = None
     topic: str = ""
     source_ref: str = ""
+    already_saved: bool = False
+    existing_word_id: str | None = None
 
 
 class PublicVocabPoolsResponse(BaseModel):
@@ -202,3 +206,9 @@ class PublicVocabPoolDetailResponse(BaseModel):
     enabled: bool
     pool: PublicVocabPool
     words: list[PublicVocabPoolWord] = []
+
+
+class PublicVocabPoolSaveResponse(BaseModel):
+    created: bool
+    already_saved: bool
+    word: VocabularyWord

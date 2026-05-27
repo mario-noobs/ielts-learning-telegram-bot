@@ -22,6 +22,7 @@ from api.models.vocabulary import (
     ImportWordsRequest,
     ImportWordsResponse,
     PublicVocabPoolDetailResponse,
+    PublicVocabPoolSaveResponse,
     PublicVocabPoolsResponse,
     VocabularyDraftResponse,
     VocabularyWord,
@@ -69,6 +70,7 @@ VOCAB_SOURCE_BY_ID = {
     2: "quiz",
     3: "manual",
     4: "reading",
+    5: "public_pool",
 }
 VOCAB_SOURCE_ID_BY_NAME = {name: source_id for source_id, name in VOCAB_SOURCE_BY_ID.items()}
 
@@ -157,6 +159,56 @@ def _to_vocab_word(doc: dict) -> VocabularyWord:
         is_favourite=doc.get("is_favourite", False),
         added_at=doc.get("added_at"),
     )
+
+
+async def _annotate_public_pool_words(
+    user_id: int | str,
+    words: list[dict],
+) -> list[dict]:
+    saved_words = await asyncio.to_thread(firebase_service.get_user_word_list, user_id)
+    saved_norms = {
+        word_service.normalize_word(str(word))
+        for word in saved_words
+        if word_service.normalize_word(str(word))
+    }
+    annotated = []
+    for word in words:
+        normalized = word_service.normalize_word(word.get("word", ""))
+        annotated.append({**word, "already_saved": normalized in saved_norms})
+    return annotated
+
+
+async def _enforce_private_vocab_space(user: dict) -> None:
+    limits = _vocab_limits(user.get("plan", "free"))
+    used = await asyncio.to_thread(
+        firebase_service.count_user_vocabulary, user["id"],
+    )
+    cap = limits["max_private_words"]
+    if used >= cap:
+        logger.info(
+            "vocab private word cap blocked user=%s plan=%s used=%s cap=%s",
+            user["id"], user.get("plan", "free"), used, cap,
+        )
+        raise ApiError(
+            ERR.vocab_private_word_limit_exceeded,
+            plan=user.get("plan", "free"),
+            limit=cap,
+            used=used,
+        )
+
+
+def _word_data_from_public_pool_word(word: dict) -> dict:
+    return {
+        "word": word.get("word", ""),
+        "definition": word.get("definition_en", ""),
+        "definition_vi": word.get("definition_vi", ""),
+        "ipa": word.get("ipa", ""),
+        "part_of_speech": word.get("part_of_speech", ""),
+        "topic": word.get("topic", ""),
+        "example_en": word.get("example_en", ""),
+        "example_vi": word.get("example_vi", ""),
+        "source": VOCAB_SOURCE_ID_BY_NAME["public_pool"],
+    }
 
 
 def _to_daily_word(doc: dict) -> DailyWord:
@@ -270,7 +322,56 @@ async def get_public_vocab_pool(
         raise ApiError(ERR.not_found)
     if detail is None:
         raise ApiError(ERR.not_found)
+    detail["words"] = await _annotate_public_pool_words(user["id"], detail["words"])
     return PublicVocabPoolDetailResponse(enabled=True, **detail)
+
+
+@router.post(
+    "/public-pools/{pool_id}/words/{word_id}/save",
+    response_model=PublicVocabPoolSaveResponse,
+)
+async def save_public_vocab_pool_word(
+    pool_id: str,
+    word_id: str,
+    user: dict = Depends(get_current_user),
+) -> PublicVocabPoolSaveResponse:
+    if not _public_pools_enabled(user):
+        raise ApiError(ERR.forbidden)
+    try:
+        public_word = await asyncio.to_thread(
+            public_vocab_pool_service.get_public_pool_word,
+            pool_id,
+            word_id,
+        )
+    except ValueError:
+        raise ApiError(ERR.not_found)
+    if public_word is None:
+        raise ApiError(ERR.not_found)
+
+    normalized = word_service.normalize_word(public_word.get("word", ""))
+    existing = await asyncio.to_thread(
+        firebase_service.get_word_by_text, user["id"], normalized,
+    )
+    if existing:
+        return PublicVocabPoolSaveResponse(
+            created=False,
+            already_saved=True,
+            word=_to_vocab_word(existing),
+        )
+
+    await _enforce_private_vocab_space(user)
+    word_data = _word_data_from_public_pool_word(public_word)
+    saved_word_id, created = await asyncio.to_thread(
+        firebase_service.add_word_if_not_exists, user["id"], word_data,
+    )
+    saved = await asyncio.to_thread(
+        firebase_service.get_word_by_id, user["id"], saved_word_id,
+    )
+    return PublicVocabPoolSaveResponse(
+        created=created,
+        already_saved=not created,
+        word=_to_vocab_word(saved or {"id": saved_word_id, **word_data}),
+    )
 
 
 def _reviewed_count(words: list[dict]) -> int:

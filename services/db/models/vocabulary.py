@@ -67,7 +67,7 @@ class UserVocabulary(Base):
     example_vi: Mapped[str] = mapped_column(Text, nullable=False, default="")
     user_note: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
-    # 1=daily, 2=quiz, 3=manual, 4=reading
+    # 1=daily, 2=quiz, 3=manual, 4=reading, 5=public_pool
     source: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
 
     # SRS state — in-place updates
@@ -94,7 +94,7 @@ class UserVocabulary(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "normalized_word", name="uq_user_vocab_normalized"),
-        CheckConstraint("source BETWEEN 1 AND 4", name="ck_user_vocabulary_source"),
+        CheckConstraint("source BETWEEN 1 AND 5", name="ck_user_vocabulary_source"),
         # Partial indexes (match 0006 migration)
         Index(
             "ix_user_vocabulary_due",

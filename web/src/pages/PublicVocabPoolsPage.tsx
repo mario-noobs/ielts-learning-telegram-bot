@@ -30,9 +30,13 @@ interface PublicPoolWord {
   definition_vi: string
   ipa: string
   part_of_speech: string
+  example_en: string
+  example_vi: string
   difficulty: number | null
   topic: string
   source_ref: string
+  already_saved: boolean
+  existing_word_id: string | null
 }
 
 interface PublicPoolsResponse {
@@ -44,6 +48,15 @@ interface PublicPoolDetailResponse {
   enabled: boolean
   pool: PublicPool
   words: PublicPoolWord[]
+}
+
+interface PublicPoolSaveResponse {
+  created: boolean
+  already_saved: boolean
+  word: {
+    id: string
+    word: string
+  }
 }
 
 const DIFFICULTIES = [1, 2, 3, 4, 5]
@@ -60,6 +73,7 @@ export default function PublicVocabPoolsPage() {
   const topic = searchParams.get('topic') || ''
   const [pools, setPools] = useState<PublicPool[] | null>(null)
   const [detail, setDetail] = useState<PublicPoolDetailResponse | null>(null)
+  const [savingWordIds, setSavingWordIds] = useState<Set<string>>(() => new Set())
   const [enabled, setEnabled] = useState(true)
   const [error, setError] = useState('')
 
@@ -110,6 +124,43 @@ export default function PublicVocabPoolsPage() {
     if (value) next.set(key, value)
     else next.delete(key)
     setSearchParams(next)
+  }
+
+  const saveWord = async (wordId: string) => {
+    if (!poolId) return
+    setSavingWordIds((prev) => new Set(prev).add(wordId))
+    setError('')
+    try {
+      const res = await apiFetch<PublicPoolSaveResponse>(
+        `/api/v1/vocabulary/public-pools/${encodeURIComponent(poolId)}/words/${encodeURIComponent(wordId)}/save`,
+        { method: 'POST' },
+      )
+      setDetail((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          words: current.words.map((word) =>
+            word.id === wordId
+              ? { ...word, already_saved: true, existing_word_id: res.word.id }
+              : word,
+          ),
+        }
+      })
+      track('public_vocab_pool_word_saved', {
+        pool_id: poolId,
+        word_id: wordId,
+        created: res.created,
+        already_saved: res.already_saved,
+      })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setSavingWordIds((prev) => {
+        const next = new Set(prev)
+        next.delete(wordId)
+        return next
+      })
+    }
   }
 
   if (error) {
@@ -186,7 +237,12 @@ export default function PublicVocabPoolsPage() {
       </div>
 
       {detail ? (
-        <PoolDetail detail={detail} t={t} />
+        <PoolDetail
+          detail={detail}
+          savingWordIds={savingWordIds}
+          onSaveWord={saveWord}
+          t={t}
+        />
       ) : pools && pools.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {pools.map((pool) => (
@@ -242,9 +298,13 @@ function PoolCard({
 
 function PoolDetail({
   detail,
+  savingWordIds,
+  onSaveWord,
   t,
 }: {
   detail: PublicPoolDetailResponse
+  savingWordIds: Set<string>
+  onSaveWord: (wordId: string) => void
   t: (key: string, opts?: Record<string, unknown>) => string
 }) {
   return (
@@ -302,6 +362,24 @@ function PoolDetail({
             </div>
             <p className="mt-2 text-sm text-fg">{word.definition_en}</p>
             {word.definition_vi && <p className="mt-1 text-sm text-muted-fg">{word.definition_vi}</p>}
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                disabled={word.already_saved || savingWordIds.has(word.id)}
+                onClick={() => onSaveWord(word.id)}
+                className={`inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  word.already_saved
+                    ? 'cursor-default bg-success/10 text-success'
+                    : 'bg-primary text-on-primary hover:bg-primary/90 disabled:opacity-60'
+                }`}
+              >
+                {savingWordIds.has(word.id)
+                  ? t('publicPools.word.saving')
+                  : word.already_saved
+                    ? t('publicPools.word.alreadySaved')
+                    : t('publicPools.word.save')}
+              </button>
+            </div>
           </div>
         ))}
       </div>
