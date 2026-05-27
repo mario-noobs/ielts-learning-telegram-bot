@@ -32,6 +32,7 @@ class WordListResponse(BaseModel):
 class DailyWord(BaseModel):
     word: str
     word_id: str = ""
+    reviewed: bool = False
     is_favourite: bool = False
     strength: str = "New"
     definition_en: str = ""
@@ -47,6 +48,10 @@ class DailyWordsResponse(BaseModel):
     topic: str
     words: list[DailyWord]
     generated_at: datetime | None = None
+    reviewed_count: int = 0
+    total_count: int = 0
+    timezone: str = ""
+    next_reset_at: datetime | None = None
 
 
 class DailyGenerateRequest(BaseModel):

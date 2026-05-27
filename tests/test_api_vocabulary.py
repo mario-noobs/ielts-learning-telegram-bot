@@ -173,6 +173,14 @@ class TestGenerateDaily:
         }
         with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
                    return_value=cached), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   return_value={
+                       "id": "wid-cached",
+                       "is_favourite": False,
+                       "srs_reps": 0,
+                       "times_correct": 0,
+                       "times_incorrect": 0,
+                   }), \
              patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
                    new=AsyncMock()) as mock_gen:
             response = client.post("/api/v1/vocabulary/daily", json={})
@@ -182,6 +190,53 @@ class TestGenerateDaily:
         assert body["topic"] == "Technology & Innovation"
         assert body["words"][0]["word"] == "cached"
         assert body["words"][0]["word_id"] == "wid-cached"
+        assert body["reviewed_count"] == 0
+        assert body["total_count"] == 1
+        assert body["timezone"] == "Asia/Ho_Chi_Minh"
+        assert body["next_reset_at"] is not None
+        mock_gen.assert_not_called()
+
+    def test_cached_daily_status_counts_reviewed_words(self, client):
+        cached = {
+            "topic": "Technology & Innovation",
+            "generated_at": datetime(2026, 4, 17, tzinfo=timezone.utc),
+            "words": [
+                {"word": "reviewed", "word_id": "wid-1", "definition_en": "d"},
+                {"word": "new", "word_id": "wid-2", "definition_en": "d"},
+            ],
+        }
+
+        def get_word(_uid, word_id):
+            if word_id == "wid-1":
+                return {
+                    "id": word_id,
+                    "is_favourite": False,
+                    "srs_reps": 1,
+                    "times_correct": 1,
+                    "times_incorrect": 0,
+                }
+            return {
+                "id": word_id,
+                "is_favourite": False,
+                "srs_reps": 0,
+                "times_correct": 0,
+                "times_incorrect": 0,
+            }
+
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=cached), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   side_effect=get_word), \
+             patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
+                   new=AsyncMock()) as mock_gen:
+            response = client.post("/api/v1/vocabulary/daily", json={})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["reviewed_count"] == 1
+        assert body["total_count"] == 2
+        assert body["words"][0]["reviewed"] is True
+        assert body["words"][1]["reviewed"] is False
         mock_gen.assert_not_called()
 
     def test_backfills_word_ids_for_legacy_cached_words(self, client):
@@ -217,7 +272,9 @@ class TestGetDailyByDate:
         cached = {"topic": "Health", "generated_at": ts,
                   "words": [{"word": "cached", "definition_en": "d"}]}
         with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
-                   return_value=cached):
+                   return_value=cached), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   return_value=None):
             response = client.get("/api/v1/vocabulary/daily/2026-04-17")
         assert response.status_code == 200
         assert response.json()["topic"] == "Health"

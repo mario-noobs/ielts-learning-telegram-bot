@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
@@ -14,6 +14,7 @@ type VisualStrength = 'Weak' | 'Learning' | 'Good' | 'Mastered'
 interface DailyWord {
   word: string
   word_id?: string
+  reviewed?: boolean
   is_favourite?: boolean
   strength?: Strength
   definition_en: string
@@ -24,9 +25,16 @@ interface DailyWord {
   example_vi: string
 }
 
+interface DailyStatus {
+  reviewed_count: number
+  total_count: number
+  timezone: string
+  next_reset_at: string
+}
+
 // Module-level cache: survives tab switches within the same session.
 // Keyed by date so it auto-invalidates the next day.
-let _cache: { date: string; words: DailyWord[]; topic: string } | null = null
+let _cache: { date: string; words: DailyWord[]; topic: string; status: DailyStatus | null } | null = null
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10)
@@ -44,6 +52,17 @@ const STRENGTH_OPTIONS: VisualStrength[] = ['Weak', 'Learning', 'Good', 'Mastere
 
 function visualStrength(value?: Strength): VisualStrength {
   return value === 'New' || !value ? 'Weak' : value
+}
+
+function formatResetCountdown(nextResetAt: string, now: Date): string {
+  const resetAt = new Date(nextResetAt)
+  const ms = Math.max(0, resetAt.getTime() - now.getTime())
+  const totalMinutes = Math.ceil(ms / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours <= 0) return `${minutes}m`
+  if (minutes === 0) return `${hours}h`
+  return `${hours}h ${minutes}m`
 }
 
 function DailyWordCard({
@@ -159,16 +178,34 @@ function WordSkeleton() {
 }
 
 export default function DailyWordsPage() {
-  const { t } = useTranslation('vocab')
+  const { t, i18n } = useTranslation('vocab')
   const cached = _cache?.date === todayKey() ? _cache : null
   const [words, setWords] = useState<DailyWord[]>(cached?.words ?? [])
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(
     () => new Set((cached?.words ?? []).filter((w) => w.is_favourite && w.word_id).map((w) => w.word_id as string)),
   )
   const [topic, setTopic] = useState(cached?.topic ?? '')
+  const [status, setStatus] = useState<DailyStatus | null>(cached?.status ?? null)
+  const [now, setNow] = useState(() => new Date())
   const [expectedCount, setExpectedCount] = useState(cached?.words.length ?? 0)
   const [streaming, setStreaming] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
+  const statusTrackedRef = useRef(false)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    if (!status || statusTrackedRef.current) return
+    statusTrackedRef.current = true
+    track('daily_vocab_status_viewed', {
+      reviewed_count: status.reviewed_count,
+      total_count: status.total_count,
+      timezone: status.timezone,
+    })
+  }, [status])
 
   useEffect(() => {
     if (!streaming) return
@@ -177,6 +214,8 @@ export default function DailyWordsPage() {
     async function streamWords() {
       const collected: DailyWord[] = []
       let streamedTopic = ''
+      let streamedDate = todayKey()
+      let streamedStatus: DailyStatus | null = null
       try {
         const res = await apiStream('/api/v1/vocabulary/daily/stream', {
           method: 'POST',
@@ -203,6 +242,11 @@ export default function DailyWordsPage() {
               if (event.type === 'start') {
                 setExpectedCount(event.count)
                 setTopic(event.topic)
+                streamedDate = event.date || streamedDate
+                if (event.status) {
+                  streamedStatus = event.status
+                  setStatus(event.status)
+                }
                 streamedTopic = event.topic
               } else if (event.type === 'word') {
                 collected.push(event.word)
@@ -211,7 +255,12 @@ export default function DailyWordsPage() {
                   setFavouriteIds((prev) => new Set(prev).add(event.word.word_id))
                 }
               } else if (event.type === 'done') {
-                _cache = { date: todayKey(), words: collected, topic: streamedTopic }
+                _cache = {
+                  date: streamedDate,
+                  words: collected,
+                  topic: streamedTopic,
+                  status: streamedStatus,
+                }
                 setStreaming(false)
               } else if (event.type === 'error') {
                 setError(t('daily.loadError', { defaultValue: 'Failed to generate words.' }))
@@ -237,6 +286,22 @@ export default function DailyWordsPage() {
 
   const skeletonCount = streaming && expectedCount > words.length ? expectedCount - words.length : 0
   const reviewableCount = words.filter((word) => Boolean(word.word_id)).length
+  const reviewedCount = status?.reviewed_count ?? words.filter((word) => word.reviewed).length
+  const totalCount = status?.total_count ?? words.length
+  const exactReset = status?.next_reset_at
+    ? new Intl.DateTimeFormat(i18n.language, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: status.timezone,
+        timeZoneName: 'short',
+      }).format(new Date(status.next_reset_at))
+    : ''
+  const resetCountdown = status?.next_reset_at
+    ? formatResetCountdown(status.next_reset_at, now)
+    : ''
 
   const toggleFavourite = async (word: DailyWord) => {
     if (!word.word_id) return
@@ -284,12 +349,25 @@ export default function DailyWordsPage() {
         _cache = { ..._cache, words: items }
       }
     }
-    apply(words.map((w) => (w.word_id === word.word_id ? { ...w, strength: next } : w)))
+    const reviewed = Boolean(word.reviewed || next !== 'Weak')
+    apply(words.map((w) => (
+      w.word_id === word.word_id ? { ...w, strength: next, reviewed } : w
+    )))
     try {
       await apiFetch(`/api/v1/words/${encodeURIComponent(word.word_id)}/strength`, {
         method: 'PATCH',
         body: JSON.stringify({ strength: next }),
       })
+      if (!word.reviewed && reviewed && status) {
+        const nextStatus = {
+          ...status,
+          reviewed_count: Math.min(status.total_count, status.reviewed_count + 1),
+        }
+        setStatus(nextStatus)
+        if (_cache?.date === todayKey()) {
+          _cache = { ..._cache, status: nextStatus }
+        }
+      }
       track('daily_word_strength_changed', { word: word.word, strength: next })
     } catch (e) {
       apply(before)
@@ -335,6 +413,40 @@ export default function DailyWordsPage() {
             : t('daily.wordCount', { defaultValue: '{{count}} words', count: words.length })}
         </p>
       </header>
+
+      {totalCount > 0 && (
+        <section
+          aria-label={t('daily.status.title')}
+          className="rounded-xl border border-border bg-surface-raised p-4"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-fg">
+                {reviewedCount >= totalCount
+                  ? t('daily.status.complete')
+                  : t('daily.status.progress', {
+                      reviewed: reviewedCount,
+                      total: totalCount,
+                    })}
+              </p>
+              {status?.next_reset_at && (
+                <p className="mt-1 text-xs text-muted-fg">
+                  {t('daily.status.reset', {
+                    countdown: resetCountdown,
+                    time: exactReset,
+                  })}
+                </p>
+              )}
+            </div>
+            <div className="h-2 rounded-full bg-surface sm:w-40 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${totalCount === 0 ? 0 : (reviewedCount / totalCount) * 100}%` }}
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="space-y-3">
         {words.map((item, i) => (
