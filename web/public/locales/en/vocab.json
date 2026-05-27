@@ -88,6 +88,19 @@
       "license": "License",
       "provenance": "Provenance"
     },
+    "recommendations": {
+      "heading": "Recommended roadmap",
+      "subtitle": "Start with the pools that best match your band and current gaps.",
+      "reasons": {
+        "target_band_match": "Matches your target band",
+        "near_target_band": "Close to your target band",
+        "weak_topic": "Targets weak topic: {topic}",
+        "selected_topic": "Matches selected topic: {topic}",
+        "low_coverage": "Builds coverage in {topic}",
+        "empty_progress_fallback": "Recommended from your target band",
+        "target_band_fallback": "Good next pool for your band"
+      }
+    },
     "word": {
       "save": "Save to My Words",
       "saving": "Saving...",

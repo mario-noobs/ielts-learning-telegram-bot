@@ -88,6 +88,19 @@
       "license": "Giấy phép",
       "provenance": "Nguồn gốc"
     },
+    "recommendations": {
+      "heading": "Lộ trình gợi ý",
+      "subtitle": "Bắt đầu với bộ từ phù hợp nhất với band mục tiêu và điểm yếu hiện tại.",
+      "reasons": {
+        "target_band_match": "Phù hợp band mục tiêu",
+        "near_target_band": "Gần với band mục tiêu",
+        "weak_topic": "Tập trung chủ đề yếu: {topic}",
+        "selected_topic": "Khớp chủ đề đã chọn: {topic}",
+        "low_coverage": "Tăng độ phủ từ ở {topic}",
+        "empty_progress_fallback": "Gợi ý theo band mục tiêu",
+        "target_band_fallback": "Bộ từ tiếp theo phù hợp với band của bạn"
+      }
+    },
     "word": {
       "save": "Lưu vào Từ của tôi",
       "saving": "Đang lưu...",

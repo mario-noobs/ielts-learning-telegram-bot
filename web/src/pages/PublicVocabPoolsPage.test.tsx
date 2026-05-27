@@ -39,24 +39,32 @@ function renderAt(path: string) {
 
 describe('<PublicVocabPoolsPage>', () => {
   it('lists read-only public pools with provenance summary', async () => {
-    apiFetchMock.mockResolvedValue({
-      enabled: true,
-      items: [
-        {
-          id: 'pool-1',
-          title: 'Cambridge IELTS 18',
-          source: 'cambridge',
-          source_theme: 'ielts_18',
-          word_count: 30,
-          difficulty: 4,
-          difficulty_min: 3,
-          difficulty_max: 5,
-          topics: ['education'],
-          source_url: 'https://example.test/source',
-          license: 'CC BY 4.0',
-          provenance: 'Cambridge import',
-        },
-      ],
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/vocabulary/public-pools/recommendations') {
+        return Promise.resolve({ enabled: true, target_difficulty: 4, items: [] })
+      }
+      if (url === '/api/v1/vocabulary/public-pools') {
+        return Promise.resolve({
+          enabled: true,
+          items: [
+            {
+              id: 'pool-1',
+              title: 'Cambridge IELTS 18',
+              source: 'cambridge',
+              source_theme: 'ielts_18',
+              word_count: 30,
+              difficulty: 4,
+              difficulty_min: 3,
+              difficulty_max: 5,
+              topics: ['education'],
+              source_url: 'https://example.test/source',
+              license: 'CC BY 4.0',
+              provenance: 'Cambridge import',
+            },
+          ],
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
     })
 
     renderAt('/learn/vocab/pools')
@@ -67,6 +75,53 @@ describe('<PublicVocabPoolsPage>', () => {
     expect(screen.getByText('CC BY 4.0')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
     expect(trackMock).toHaveBeenCalledWith('public_vocab_pools_opened')
+  })
+
+  it('shows recommended roadmap pools with visible reasons', async () => {
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/vocabulary/public-pools/recommendations') {
+        return Promise.resolve({
+          enabled: true,
+          target_difficulty: 3,
+          items: [
+            {
+              id: 'rec-1',
+              title: 'Upper Intermediate',
+              source: 'cambridge',
+              source_theme: 'upper_intermediate',
+              word_count: 101,
+              difficulty: 3,
+              difficulty_min: 3,
+              difficulty_max: 3,
+              topics: ['environment'],
+              source_url: '',
+              license: 'CC BY 4.0',
+              provenance: 'Seed import',
+              reasons: [
+                { code: 'target_band_match' },
+                { code: 'weak_topic', topic: 'environment' },
+              ],
+            },
+          ],
+        })
+      }
+      if (url === '/api/v1/vocabulary/public-pools') {
+        return Promise.resolve({ enabled: true, items: [] })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    renderAt('/learn/vocab/pools')
+
+    expect(await screen.findByText('publicPools.recommendations.heading')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Upper Intermediate/ }))
+      .toHaveAttribute('href', '/learn/vocab/pools/rec-1')
+    expect(screen.getByText(/publicPools\.recommendations\.reasons\.weak_topic/))
+      .toBeInTheDocument()
+    expect(trackMock).toHaveBeenCalledWith('public_vocab_roadmap_recommendations_viewed', {
+      count: 1,
+      pool_ids: ['rec-1'],
+    })
   })
 
   it('opens pool detail with save state', async () => {
@@ -179,24 +234,32 @@ describe('<PublicVocabPoolsPage>', () => {
   })
 
   it('applies difficulty and topic filters through the query string', async () => {
-    apiFetchMock.mockResolvedValue({
-      enabled: true,
-      items: [
-        {
-          id: 'pool-1',
-          title: 'Education Pool',
-          source: 'seed',
-          source_theme: 'education',
-          word_count: 4,
-          difficulty: 3,
-          difficulty_min: 3,
-          difficulty_max: 3,
-          topics: ['education'],
-          source_url: '',
-          license: '',
-          provenance: 'Seed',
-        },
-      ],
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/vocabulary/public-pools/recommendations') {
+        return Promise.resolve({ enabled: true, target_difficulty: 3, items: [] })
+      }
+      if (url.startsWith('/api/v1/vocabulary/public-pools')) {
+        return Promise.resolve({
+          enabled: true,
+          items: [
+            {
+              id: 'pool-1',
+              title: 'Education Pool',
+              source: 'seed',
+              source_theme: 'education',
+              word_count: 4,
+              difficulty: 3,
+              difficulty_min: 3,
+              difficulty_max: 3,
+              topics: ['education'],
+              source_url: '',
+              license: '',
+              provenance: 'Seed',
+            },
+          ],
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
     })
 
     renderAt('/learn/vocab/pools')

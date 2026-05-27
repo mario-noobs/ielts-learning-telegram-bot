@@ -212,6 +212,38 @@ class TestPublicVocabPools:
         assert body["items"][0]["license"] == "CC BY 4.0"
         service.assert_called_once_with(difficulty=4, topic="education")
 
+    def test_recommendations_use_rule_service_when_feature_flag_enabled(self, client):
+        recommendation = {
+            **_fake_public_pool(),
+            "reasons": [
+                {"code": "target_band_match"},
+                {"code": "selected_topic", "topic": "education"},
+            ],
+        }
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.vocab_roadmap_service.recommend_public_pools",
+                   return_value={"target_difficulty": 3, "items": [recommendation]}) as service:
+            response = client.get("/api/v1/vocabulary/public-pools/recommendations")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["enabled"] is True
+        assert body["target_difficulty"] == 3
+        assert body["items"][0]["id"] == "pool-1"
+        assert body["items"][0]["reasons"][1]["topic"] == "education"
+        service.assert_called_once()
+
+    def test_recommendations_return_disabled_when_feature_flag_off(self, client):
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=False), \
+             patch("api.routes.vocabulary.vocab_roadmap_service.recommend_public_pools") as service:
+            response = client.get("/api/v1/vocabulary/public-pools/recommendations")
+
+        assert response.status_code == 200
+        assert response.json() == {"enabled": False, "target_difficulty": None, "items": []}
+        service.assert_not_called()
+
     def test_detail_returns_words_without_mutating_user_collection(self, client):
         detail = {
             "pool": _fake_public_pool(),

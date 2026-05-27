@@ -181,6 +181,15 @@ class PublicVocabPool(BaseModel):
     provenance: str = ""
 
 
+class PublicVocabPoolRecommendationReason(BaseModel):
+    code: str
+    topic: str | None = None
+
+
+class PublicVocabPoolRecommendation(PublicVocabPool):
+    reasons: list[PublicVocabPoolRecommendationReason] = []
+
+
 class PublicVocabPoolWord(BaseModel):
     id: str
     word: str
@@ -200,6 +209,12 @@ class PublicVocabPoolWord(BaseModel):
 class PublicVocabPoolsResponse(BaseModel):
     enabled: bool
     items: list[PublicVocabPool] = []
+
+
+class PublicVocabPoolRecommendationsResponse(BaseModel):
+    enabled: bool
+    target_difficulty: int | None = None
+    items: list[PublicVocabPoolRecommendation] = []
 
 
 class PublicVocabPoolDetailResponse(BaseModel):
