@@ -88,5 +88,9 @@
     "daily_words_count": {
       "out_of_range": "Daily words must be between 5 and 50."
     }
+  },
+  "vocab": {
+    "daily_not_found": "Generate today's vocabulary before adding extra words.",
+    "extra_limit_exceeded": "You've used all {limit} extra words for today. Resets at {next_reset_at}."
   }
 }

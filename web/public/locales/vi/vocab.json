@@ -186,6 +186,15 @@
       "complete": "Đã ôn xong hôm nay",
       "reset": "Từ mới sẽ làm mới sau {countdown} ({time})"
     },
+    "learnMore": {
+      "title": "Muốn học tiếp?",
+      "description": "Còn {remaining}/{limit} từ học thêm hôm nay.",
+      "cta": "Học thêm {count} từ",
+      "loading": "Đang thêm từ…",
+      "added": "Đã thêm {count} từ học thêm.",
+      "limit": "Hôm nay đã hết lượt học thêm. Làm mới sau {countdown} ({time}).",
+      "badge": "Học thêm"
+    },
     "flip": {
       "done": "Xong"
     },

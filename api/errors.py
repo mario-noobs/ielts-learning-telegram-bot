@@ -247,6 +247,14 @@ class _Registry:
         "vocab.override_rate_limited", 429,
         "Too many manual mastery changes today. Try again tomorrow.",
     )
+    vocab_daily_not_found = ErrorCode(
+        "vocab.daily_not_found", 404,
+        "Daily vocabulary has not been generated for today.",
+    )
+    vocab_extra_limit_exceeded = ErrorCode(
+        "vocab.extra_limit_exceeded", 429,
+        "Daily extra vocabulary allowance has been used.",
+    )
 
 
 ERR = _Registry()

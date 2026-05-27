@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import DailyWordsPage from './DailyWordsPage'
+import DailyWordsPage, { __resetDailyWordsCacheForTest } from './DailyWordsPage'
 
 const apiStreamMock = vi.fn()
 const apiFetchMock = vi.fn()
@@ -42,6 +43,7 @@ function streamFromEvents(events: unknown[]) {
 
 describe('<DailyWordsPage>', () => {
   beforeEach(() => {
+    __resetDailyWordsCacheForTest()
     apiFetchMock.mockReset()
     apiStreamMock.mockReset()
     trackMock.mockReset()
@@ -95,5 +97,149 @@ describe('<DailyWordsPage>', () => {
         timezone: 'Asia/Ho_Chi_Minh',
       }),
     )
+  })
+
+  it('adds extra daily words and updates remaining allowance', async () => {
+    apiStreamMock.mockResolvedValue(streamFromEvents([
+      {
+        type: 'start',
+        count: 1,
+        topic: 'technology',
+        date: '2026-05-27',
+        status: {
+          reviewed_count: 1,
+          total_count: 1,
+          timezone: 'Asia/Ho_Chi_Minh',
+          next_reset_at: '2026-05-28T00:00:00+07:00',
+          extra_limit: 5,
+          extra_used: 0,
+          extra_remaining: 5,
+        },
+      },
+      {
+        type: 'word',
+        word: {
+          word: 'base',
+          word_id: 'w1',
+          reviewed: true,
+          definition_en: 'base definition',
+          definition_vi: '',
+          ipa: '',
+          part_of_speech: 'noun',
+          example_en: '',
+          example_vi: '',
+        },
+      },
+      { type: 'done' },
+    ]))
+    apiFetchMock.mockResolvedValue({
+      date: '2026-05-27',
+      topic: 'technology',
+      reviewed_count: 1,
+      total_count: 2,
+      timezone: 'Asia/Ho_Chi_Minh',
+      next_reset_at: '2026-05-28T00:00:00+07:00',
+      extra_limit: 5,
+      extra_used: 1,
+      extra_remaining: 4,
+      words: [
+        {
+          word: 'base',
+          word_id: 'w1',
+          reviewed: true,
+          definition_en: 'base definition',
+          definition_vi: '',
+          ipa: '',
+          part_of_speech: 'noun',
+          example_en: '',
+          example_vi: '',
+        },
+        {
+          word: 'resilient',
+          word_id: 'w2',
+          daily_source: 'extra',
+          reviewed: false,
+          definition_en: 'able to recover',
+          definition_vi: '',
+          ipa: '',
+          part_of_speech: 'adjective',
+          example_en: '',
+          example_vi: '',
+        },
+      ],
+    })
+
+    render(
+      <MemoryRouter>
+        <DailyWordsPage />
+      </MemoryRouter>,
+    )
+
+    const learnMore = await screen.findByRole('button', {
+      name: /daily\.learnMore\.cta/,
+    })
+    expect(screen.getByText(/daily\.learnMore\.description/)).toHaveTextContent('"remaining":5')
+
+    await userEvent.click(learnMore)
+
+    expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary/daily/extra', {
+      method: 'POST',
+      body: JSON.stringify({ count: 5 }),
+    })
+    expect(await screen.findByText('resilient')).toBeInTheDocument()
+    expect(screen.getByText('daily.learnMore.badge')).toBeInTheDocument()
+    expect(screen.getByText(/daily\.learnMore\.added/)).toHaveTextContent('"count":1')
+    expect(trackMock).toHaveBeenCalledWith('daily_vocab_learn_more_clicked', {
+      count: 5,
+      remaining: 5,
+    })
+    expect(trackMock).toHaveBeenCalledWith('daily_vocab_extra_words_added', {
+      count: 1,
+      remaining: 4,
+    })
+  })
+
+  it('shows the extra-word limit state when allowance is used', async () => {
+    apiStreamMock.mockResolvedValue(streamFromEvents([
+      {
+        type: 'start',
+        count: 1,
+        topic: 'technology',
+        date: '2026-05-27',
+        status: {
+          reviewed_count: 1,
+          total_count: 1,
+          timezone: 'Asia/Ho_Chi_Minh',
+          next_reset_at: '2026-05-28T00:00:00+07:00',
+          extra_limit: 5,
+          extra_used: 5,
+          extra_remaining: 0,
+        },
+      },
+      {
+        type: 'word',
+        word: {
+          word: 'base',
+          word_id: 'w1',
+          reviewed: true,
+          definition_en: 'base definition',
+          definition_vi: '',
+          ipa: '',
+          part_of_speech: 'noun',
+          example_en: '',
+          example_vi: '',
+        },
+      },
+      { type: 'done' },
+    ]))
+
+    render(
+      <MemoryRouter>
+        <DailyWordsPage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/daily\.learnMore\.limit/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /daily\.learnMore\.cta/ })).not.toBeInTheDocument()
   })
 })
