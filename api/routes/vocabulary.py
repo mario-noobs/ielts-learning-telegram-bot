@@ -185,6 +185,21 @@ def _daily_history_entry(doc: dict, words: list[dict]) -> DailyHistoryEntry:
     )
 
 
+def _daily_history_summary(doc: dict) -> DailyHistoryEntry:
+    words = doc.get("words", []) or []
+    return DailyHistoryEntry(
+        date=doc.get("id", ""),
+        topic=doc.get("topic", ""),
+        words=[],
+        generated_at=doc.get("generated_at"),
+        total_count=len(words),
+        reviewed_count=_reviewed_count(words),
+        favourite_count=sum(1 for w in words if w.get("is_favourite")),
+        weak_count=sum(1 for w in words if w.get("strength") == "Weak"),
+        mastered_count=sum(1 for w in words if w.get("strength") == "Mastered"),
+    )
+
+
 def _daily_status_dict(
     reviewed_count: int,
     total_count: int,
@@ -587,18 +602,16 @@ async def get_daily_history(
     limit: int = Query(30, ge=1, le=90),
     user: dict = Depends(get_current_user),
 ) -> DailyHistoryResponse:
-    """Return cached daily-word batches, newest first."""
+    """Return cached daily-word batch summaries, newest first.
+
+    The list intentionally omits per-word detail so /learn/vocab can render
+    history quickly. Clients should fetch /daily/{date} only when a learner
+    expands a day.
+    """
     docs = await asyncio.to_thread(
         firebase_service.list_user_daily_words, user["id"], limit,
     )
-    items: list[DailyHistoryEntry] = []
-    for doc in docs:
-        words = await asyncio.to_thread(
-            _refresh_daily_word_status,
-            user["id"],
-            doc.get("words", []) or [],
-        )
-        items.append(_daily_history_entry(doc, words))
+    items = [_daily_history_summary(doc) for doc in docs]
     return DailyHistoryResponse(items=items, timezone=_user_timezone(user))
 
 

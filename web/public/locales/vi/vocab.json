@@ -106,6 +106,10 @@
   "history": {
     "summary": "Đã ôn {reviewed}/{total}",
     "reviewCta": "Ôn tập",
+    "showDetails": "Xem từ",
+    "hideDetails": "Ẩn từ",
+    "loadingDetails": "Đang tải từ…",
+    "noDetails": "Không có từ đã lưu cho ngày này.",
     "reviewedBadge": "Đã ôn",
     "stats": {
       "total": "Tổng",

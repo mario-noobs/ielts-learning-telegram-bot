@@ -51,6 +51,7 @@ interface WordListResponse {
 interface DailyHistoryWord {
   word: string
   word_id: string
+  daily_source?: string
   reviewed: boolean
   is_favourite: boolean
   strength: string
@@ -74,6 +75,14 @@ interface DailyHistoryEntry {
 interface DailyHistoryResponse {
   items: DailyHistoryEntry[]
   timezone: string
+}
+
+interface DailyWordsResponse {
+  date: string
+  topic: string
+  words: DailyHistoryWord[]
+  reviewed_count: number
+  total_count: number
 }
 
 type VocabTab = 'topics' | 'favourites' | 'history'
@@ -217,11 +226,20 @@ function DailyHistoryWordRow({
 
 function DailyHistoryCard({
   entry,
+  details,
+  loadingDetails,
+  isOpen,
+  onToggle,
   t,
 }: {
   entry: DailyHistoryEntry
+  details?: DailyWordsResponse
+  loadingDetails: boolean
+  isOpen: boolean
+  onToggle: () => void
   t: (k: string, o?: Record<string, unknown>) => string
 }) {
+  const detailWords = details?.words ?? []
   return (
     <article className="rounded-xl border border-border bg-surface-raised p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -241,19 +259,30 @@ function DailyHistoryCard({
             })}
           </p>
         </div>
-        <Link
-          to="/learn/review"
-          onClick={() =>
-            track('vocab_history_review_started', {
-              date: entry.date,
-              total: entry.total_count,
-            })
-          }
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
-        >
-          <Icon name="RotateCcw" size="sm" variant="muted" />
-          {t('history.reviewCta')}
-        </Link>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
+            aria-expanded={isOpen}
+          >
+            <Icon name={isOpen ? 'ChevronDown' : 'ChevronRight'} size="sm" variant="muted" />
+            {isOpen ? t('history.hideDetails') : t('history.showDetails')}
+          </button>
+          <Link
+            to={`/learn/daily/quiz?date=${encodeURIComponent(entry.date)}`}
+            onClick={() =>
+              track('vocab_history_review_started', {
+                date: entry.date,
+                total: entry.total_count,
+              })
+            }
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
+          >
+            <Icon name="RotateCcw" size="sm" variant="muted" />
+            {t('history.reviewCta')}
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -265,16 +294,24 @@ function DailyHistoryCard({
         ))}
       </div>
 
-      <div className="mt-4 divide-y divide-border">
-        {entry.words.map((word) => (
-          <DailyHistoryWordRow
-            key={`${entry.date}-${word.word_id || word.word}`}
-            date={entry.date}
-            word={word}
-            t={t}
-          />
-        ))}
-      </div>
+      {isOpen && (
+        <div className="mt-4 divide-y divide-border">
+          {loadingDetails ? (
+            <div className="py-3 text-sm text-muted-fg">{t('history.loadingDetails')}</div>
+          ) : detailWords.length === 0 ? (
+            <div className="py-3 text-sm text-muted-fg">{t('history.noDetails')}</div>
+          ) : (
+            detailWords.map((word) => (
+              <DailyHistoryWordRow
+                key={`${entry.date}-${word.word_id || word.word}`}
+                date={entry.date}
+                word={word}
+                t={t}
+              />
+            ))
+          )}
+        </div>
+      )}
     </article>
   )
 }
@@ -288,6 +325,9 @@ export default function VocabHomePage() {
   const [activeTab, setActiveTab] = useState<VocabTab>('topics')
   const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
   const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[] | null>(null)
+  const [openHistoryDate, setOpenHistoryDate] = useState<string | null>(null)
+  const [historyDetails, setHistoryDetails] = useState<Record<string, DailyWordsResponse>>({})
+  const [loadingHistoryDetails, setLoadingHistoryDetails] = useState<string | null>(null)
   const [loadingFavourites, setLoadingFavourites] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -348,6 +388,28 @@ export default function VocabHomePage() {
       cancelled = true
     }
   }, [activeTab, dailyHistory])
+
+  const toggleHistoryDate = async (date: string) => {
+    if (openHistoryDate === date) {
+      setOpenHistoryDate(null)
+      return
+    }
+    setOpenHistoryDate(date)
+    if (historyDetails[date]) return
+
+    setLoadingHistoryDetails(date)
+    try {
+      const res = await apiFetch<DailyWordsResponse>(
+        `/api/v1/vocabulary/daily/${encodeURIComponent(date)}`,
+      )
+      setHistoryDetails((prev) => ({ ...prev, [date]: res }))
+      track('vocab_history_day_expanded', { date, total: res.total_count })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setLoadingHistoryDetails((current) => (current === date ? null : current))
+    }
+  }
 
   const stats = useMemo(() => {
     const total = topics.reduce((sum, tp) => sum + tp.word_count, 0)
@@ -547,7 +609,15 @@ export default function VocabHomePage() {
         ) : (
           <div className="space-y-4">
             {dailyHistory.map((entry) => (
-              <DailyHistoryCard key={entry.date} entry={entry} t={t} />
+              <DailyHistoryCard
+                key={entry.date}
+                entry={entry}
+                details={historyDetails[entry.date]}
+                loadingDetails={loadingHistoryDetails === entry.date}
+                isOpen={openHistoryDate === entry.date}
+                onToggle={() => void toggleHistoryDate(entry.date)}
+                t={t}
+              />
             ))}
           </div>
         )
