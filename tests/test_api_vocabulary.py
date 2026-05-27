@@ -45,6 +45,26 @@ def _fake_vocab_doc(word: str, added_at: datetime, topic: str = "education") -> 
     }
 
 
+def _complete_detail(word: str) -> dict:
+    return {
+        "word": word,
+        "ipa": "/test/",
+        "syllable_stress": "TEST",
+        "part_of_speech": "noun",
+        "definition_en": f"{word} definition",
+        "definition_vi": f"{word} vi",
+        "collocations": [{"phrase": f"{word} example", "label": "neutral"}],
+        "word_family": [word],
+        "ielts_tip": f"Use {word} in academic writing.",
+        "examples_by_band": {
+            "7": {
+                "en": f"Example with {word}.",
+                "vi": "Vi example.",
+            }
+        },
+    }
+
+
 class TestListVocabulary:
     def test_ac1_returns_paginated_words_with_srs(self, client):
         """AC1: GET /api/v1/vocabulary returns paginated list with SRS data."""
@@ -265,6 +285,103 @@ class TestGenerateDaily:
         body = response.json()
         assert [w["word_id"] for w in body["words"]] == ["wid-1", "wid-2"]
 
+    def test_adds_extra_daily_words_from_master_without_ai_when_detail_complete(self, client):
+        cached = {
+            "topic": "Technology",
+            "generated_at": datetime(2026, 5, 27, tzinfo=timezone.utc),
+            "words": [
+                {
+                    "word": "base",
+                    "word_id": "wid-base",
+                    "definition_en": "base definition",
+                    "reviewed": True,
+                }
+            ],
+        }
+
+        def get_word(_uid, word_id):
+            return {
+                "wid-base": {"id": word_id, "is_favourite": False, "srs_reps": 1},
+                "wid-extra": {"id": word_id, "is_favourite": False, "srs_reps": 0},
+            }[word_id]
+
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=cached), \
+             patch("api.routes.vocabulary.vocab_service.generate_extra_daily_words",
+                   new=AsyncMock(return_value=[{"word": "resilient"}])) as mock_extra, \
+             patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=_complete_detail("resilient"))), \
+             patch("api.routes.vocabulary.word_service.get_complete_word_detail",
+                   new=AsyncMock()) as mock_ai_detail, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   return_value=("wid-extra", True)), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   side_effect=get_word), \
+             patch("api.routes.vocabulary.firebase_service.save_user_daily_words") as mock_save:
+            response = client.post("/api/v1/vocabulary/daily/extra", json={"count": 5})
+
+        assert response.status_code == 200
+        body = response.json()
+        mock_extra.assert_awaited_once()
+        mock_ai_detail.assert_not_awaited()
+        assert body["extra_limit"] == 5
+        assert body["extra_used"] == 1
+        assert body["extra_remaining"] == 4
+        assert body["words"][1]["word"] == "resilient"
+        assert body["words"][1]["daily_source"] == "extra"
+        saved_words = mock_save.call_args.args[2]
+        assert saved_words[1]["daily_source"] == "extra"
+
+    def test_extra_daily_words_enrich_missing_core_detail(self, client):
+        cached = {
+            "topic": "Technology",
+            "generated_at": datetime(2026, 5, 27, tzinfo=timezone.utc),
+            "words": [{"word": "base", "word_id": "wid-base", "definition_en": "d"}],
+        }
+
+        def get_word(_uid, word_id):
+            return {"id": word_id, "is_favourite": False, "srs_reps": 0}
+
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=cached), \
+             patch("api.routes.vocabulary.vocab_service.generate_extra_daily_words",
+                   new=AsyncMock(return_value=[{"word": "resilient"}])), \
+             patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value={"word": "resilient"})), \
+             patch("api.routes.vocabulary.word_service.get_complete_word_detail",
+                   new=AsyncMock(return_value=_complete_detail("resilient"))) as mock_ai_detail, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   return_value=("wid-extra", True)), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   side_effect=get_word), \
+             patch("api.routes.vocabulary.firebase_service.save_user_daily_words"):
+            response = client.post("/api/v1/vocabulary/daily/extra", json={"count": 1})
+
+        assert response.status_code == 200
+        mock_ai_detail.assert_awaited_once_with("resilient", 7.0)
+        assert response.json()["words"][1]["definition_en"] == "resilient definition"
+
+    def test_extra_daily_words_enforces_daily_limit(self, client):
+        cached = {
+            "topic": "Technology",
+            "generated_at": datetime(2026, 5, 27, tzinfo=timezone.utc),
+            "words": [
+                {"word": f"extra-{i}", "daily_source": "extra"}
+                for i in range(5)
+            ],
+        }
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=cached), \
+             patch("api.routes.vocabulary.vocab_service.generate_extra_daily_words",
+                   new=AsyncMock()) as mock_extra:
+            response = client.post("/api/v1/vocabulary/daily/extra", json={"count": 1})
+
+        assert response.status_code == 429
+        body = response.json()["error"]
+        assert body["code"] == "vocab.extra_limit_exceeded"
+        assert body["params"]["limit"] == 5
+        mock_extra.assert_not_awaited()
+
 
 class TestGetDailyByDate:
     def test_daily_history_returns_cached_batches_with_progress_counts(self, client):
@@ -275,7 +392,12 @@ class TestGetDailyByDate:
                 "generated_at": datetime(2026, 5, 27, 0, 30, tzinfo=timezone.utc),
                 "words": [
                     {"word": "scalability", "word_id": "wid-1", "definition_en": "ability to grow"},
-                    {"word": "latency", "word_id": "wid-2", "definition_en": "delay"},
+                    {
+                        "word": "latency",
+                        "word_id": "wid-2",
+                        "definition_en": "delay",
+                        "daily_source": "extra",
+                    },
                 ],
             },
             {
@@ -337,6 +459,7 @@ class TestGetDailyByDate:
         assert body["items"][0]["mastered_count"] == 0
         assert body["items"][0]["words"][0]["is_favourite"] is True
         assert body["items"][0]["words"][0]["strength"] == "Weak"
+        assert body["items"][0]["words"][1]["daily_source"] == "extra"
         assert body["items"][1]["mastered_count"] == 1
 
     def test_daily_history_empty_state_uses_cache_only(self, client):

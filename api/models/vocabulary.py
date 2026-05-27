@@ -32,6 +32,7 @@ class WordListResponse(BaseModel):
 class DailyWord(BaseModel):
     word: str
     word_id: str = ""
+    daily_source: str = "daily"
     reviewed: bool = False
     is_favourite: bool = False
     strength: str = "New"
@@ -52,6 +53,9 @@ class DailyWordsResponse(BaseModel):
     total_count: int = 0
     timezone: str = ""
     next_reset_at: datetime | None = None
+    extra_limit: int = 0
+    extra_used: int = 0
+    extra_remaining: int = 0
 
 
 class DailyHistoryEntry(BaseModel):
@@ -74,6 +78,10 @@ class DailyHistoryResponse(BaseModel):
 class DailyGenerateRequest(BaseModel):
     count: int | None = Field(default=None, ge=1, le=20)
     topics: list[str] | None = None
+
+
+class DailyExtraRequest(BaseModel):
+    count: int = Field(default=5, ge=1, le=5)
 
 
 class AddWordRequest(BaseModel):

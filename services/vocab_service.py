@@ -337,6 +337,29 @@ async def generate_personal_daily_words(telegram_id: int, count: int = 10,
     return fresh, topic
 
 
+async def generate_extra_daily_words(
+    telegram_id: int,
+    count: int = 5,
+    band: float = 7.0,
+    topic: str = "education",
+    context_words: list[str] | None = None,
+) -> list[dict]:
+    """Generate extra words for today's personal daily set.
+
+    Uses the same master-bank-first selector as default daily generation,
+    but keeps the caller's current topic and does not rotate recent topics.
+    """
+    existing_words = firebase_service.get_user_word_list(telegram_id)
+    existing_lc = {_normalize_word_key(w) for w in existing_words}
+    return await _generate_with_master_first(
+        count=count,
+        band=band,
+        topic=topic,
+        existing_lc=existing_lc,
+        context_words=context_words,
+    )
+
+
 async def stream_personal_daily_words(
     telegram_id: int,
     count: int = 10,

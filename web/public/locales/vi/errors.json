@@ -88,5 +88,9 @@
     "daily_words_count": {
       "out_of_range": "Số từ mỗi ngày phải từ 5 đến 50."
     }
+  },
+  "vocab": {
+    "daily_not_found": "Hãy tạo từ vựng hôm nay trước khi thêm từ học thêm.",
+    "extra_limit_exceeded": "Bạn đã dùng hết {limit} từ học thêm hôm nay. Làm mới lúc {next_reset_at}."
   }
 }

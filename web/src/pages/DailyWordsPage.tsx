@@ -14,6 +14,7 @@ type VisualStrength = 'Weak' | 'Learning' | 'Good' | 'Mastered'
 interface DailyWord {
   word: string
   word_id?: string
+  daily_source?: string
   reviewed?: boolean
   is_favourite?: boolean
   strength?: Strength
@@ -30,11 +31,18 @@ interface DailyStatus {
   total_count: number
   timezone: string
   next_reset_at: string
+  extra_limit?: number
+  extra_used?: number
+  extra_remaining?: number
 }
 
 // Module-level cache: survives tab switches within the same session.
 // Keyed by date so it auto-invalidates the next day.
 let _cache: { date: string; words: DailyWord[]; topic: string; status: DailyStatus | null } | null = null
+
+export function __resetDailyWordsCacheForTest() {
+  _cache = null
+}
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10)
@@ -71,12 +79,14 @@ function DailyWordCard({
   isFavourite,
   onFavouriteToggle,
   onStrengthChange,
+  extraLabel,
 }: {
   item: DailyWord
   index: number
   isFavourite: boolean
   onFavouriteToggle: () => void
   onStrengthChange: (next: VisualStrength) => void
+  extraLabel: string
 }) {
   const strength = visualStrength(item.strength)
   return (
@@ -89,6 +99,11 @@ function DailyWordCard({
             {item.part_of_speech && (
               <span className="text-xs uppercase tracking-wide text-muted-fg">
                 {item.part_of_speech}
+              </span>
+            )}
+            {item.daily_source === 'extra' && (
+              <span className="rounded-md bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                {extraLabel}
               </span>
             )}
           </div>
@@ -189,6 +204,9 @@ export default function DailyWordsPage() {
   const [now, setNow] = useState(() => new Date())
   const [expectedCount, setExpectedCount] = useState(cached?.words.length ?? 0)
   const [streaming, setStreaming] = useState(!cached)
+  const [loadingExtra, setLoadingExtra] = useState(false)
+  const [extraNotice, setExtraNotice] = useState<string | null>(null)
+  const [extraError, setExtraError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const statusTrackedRef = useRef(false)
 
@@ -288,6 +306,13 @@ export default function DailyWordsPage() {
   const reviewableCount = words.filter((word) => Boolean(word.word_id)).length
   const reviewedCount = status?.reviewed_count ?? words.filter((word) => word.reviewed).length
   const totalCount = status?.total_count ?? words.length
+  const extraUsed = status?.extra_used ?? words.filter((word) => word.daily_source === 'extra').length
+  const extraLimit = status?.extra_limit ?? 5
+  const extraRemaining = status?.extra_remaining ?? Math.max(0, extraLimit - extraUsed)
+  const extraRequestCount = Math.min(5, extraRemaining)
+  const nearComplete = totalCount > 0 && reviewedCount >= Math.max(1, totalCount - 1)
+  const showLearnMore = !streaming && nearComplete && extraRemaining > 0
+  const showExtraLimit = !streaming && totalCount > 0 && status != null && extraRemaining <= 0
   const exactReset = status?.next_reset_at
     ? new Intl.DateTimeFormat(i18n.language, {
         year: 'numeric',
@@ -302,6 +327,40 @@ export default function DailyWordsPage() {
   const resetCountdown = status?.next_reset_at
     ? formatResetCountdown(status.next_reset_at, now)
     : ''
+
+  const applyDailyResponse = (res: {
+    date: string
+    words: DailyWord[]
+    topic: string
+    reviewed_count: number
+    total_count: number
+    timezone: string
+    next_reset_at: string
+    extra_limit?: number
+    extra_used?: number
+    extra_remaining?: number
+  }) => {
+    const nextStatus = {
+      reviewed_count: res.reviewed_count,
+      total_count: res.total_count,
+      timezone: res.timezone,
+      next_reset_at: res.next_reset_at,
+      extra_limit: res.extra_limit,
+      extra_used: res.extra_used,
+      extra_remaining: res.extra_remaining,
+    }
+    setWords(res.words)
+    setFavouriteIds(new Set(res.words.filter((w) => w.is_favourite && w.word_id).map((w) => w.word_id as string)))
+    setTopic(res.topic)
+    setStatus(nextStatus)
+    setExpectedCount(res.words.length)
+    _cache = {
+      date: res.date,
+      words: res.words,
+      topic: res.topic,
+      status: nextStatus,
+    }
+  }
 
   const toggleFavourite = async (word: DailyWord) => {
     if (!word.word_id) return
@@ -372,6 +431,49 @@ export default function DailyWordsPage() {
     } catch (e) {
       apply(before)
       setError(localizeError(e))
+    }
+  }
+
+  const learnMore = async () => {
+    if (extraRequestCount <= 0) return
+    const previousExtraCount = words.filter((word) => word.daily_source === 'extra').length
+    setLoadingExtra(true)
+    setExtraNotice(null)
+    setExtraError(null)
+    track('daily_vocab_learn_more_clicked', {
+      count: extraRequestCount,
+      remaining: extraRemaining,
+    })
+    try {
+      const res = await apiFetch<{
+        date: string
+        words: DailyWord[]
+        topic: string
+        reviewed_count: number
+        total_count: number
+        timezone: string
+        next_reset_at: string
+        extra_limit: number
+        extra_used: number
+        extra_remaining: number
+      }>('/api/v1/vocabulary/daily/extra', {
+        method: 'POST',
+        body: JSON.stringify({ count: extraRequestCount }),
+      })
+      applyDailyResponse(res)
+      const added = Math.max(
+        0,
+        res.words.filter((word) => word.daily_source === 'extra').length - previousExtraCount,
+      )
+      setExtraNotice(t('daily.learnMore.added', { count: added }))
+      track('daily_vocab_extra_words_added', {
+        count: added,
+        remaining: res.extra_remaining,
+      })
+    } catch (e) {
+      setExtraError(localizeError(e))
+    } finally {
+      setLoadingExtra(false)
     }
   }
 
@@ -448,6 +550,47 @@ export default function DailyWordsPage() {
         </section>
       )}
 
+      {(showLearnMore || showExtraLimit) && (
+        <section className="rounded-xl border border-border bg-surface-raised p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-fg">
+                {t('daily.learnMore.title')}
+              </p>
+              <p className="mt-1 text-xs text-muted-fg">
+                {showLearnMore
+                  ? t('daily.learnMore.description', {
+                      remaining: extraRemaining,
+                      limit: extraLimit,
+                    })
+                  : t('daily.learnMore.limit', {
+                      countdown: resetCountdown,
+                      time: exactReset,
+                    })}
+              </p>
+            </div>
+            {showLearnMore && (
+              <button
+                type="button"
+                onClick={learnMore}
+                disabled={loadingExtra}
+                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-primary/40 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50"
+              >
+                {loadingExtra
+                  ? t('daily.learnMore.loading')
+                  : t('daily.learnMore.cta', { count: extraRequestCount })}
+              </button>
+            )}
+          </div>
+          {extraNotice && (
+            <p className="mt-3 text-xs font-medium text-success">{extraNotice}</p>
+          )}
+          {extraError && (
+            <p className="mt-3 text-xs font-medium text-danger">{extraError}</p>
+          )}
+        </section>
+      )}
+
       <div className="space-y-3">
         {words.map((item, i) => (
           <DailyWordCard
@@ -457,6 +600,7 @@ export default function DailyWordsPage() {
             isFavourite={Boolean(item.word_id && favouriteIds.has(item.word_id))}
             onFavouriteToggle={() => toggleFavourite(item)}
             onStrengthChange={(next) => updateStrength(item, next)}
+            extraLabel={t('daily.learnMore.badge')}
           />
         ))}
         {Array.from({ length: skeletonCount }).map((_, i) => (

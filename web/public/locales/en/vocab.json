@@ -186,6 +186,15 @@
       "complete": "Daily review complete",
       "reset": "New words reset in {countdown} ({time})"
     },
+    "learnMore": {
+      "title": "Want to keep going?",
+      "description": "{remaining}/{limit} extra words left today.",
+      "cta": "Learn {count} more",
+      "loading": "Adding words…",
+      "added": "Added {count} extra words.",
+      "limit": "No extra words left today. Resets in {countdown} ({time}).",
+      "badge": "Extra"
+    },
     "flip": {
       "done": "Done"
     },

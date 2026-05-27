@@ -10,8 +10,10 @@ from pydantic import BaseModel
 
 import config
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.vocabulary import (
     AddWordRequest,
+    DailyExtraRequest,
     DailyGenerateRequest,
     DailyHistoryEntry,
     DailyHistoryResponse,
@@ -25,6 +27,8 @@ from services.srs_service import get_word_strength
 
 router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
 logger = logging.getLogger(__name__)
+EXTRA_DAILY_WORD_LIMIT = 5
+EXTRA_DAILY_SOURCE = "extra"
 
 
 def _user_timezone(user: dict) -> str:
@@ -81,6 +85,7 @@ def _to_daily_word(doc: dict) -> DailyWord:
     return DailyWord(
         word=doc.get("word", ""),
         word_id=doc.get("word_id", ""),
+        daily_source=doc.get("daily_source", "daily"),
         reviewed=bool(doc.get("reviewed", False)),
         is_favourite=doc.get("is_favourite", False),
         strength=doc.get("strength", "New"),
@@ -140,6 +145,10 @@ def _reviewed_count(words: list[dict]) -> int:
     return sum(1 for w in words if w.get("reviewed"))
 
 
+def _extra_used(words: list[dict]) -> int:
+    return sum(1 for w in words if w.get("daily_source") == EXTRA_DAILY_SOURCE)
+
+
 def _daily_response(
     date_str: str,
     topic: str,
@@ -156,6 +165,9 @@ def _daily_response(
         total_count=len(words),
         timezone=timezone_name,
         next_reset_at=_next_reset_at(timezone_name),
+        extra_limit=EXTRA_DAILY_WORD_LIMIT,
+        extra_used=_extra_used(words),
+        extra_remaining=max(0, EXTRA_DAILY_WORD_LIMIT - _extra_used(words)),
     )
 
 
@@ -174,13 +186,20 @@ def _daily_history_entry(doc: dict, words: list[dict]) -> DailyHistoryEntry:
 
 
 def _daily_status_dict(
-    reviewed_count: int, total_count: int, timezone_name: str,
+    reviewed_count: int,
+    total_count: int,
+    timezone_name: str,
+    words: list[dict] | None = None,
 ) -> dict:
+    extra_used = _extra_used(words or [])
     return {
         "reviewed_count": reviewed_count,
         "total_count": total_count,
         "timezone": timezone_name,
         "next_reset_at": _next_reset_at(timezone_name).isoformat(),
+        "extra_limit": EXTRA_DAILY_WORD_LIMIT,
+        "extra_used": extra_used,
+        "extra_remaining": max(0, EXTRA_DAILY_WORD_LIMIT - extra_used),
     }
 
 
@@ -189,6 +208,7 @@ def _daily_word_dict(doc: dict) -> dict:
     return {
         "word": doc.get("word", ""),
         "word_id": doc.get("word_id", ""),
+        "daily_source": doc.get("daily_source", "daily"),
         "reviewed": bool(doc.get("reviewed", False)),
         "is_favourite": doc.get("is_favourite", False),
         "strength": doc.get("strength", "New"),
@@ -244,7 +264,7 @@ async def _daily_sse_generator(
                 "topic": topic,
                 "date": date_str,
                 "status": _daily_status_dict(
-                    _reviewed_count(words), len(words), timezone_name,
+                    _reviewed_count(words), len(words), timezone_name, words,
                 ),
             })
             for w in words:
@@ -420,6 +440,97 @@ async def generate_daily(
         words,
         timezone_name,
         generated_at=datetime.utcnow(),
+    )
+
+
+def _detail_example(detail: dict, band: float) -> dict:
+    examples = detail.get("examples_by_band", {}) or {}
+    tier = word_service.band_tier(band)
+    return examples.get(tier, {}) or {}
+
+
+def _detail_to_daily_word(detail: dict, fallback: dict, band: float) -> dict:
+    example = _detail_example(detail, band)
+    return {
+        "word": detail.get("word") or fallback.get("word", ""),
+        "daily_source": EXTRA_DAILY_SOURCE,
+        "definition_en": detail.get("definition_en", fallback.get("definition_en", "")),
+        "definition_vi": detail.get("definition_vi", fallback.get("definition_vi", "")),
+        "ipa": detail.get("ipa", fallback.get("ipa", "")),
+        "part_of_speech": detail.get("part_of_speech", fallback.get("part_of_speech", "")),
+        "example_en": example.get("en") or fallback.get("example_en", ""),
+        "example_vi": example.get("vi") or fallback.get("example_vi", ""),
+    }
+
+
+async def _prepare_extra_daily_words(words: list[dict], band: float) -> list[dict]:
+    prepared = []
+    for word in words:
+        word_text = (word.get("word") or "").strip()
+        if not word_text:
+            continue
+        fast = await word_service.get_word_detail_fast(word_text, band)
+        if fast is not None and word_service.is_word_core_detail_complete(fast, band):
+            detail = fast
+        else:
+            detail = await word_service.get_complete_word_detail(word_text, band)
+        prepared.append(_detail_to_daily_word(detail, word, band))
+    return prepared
+
+
+@router.post("/daily/extra", response_model=DailyWordsResponse)
+async def add_extra_daily_words(
+    body: DailyExtraRequest | None = None,
+    user: dict = Depends(get_current_user),
+) -> DailyWordsResponse:
+    timezone_name = _user_timezone(user)
+    date_str = _local_date_str(timezone_name)
+    cached = await asyncio.to_thread(
+        firebase_service.get_user_daily_words, user["id"], date_str
+    )
+    if not cached:
+        raise ApiError(ERR.vocab_daily_not_found)
+
+    words = cached.get("words", []) or []
+    used = _extra_used(words)
+    remaining = max(0, EXTRA_DAILY_WORD_LIMIT - used)
+    if remaining <= 0:
+        raise ApiError(
+            ERR.vocab_extra_limit_exceeded,
+            limit=EXTRA_DAILY_WORD_LIMIT,
+            next_reset_at=_next_reset_at(timezone_name).isoformat(),
+        )
+
+    requested = body.count if body else EXTRA_DAILY_WORD_LIMIT
+    count = min(requested, remaining)
+    topic = cached.get("topic", "")
+    band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+    selected = await vocab_service.generate_extra_daily_words(
+        telegram_id=user["id"],
+        count=count,
+        band=band,
+        topic=topic,
+    )
+    extra_words = await _prepare_extra_daily_words(selected, band)
+    await asyncio.to_thread(_persist_daily_to_deck, user["id"], extra_words, topic)
+
+    next_words = words + extra_words
+    await asyncio.to_thread(
+        firebase_service.save_user_daily_words,
+        user["id"],
+        date_str,
+        next_words,
+        topic,
+    )
+    refreshed = await asyncio.to_thread(
+        _refresh_daily_word_status, user["id"], next_words,
+    )
+    return _daily_response(
+        date_str,
+        topic,
+        refreshed,
+        timezone_name,
+        generated_at=cached.get("generated_at"),
     )
 
 
