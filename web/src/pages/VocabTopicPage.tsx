@@ -13,6 +13,7 @@ import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 
 type Strength = 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
 type VisualStrength = 'Weak' | 'Learning' | 'Good' | 'Mastered'
@@ -408,16 +409,7 @@ export default function VocabTopicPage() {
       )}
 
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-border bg-surface-raised p-3 animate-pulse"
-            >
-              <div className="h-4 bg-border rounded w-1/3" />
-            </div>
-          ))}
-        </div>
+        <LoadingScreen compact title={t('loadingMore')} />
       ) : filteredWords.length === 0 ? (
         words.length === 0 ? (
           <EmptyState

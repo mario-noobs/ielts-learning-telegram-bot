@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import EmptyState from '../components/EmptyState'
+import LoadingScreen from '../components/LoadingScreen'
 import { WritingHistoryItem } from '../lib/writing'
 import { localizeError } from '../lib/apiError'
 
@@ -108,11 +109,7 @@ export default function WritingHistoryPage() {
       )}
 
       {items === null ? (
-        <div className="animate-pulse space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 bg-border rounded-lg" />
-          ))}
-        </div>
+        <LoadingScreen compact title={t('writing:history.heading')} />
       ) : items.length === 0 ? (
         <EmptyState
           illustration="empty-writing"
