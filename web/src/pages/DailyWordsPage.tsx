@@ -192,6 +192,65 @@ function WordSkeleton() {
   )
 }
 
+function GenerationProgress({
+  current,
+  total,
+  t,
+}: {
+  current: number
+  total: number
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
+  const hasTotal = total > 0
+  const pct = hasTotal ? Math.min(96, Math.round((current / total) * 100)) : 12
+  const stage = !hasTotal
+    ? 'waiting'
+    : current === 0
+      ? 'preparing'
+      : current >= total
+        ? 'finalizing'
+        : current / total >= 0.75
+          ? 'almost'
+          : 'generating'
+
+  return (
+    <section
+      aria-live="polite"
+      aria-label={t('daily.generation.title')}
+      className="rounded-xl border border-primary/30 bg-primary/5 p-4"
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon name="Sparkles" size="md" variant="primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-fg">
+              {t(`daily.generation.stages.${stage}`)}
+            </p>
+            <p className="text-xs font-medium tabular-nums text-muted-fg">
+              {hasTotal
+                ? t('daily.generation.percent', { pct })
+                : t('daily.generation.starting')}
+            </p>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-bg">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-fg">
+            {hasTotal
+              ? t('daily.generation.count', { current, total })
+              : t('daily.generation.waitingDetail')}
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function DailyWordsPage() {
   const { t, i18n } = useTranslation('vocab')
   const cached = _cache?.date === todayKey() ? _cache : null
@@ -327,6 +386,7 @@ export default function DailyWordsPage() {
   const resetCountdown = status?.next_reset_at
     ? formatResetCountdown(status.next_reset_at, now)
     : ''
+  const generationTotal = expectedCount || status?.total_count || 0
 
   const applyDailyResponse = (res: {
     date: string
@@ -508,13 +568,21 @@ export default function DailyWordsPage() {
           {topic && <span>{topicLabel(topic, t)} · </span>}
           {streaming
             ? t('daily.generating', {
-                defaultValue: 'Generating… {{count}} / {{total}}',
+                defaultValue: 'Generating… {count} / {total}',
                 count: words.length,
                 total: expectedCount || '…',
               })
-            : t('daily.wordCount', { defaultValue: '{{count}} words', count: words.length })}
+            : t('daily.wordCount', { defaultValue: '{count} words', count: words.length })}
         </p>
       </header>
+
+      {streaming && (
+        <GenerationProgress
+          current={words.length}
+          total={generationTotal}
+          t={t}
+        />
+      )}
 
       {totalCount > 0 && (
         <section
@@ -587,6 +655,13 @@ export default function DailyWordsPage() {
           )}
           {extraError && (
             <p className="mt-3 text-xs font-medium text-danger">{extraError}</p>
+          )}
+          {loadingExtra && (
+            <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+              <p className="text-xs font-medium text-primary">
+                {t('daily.learnMore.progress')}
+              </p>
+            </div>
           )}
         </section>
       )}

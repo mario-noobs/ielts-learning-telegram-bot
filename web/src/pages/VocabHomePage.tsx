@@ -155,6 +155,45 @@ function AiUsageNote({
   )
 }
 
+function AiProgress({
+  t,
+}: {
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
+  const [stage, setStage] = useState(0)
+  const stages = ['waiting', 'drafting', 'almost'] as const
+  const pct = [35, 68, 90][stage]
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setStage((current) => Math.min(stages.length - 1, current + 1))
+    }, 1800)
+    return () => window.clearInterval(id)
+  }, [stages.length])
+
+  return (
+    <div
+      aria-live="polite"
+      className="mt-3 rounded-lg border border-primary/25 bg-primary/5 px-3 py-3"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-fg">
+          {t(`aiProgress.${stages[stage]}`)}
+        </p>
+        <p className="text-xs font-medium tabular-nums text-muted-fg">
+          {t('aiProgress.percent', { pct })}
+        </p>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-bg">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function topicLabel(
   slug: string,
   apiName: string,
@@ -408,6 +447,8 @@ function AddWordWithAi({
         </button>
       </form>
 
+      {loading && <AiProgress t={t} />}
+
       {error && (
         <div className="mt-3 rounded-md border border-danger/30 bg-danger/10 p-3">
           <p className="text-sm text-danger">{error}</p>
@@ -640,6 +681,8 @@ function ImportWordsPanel({
           </button>
         </div>
       </form>
+
+      {loading && <AiProgress t={t} />}
 
       {error && (
         <p className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

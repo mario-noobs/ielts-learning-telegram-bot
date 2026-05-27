@@ -141,6 +141,12 @@
   "limits": {
     "aiUsage": "{remaining}/{quota} AI calls remaining today. Used {used}. Resets at {reset}."
   },
+  "aiProgress": {
+    "waiting": "Waiting for AI",
+    "drafting": "Drafting the card",
+    "almost": "Almost done",
+    "percent": "{pct}%"
+  },
   "addFlow": {
     "backToHub": "Vocabulary hub",
     "heading": "Add words",
@@ -299,6 +305,8 @@
   "daily": {
     "heading": "Today's vocabulary",
     "loading": "Loading…",
+    "generating": "Generating… {count} / {total}",
+    "wordCount": "{count} words",
     "pageOf": "Daily {current}/{total}",
     "wordRange": "Words {first}–{last} of {total}",
     "openFlip": "Flip Cards",
@@ -312,11 +320,26 @@
       "complete": "Daily review complete",
       "reset": "New words reset in {countdown} ({time})"
     },
+    "generation": {
+      "title": "Daily vocabulary generation",
+      "starting": "Starting",
+      "percent": "{pct}%",
+      "count": "{current}/{total} words ready",
+      "waitingDetail": "Preparing your topic and checking existing words.",
+      "stages": {
+        "waiting": "Waiting for the vocabulary stream",
+        "preparing": "Preparing your daily set",
+        "generating": "Generating words",
+        "almost": "Almost done",
+        "finalizing": "Finalizing"
+      }
+    },
     "learnMore": {
       "title": "Want to keep going?",
       "description": "{remaining}/{limit} extra words left today.",
       "cta": "Learn {count} more",
       "loading": "Adding words…",
+      "progress": "Generating extra words. This usually takes a few seconds.",
       "added": "Added {count} extra words.",
       "limit": "No extra words left today. Resets in {countdown} ({time}).",
       "badge": "Extra"

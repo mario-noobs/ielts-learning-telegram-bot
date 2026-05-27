@@ -42,6 +42,14 @@ function render_(page: ReactNode = <VocabHomePage />) {
   )
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 describe('<VocabHomePage>', () => {
   it('previews and saves an AI word card', async () => {
     apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
@@ -107,6 +115,45 @@ describe('<VocabHomePage>', () => {
       word: 'latency',
       used_draft: true,
     })
+  })
+
+  it('shows staged progress while AI drafts a word card', async () => {
+    const draft = deferred<unknown>()
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/me/ai-usage') {
+        return Promise.resolve({
+          plan: 'free',
+          quota_daily: 10,
+          used_today: 1,
+          by_feature: [],
+          reset_at: '2026-05-28T00:00:00+00:00',
+        })
+      }
+      if (url === '/api/v1/vocabulary/draft') return draft.promise
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_(<VocabAddPage />)
+
+    await userEvent.type(await screen.findByLabelText(/addWord\.inputLabel/), 'latency')
+    await userEvent.click(screen.getByRole('button', { name: /addWord\.generate/ }))
+
+    expect(await screen.findByText('aiProgress.waiting')).toBeInTheDocument()
+
+    draft.resolve({
+      word: 'latency',
+      definition: 'delay before transfer',
+      definition_vi: '',
+      ipa: '',
+      part_of_speech: 'noun',
+      topic: 'technology',
+      example_en: '',
+      example_vi: '',
+      ielts_tip: '',
+      already_exists: false,
+      existing_word_id: null,
+    })
+    expect(await screen.findByText('delay before transfer')).toBeInTheDocument()
   })
 
   it('imports candidates from text and saves selected non-duplicates', async () => {

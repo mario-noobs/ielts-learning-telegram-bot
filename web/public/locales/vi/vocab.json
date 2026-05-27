@@ -141,6 +141,12 @@
   "limits": {
     "aiUsage": "Còn {remaining}/{quota} lượt AI hôm nay. Đã dùng {used}. Làm mới lúc {reset}."
   },
+  "aiProgress": {
+    "waiting": "Đang chờ AI",
+    "drafting": "Đang tạo thẻ từ",
+    "almost": "Sắp xong",
+    "percent": "{pct}%"
+  },
   "addFlow": {
     "backToHub": "Trung tâm từ vựng",
     "heading": "Thêm từ",
@@ -299,6 +305,8 @@
   "daily": {
     "heading": "Từ vựng hôm nay",
     "loading": "Đang tải…",
+    "generating": "Đang tạo… {count} / {total}",
+    "wordCount": "{count} từ",
     "pageOf": "Ngày {current}/{total}",
     "wordRange": "Từ {first}–{last} trên {total}",
     "openFlip": "Flip Card",
@@ -312,11 +320,26 @@
       "complete": "Đã ôn xong hôm nay",
       "reset": "Từ mới sẽ làm mới sau {countdown} ({time})"
     },
+    "generation": {
+      "title": "Tiến trình tạo từ hôm nay",
+      "starting": "Bắt đầu",
+      "percent": "{pct}%",
+      "count": "Đã có {current}/{total} từ",
+      "waitingDetail": "Đang chuẩn bị chủ đề và kiểm tra từ đã có.",
+      "stages": {
+        "waiting": "Đang chờ luồng từ vựng",
+        "preparing": "Đang chuẩn bị bộ từ hôm nay",
+        "generating": "Đang tạo từ",
+        "almost": "Sắp xong",
+        "finalizing": "Đang hoàn tất"
+      }
+    },
     "learnMore": {
       "title": "Muốn học tiếp?",
       "description": "Còn {remaining}/{limit} từ học thêm hôm nay.",
       "cta": "Học thêm {count} từ",
       "loading": "Đang thêm từ…",
+      "progress": "Đang tạo từ học thêm. Thường mất vài giây.",
       "added": "Đã thêm {count} từ học thêm.",
       "limit": "Hôm nay đã hết lượt học thêm. Làm mới sau {countdown} ({time}).",
       "badge": "Học thêm"
