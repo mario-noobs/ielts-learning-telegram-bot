@@ -542,6 +542,45 @@ class TestGenerateDaily:
         body = response.json()
         assert [w["word_id"] for w in body["words"]] == ["wid-1", "wid-2"]
 
+    def test_repairs_stale_cached_word_id(self, client):
+        """Cached daily rows can hold a dead word_id after migrations or
+        earlier persistence bugs. The endpoint should resolve the word back
+        into the user's deck and return the live id so interactions work."""
+        cached = {
+            "topic": "Health",
+            "generated_at": datetime(2026, 4, 17, tzinfo=timezone.utc),
+            "words": [{
+                "word": "stamina",
+                "word_id": "stale-id",
+                "definition_en": "ability to keep going",
+                "definition_vi": "suc ben",
+            }],
+        }
+
+        def get_word(_uid, word_id):
+            if word_id == "stale-id":
+                return None
+            return {"id": word_id, "is_favourite": False, "srs_reps": 0}
+
+        with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
+                   return_value=cached), \
+             patch("api.routes.vocabulary.firebase_service.save_user_daily_words") as save_daily, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   return_value=("wid-current", False)) as add_word, \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   side_effect=get_word), \
+             patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
+                   new=AsyncMock()) as mock_gen:
+            response = client.post("/api/v1/vocabulary/daily", json={})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["words"][0]["word_id"] == "wid-current"
+        add_word.assert_called_once()
+        saved_words = save_daily.call_args.args[2]
+        assert saved_words[0]["word_id"] == "wid-current"
+        mock_gen.assert_not_called()
+
     def test_adds_extra_daily_words_from_master_without_ai_when_detail_complete(self, client):
         cached = {
             "topic": "Technology",
@@ -703,11 +742,11 @@ class TestGetDailyByDate:
     def test_returns_cached_for_valid_date(self, client):
         ts = datetime(2026, 4, 17, tzinfo=timezone.utc)
         cached = {"topic": "Health", "generated_at": ts,
-                  "words": [{"word": "cached", "definition_en": "d"}]}
+                  "words": [{"word": "cached", "word_id": "wid-cached", "definition_en": "d"}]}
         with patch("api.routes.vocabulary.firebase_service.get_user_daily_words",
                    return_value=cached), \
              patch("api.routes.vocabulary.firebase_service.get_word_by_id",
-                   return_value=None):
+                   return_value={"id": "wid-cached", "is_favourite": False, "srs_reps": 0}):
             response = client.get("/api/v1/vocabulary/daily/2026-04-17")
         assert response.status_code == 200
         assert response.json()["topic"] == "Health"

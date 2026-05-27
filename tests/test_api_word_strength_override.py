@@ -74,6 +74,36 @@ def test_mastered_override_lifts_srs_state(client):
     assert body["srs_next_review"] is not None
 
 
+def test_web_user_can_override_strength():
+    app = create_app()
+    web_user = {"id": "web_abc", "name": "Web", "auth_uid": "firebase-abc"}
+    app.dependency_overrides[get_current_user] = lambda: web_user
+    web_client = TestClient(app)
+
+    before = _word({"srs_interval": 1, "srs_reps": 0})
+    after = _word({
+        "srs_interval": 30,
+        "srs_reps": 5,
+        "srs_next_review": datetime(2026, 6, 9, tzinfo=timezone.utc),
+    })
+
+    with patch(
+        "api.routes.words.word_service.firebase_service.get_word_by_id",
+        return_value=before,
+    ) as get_word, patch(
+        "api.routes.words.word_service.set_word_strength_manual",
+        return_value=after,
+    ) as set_strength:
+        resp = web_client.patch(
+            f"/api/v1/words/{WORD_ID}/strength",
+            json={"strength": "Mastered"},
+        )
+
+    assert resp.status_code == 200
+    get_word.assert_called_once_with("web_abc", WORD_ID)
+    set_strength.assert_called_once_with("web_abc", WORD_ID, "Mastered")
+
+
 def test_no_op_when_target_below_current_progress(client):
     """User clicks Good but they're already past Mastered (60d).
     State should not change; applied=False."""

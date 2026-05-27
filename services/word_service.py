@@ -72,9 +72,7 @@ def _current_strength(word_data: dict) -> str:
     return "Mastered"
 
 
-def set_word_strength_manual(
-    telegram_id: int, word_id: str, target: StrengthLiteral,
-) -> dict:
+def set_word_strength_manual(user_id: int | str, word_id: str, target: StrengthLiteral) -> dict:
     """Apply a manual strength override (US-#231).
 
     Returns the updated word dict. Raises ``ValueError`` if the word
@@ -91,9 +89,9 @@ def set_word_strength_manual(
       - Always updates ``srs_next_review`` to ``now + interval days``
         so the SRS engine schedules the word correctly going forward.
     """
-    word = firebase_service.get_word_by_id(telegram_id, word_id)
+    word = firebase_service.get_word_by_id(user_id, word_id)
     if not word:
-        raise ValueError(f"Word {word_id} not found for user {telegram_id}")
+        raise ValueError(f"Word {word_id} not found for user {user_id}")
 
     current = _current_strength(word)
     target_rank = _STRENGTH_RANK[target]
@@ -113,7 +111,7 @@ def set_word_strength_manual(
         "srs_reps": targets["srs_reps"],
         "srs_next_review": next_review,
     }
-    firebase_service.update_word_srs(telegram_id, word_id, update)
+    firebase_service.update_word_srs(user_id, word_id, update)
     return {**word, **update}
 
 
