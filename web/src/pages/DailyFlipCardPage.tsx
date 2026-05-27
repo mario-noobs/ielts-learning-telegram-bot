@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
+import LoadingScreen from '../components/LoadingScreen'
 import PronunciationButton from '../components/PronunciationButton'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
@@ -69,11 +70,7 @@ export default function DailyFlipCardPage() {
   }, [revealed, reveal, next, prev])
 
   if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto p-4 text-center text-muted-fg">
-        {t('daily.loading')}
-      </div>
-    )
+    return <LoadingScreen className="mx-auto max-w-2xl p-4" title={t('daily.loading')} />
   }
 
   if (error) {

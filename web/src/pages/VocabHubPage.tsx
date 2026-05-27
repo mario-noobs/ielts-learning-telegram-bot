@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon, { type IconName } from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import { track } from '../lib/analytics'
@@ -114,17 +115,7 @@ export default function VocabHubPage() {
   }, [topics])
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-5xl p-4">
-        <div className="h-8 w-52 animate-pulse rounded bg-border" />
-        <div className="mt-3 h-4 w-80 max-w-full animate-pulse rounded bg-border" />
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-xl border border-border bg-surface-raised" />
-          ))}
-        </div>
-      </div>
-    )
+    return <LoadingScreen className="mx-auto max-w-5xl p-4" />
   }
 
   if (error) {

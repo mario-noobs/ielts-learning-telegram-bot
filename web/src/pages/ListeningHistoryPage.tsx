@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import { EXERCISE_ICONS, ListeningHistoryItem } from '../lib/listening'
@@ -54,11 +55,7 @@ export default function ListeningHistoryPage() {
       )}
 
       {items === null && !error ? (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-surface rounded-xl animate-pulse" />
-          ))}
-        </div>
+        <LoadingScreen compact title={t('history.heading')} />
       ) : items && items.length === 0 ? (
         <EmptyState
           illustration="empty-listening"

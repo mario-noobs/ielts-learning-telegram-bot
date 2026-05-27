@@ -25,6 +25,10 @@
     "offline": "You're offline",
     "empty": "Nothing here yet"
   },
+  "loadingScreen": {
+    "title": "Preparing your study space",
+    "subtitle": "Syncing your words, reviews, and progress."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "vocab": "Vocabulary",

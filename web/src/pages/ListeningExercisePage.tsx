@@ -5,12 +5,12 @@ import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 import AudioPlayer from '../components/AudioPlayer'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 import DictationExercise from '../components/DictationExercise'
 import GapFillExercise from '../components/GapFillExercise'
 import ComprehensionExercise from '../components/ComprehensionExercise'
 import {
   EXERCISE_ICONS,
-  ListeningExerciseResult,
   ListeningExerciseView,
   formatDuration,
 } from '../lib/listening'
@@ -42,18 +42,10 @@ export default function ListeningExercisePage() {
   }
 
   if (!exercise) {
-    return (
-      <div className="max-w-2xl mx-auto p-4">
-        <div className="animate-pulse space-y-3">
-          <div className="h-6 bg-border rounded w-1/3"></div>
-          <div className="h-32 bg-surface rounded-xl"></div>
-          <div className="h-48 bg-surface rounded-xl"></div>
-        </div>
-      </div>
-    )
+    return <LoadingScreen className="mx-auto max-w-2xl p-4" />
   }
 
-  const handleSubmitted = (_r: ListeningExerciseResult) => {
+  const handleSubmitted = () => {
     // Optional: could refresh history list
   }
 

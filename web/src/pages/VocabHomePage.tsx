@@ -14,6 +14,7 @@ import { track } from '../lib/analytics'
 import EmptyState from '../components/EmptyState'
 import { useProfile } from '../contexts/AuthContext'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 
 interface TopicSummary {
   id: string
@@ -879,7 +880,7 @@ function DailyHistoryCard({
       {isOpen && (
         <div className="mt-4 divide-y divide-border">
           {loadingDetails ? (
-            <div className="py-3 text-sm text-muted-fg">{t('history.loadingDetails')}</div>
+            <LoadingScreen compact title={t('history.loadingDetails')} className="py-3" />
           ) : detailWords.length === 0 ? (
             <div className="py-3 text-sm text-muted-fg">{t('history.noDetails')}</div>
           ) : (
@@ -1297,17 +1298,7 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
 
       {activeTab === 'history' ? (
         loadingHistory || dailyHistory === null ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-border bg-surface-raised p-4 animate-pulse"
-              >
-                <div className="h-4 bg-border rounded w-1/4" />
-                <div className="mt-4 h-12 bg-border rounded" />
-              </div>
-            ))}
-          </div>
+          <LoadingScreen compact title={t('byTopic.tabs.history', { defaultValue: 'History' })} />
         ) : dailyHistory.length === 0 ? (
           <EmptyState
             illustration="empty-vocab"
@@ -1334,16 +1325,7 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
         )
       ) : activeTab === 'favourites' ? (
         loadingFavourites ? (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-border bg-surface-raised p-3 animate-pulse"
-              >
-                <div className="h-4 bg-border rounded w-1/3" />
-              </div>
-            ))}
-          </div>
+          <LoadingScreen compact title={t('byTopic.tabs.favourites', { defaultValue: 'Favourites' })} />
         ) : favouriteWords.length === 0 ? (
           <EmptyState
             illustration="empty-vocab"
@@ -1415,16 +1397,7 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
           </div>
 
           {loadingMyWords ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border border-border bg-surface-raised p-3 animate-pulse"
-                >
-                  <div className="h-4 bg-border rounded w-1/3" />
-                </div>
-              ))}
-            </div>
+            <LoadingScreen compact title={t('byTopic.tabs.myWords', { defaultValue: 'My Words' })} />
           ) : myWords.length === 0 ? (
             <EmptyState
               illustration="empty-vocab"
@@ -1458,17 +1431,7 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
           )}
         </section>
       ) : loading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-border bg-surface-raised p-4 animate-pulse"
-            >
-              <div className="h-4 bg-border rounded w-1/2" />
-              <div className="h-2 bg-border rounded mt-4 w-full" />
-            </div>
-          ))}
-        </div>
+        <LoadingScreen compact title={t('byTopic.tabs.topics', { defaultValue: 'Topics' })} />
       ) : preferredSlugs.length > 0 ? (
         <div className="space-y-8">
           <section>
