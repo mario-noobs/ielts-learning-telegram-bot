@@ -44,7 +44,7 @@
   },
   "todaysPlan": {
     "heading": "Today's plan",
-    "subline": "{total} of {cap} minutes",
+    "subline": "{total} min planned · {cap} min daily cap",
     "allDone": {
       "title": "Today's plan complete!",
       "description": "Come back tomorrow to keep your streak.",
