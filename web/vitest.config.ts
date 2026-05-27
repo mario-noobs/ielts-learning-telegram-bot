@@ -29,6 +29,7 @@ export default defineConfig({
       'src/pages/VocabHomePage.test.tsx',
       'src/pages/PublicVocabPoolsPage.test.tsx',
       'src/pages/settings/LinkTelegramPage.test.tsx',
+      'src/pages/dashboard/**/*.test.{ts,tsx}',
     ],
   },
 })

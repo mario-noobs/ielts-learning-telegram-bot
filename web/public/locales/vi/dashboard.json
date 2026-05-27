@@ -13,13 +13,21 @@
   },
   "quickActions": {
     "heading": "Hành động nhanh",
+    "daily": {
+      "title": "Từ hôm nay",
+      "description": "Học bộ từ cá nhân hóa trong ngày"
+    },
+    "review": {
+      "title": "Ôn tập",
+      "description": "Ôn từ đến hạn theo SRS"
+    },
     "writing": {
       "title": "Writing",
-      "description": "Chấm điểm bởi AI · Task 1 hoặc Task 2"
+      "description": "Nhận góp ý AI cho Task 1 hoặc Task 2"
     },
-    "flashcards": {
-      "title": "Flashcards",
-      "description": "Ôn tập từ đến hạn theo SRS"
+    "reading": {
+      "title": "Reading",
+      "description": "Luyện một bài đọc IELTS có bấm giờ"
     }
   },
   "personalization": {

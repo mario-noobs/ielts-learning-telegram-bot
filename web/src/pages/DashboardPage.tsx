@@ -5,6 +5,7 @@ import { localizeError } from '../lib/apiError'
 import { auth } from '../lib/firebase'
 import { DailyPlan } from '../lib/plan'
 import type { ProgressResponse } from '../lib/progress'
+import { useAuth } from '../contexts/AuthContext'
 import AiUsageWidget from '../components/AiUsageWidget'
 import EmptyState from '../components/EmptyState'
 import ErrorBanner from '../components/ErrorBanner'
@@ -28,6 +29,7 @@ interface UserProfile {
   topics: string[]
   streak: number
   total_words: number
+  target_band_set?: boolean
 }
 
 async function getOrCreateProfile(): Promise<UserProfile> {
@@ -56,6 +58,7 @@ async function getOrCreateProfile(): Promise<UserProfile> {
 
 export default function DashboardPage() {
   const { t } = useTranslation('dashboard')
+  const { profile: authProfile, refreshProfile } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [plan, setPlan] = useState<DailyPlan | null>(null)
   const [progress, setProgress] = useState<ProgressResponse | null>(null)
@@ -64,9 +67,12 @@ export default function DashboardPage() {
 
   const loadProfile = useCallback(() => {
     getOrCreateProfile()
-      .then(setProfile)
+      .then((next) => {
+        setProfile(next)
+        if (!authProfile) void refreshProfile()
+      })
       .catch((e) => setError(localizeError(e)))
-  }, [])
+  }, [authProfile, refreshProfile])
 
   const loadPlan = useCallback(() => {
     apiFetch<DailyPlan>('/api/v1/plan/today')
@@ -107,9 +113,9 @@ export default function DashboardPage() {
     plan.completed_count === plan.activities.length
 
   const showPersonalizationCta =
-    !!profile && (!profile.target_band || !profile.exam_date)
+    !!profile && (profile.target_band_set !== true || !profile.exam_date)
   const ctaFocusField: 'target-band' | 'exam-date' =
-    profile && !profile.target_band ? 'target-band' : 'exam-date'
+    profile && profile.target_band_set !== true ? 'target-band' : 'exam-date'
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6">

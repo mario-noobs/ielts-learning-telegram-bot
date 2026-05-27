@@ -13,13 +13,21 @@
   },
   "quickActions": {
     "heading": "Quick actions",
+    "daily": {
+      "title": "Daily words",
+      "description": "Learn today's personalized vocabulary set"
+    },
+    "review": {
+      "title": "Review",
+      "description": "Practice due words with SRS"
+    },
     "writing": {
       "title": "Writing",
-      "description": "AI-graded Task 1 or Task 2 essay"
+      "description": "Get AI feedback on Task 1 or Task 2"
     },
-    "flashcards": {
-      "title": "Flashcards",
-      "description": "Review due vocabulary with SRS"
+    "reading": {
+      "title": "Reading",
+      "description": "Practice a timed IELTS passage"
     }
   },
   "personalization": {

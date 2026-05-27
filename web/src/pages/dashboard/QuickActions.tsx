@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Icon, { IconName } from '../../components/Icon'
 import { track } from '../../lib/analytics'
 
-type ActionId = 'writing' | 'flashcards'
+type ActionId = 'daily' | 'review' | 'writing' | 'reading'
 
 type Action = {
   id: ActionId
@@ -15,18 +15,32 @@ type Action = {
 
 const ACTIONS: Action[] = [
   {
+    id: 'daily',
+    to: '/learn/daily',
+    icon: 'Calendar',
+    titleKey: 'quickActions.daily.title',
+    hintKey: 'quickActions.daily.description',
+  },
+  {
+    id: 'review',
+    to: '/learn/review',
+    icon: 'RotateCcw',
+    titleKey: 'quickActions.review.title',
+    hintKey: 'quickActions.review.description',
+  },
+  {
     id: 'writing',
-    to: '/write',
+    to: '/practice/writing',
     icon: 'PenLine',
     titleKey: 'quickActions.writing.title',
     hintKey: 'quickActions.writing.description',
   },
   {
-    id: 'flashcards',
-    to: '/review',
-    icon: 'RotateCcw',
-    titleKey: 'quickActions.flashcards.title',
-    hintKey: 'quickActions.flashcards.description',
+    id: 'reading',
+    to: '/practice/reading',
+    icon: 'FileText',
+    titleKey: 'quickActions.reading.title',
+    hintKey: 'quickActions.reading.description',
   },
 ]
 
