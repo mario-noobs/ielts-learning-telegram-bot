@@ -41,6 +41,31 @@ function streamFromEvents(events: unknown[]) {
   }
 }
 
+function streamWithPause(events: unknown[]) {
+  const chunks = events.map((event) =>
+    new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`),
+  )
+  let index = 0
+  let release: (() => void) | null = null
+  const wait = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  return {
+    release: () => release?.(),
+    response: {
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (index < chunks.length) return { done: false, value: chunks[index++] }
+            await wait
+            return { done: true, value: undefined }
+          },
+        }),
+      },
+    },
+  }
+}
+
 describe('<DailyWordsPage>', () => {
   beforeEach(() => {
     __resetDailyWordsCacheForTest()
@@ -97,6 +122,51 @@ describe('<DailyWordsPage>', () => {
         timezone: 'Asia/Ho_Chi_Minh',
       }),
     )
+  })
+
+  it('shows generation progress and interpolates word count without raw template text', async () => {
+    const stream = streamWithPause([
+      {
+        type: 'start',
+        count: 2,
+        topic: 'education',
+        date: '2026-05-27',
+        status: {
+          reviewed_count: 0,
+          total_count: 2,
+          timezone: 'Asia/Ho_Chi_Minh',
+          next_reset_at: '2026-05-28T00:00:00+07:00',
+        },
+      },
+      {
+        type: 'word',
+        word: {
+          word: 'scalability',
+          word_id: 'w1',
+          reviewed: false,
+          definition_en: 'ability to grow',
+          definition_vi: '',
+          ipa: '',
+          part_of_speech: 'noun',
+          example_en: '',
+          example_vi: '',
+        },
+      },
+    ])
+    apiStreamMock.mockResolvedValue(stream.response)
+
+    const { unmount } = render(
+      <MemoryRouter>
+        <DailyWordsPage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/daily\.generation\.stages\./)).toBeInTheDocument()
+    expect(screen.getByText(/daily\.generation\.count/)).toHaveTextContent('"current":1')
+    expect(screen.getByText(/daily\.generating/)).not.toHaveTextContent('{{count}}')
+
+    stream.release()
+    unmount()
   })
 
   it('adds extra daily words and updates remaining allowance', async () => {
