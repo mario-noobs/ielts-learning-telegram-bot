@@ -75,9 +75,9 @@ async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict:
+    if credentials:
+        return await _verify_firebase_token(credentials.credentials)
     access_token = request.cookies.get("access_token")
     if access_token:
         return await _verify_local_token(access_token)
-    if credentials:
-        return await _verify_firebase_token(credentials.credentials)
     raise ApiError(ERR.unauthorized)

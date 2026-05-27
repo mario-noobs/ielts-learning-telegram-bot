@@ -14,3 +14,9 @@ export function isInAppBrowser(): boolean {
   if (/Android/.test(ua) && /; wv\)/.test(ua)) return true
   return false
 }
+
+export function shouldUseRedirectAuth(): boolean {
+  if (typeof navigator === 'undefined') return false
+  if (isInAppBrowser()) return true
+  return /Android|iPhone|iPod|iPad|Mobile/.test(navigator.userAgent)
+}

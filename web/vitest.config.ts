@@ -21,6 +21,7 @@ export default defineConfig({
       'src/components/GroupJoinCTA.test.tsx',
       'src/components/admin/AdminButton.test.tsx',
       'src/components/admin/AdminInput.test.tsx',
+      'src/contexts/AuthContext.test.tsx',
       'src/pages/DailyWordsPage.test.tsx',
       'src/pages/DailyFillBlankPage.test.tsx',
       'src/pages/VocabHomePage.test.tsx',

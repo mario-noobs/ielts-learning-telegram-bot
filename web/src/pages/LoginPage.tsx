@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom'
 import LogoMark from '../components/brand/LogoMark'
 import { useAuth, type LocalRegisterData } from '../contexts/AuthContext'
 import { localizeError } from '../lib/apiError'
-import { isInAppBrowser } from '../lib/browser'
+import { isInAppBrowser, shouldUseRedirectAuth } from '../lib/browser'
 
 type Mode = 'options' | 'login' | 'register'
 
@@ -56,6 +56,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const inAppBrowser = isInAppBrowser()
+  const redirectGoogleAuth = shouldUseRedirectAuth()
   const [showPw, setShowPw] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showOptional, setShowOptional] = useState(false)
@@ -130,7 +131,7 @@ export default function LoginPage() {
     setSubmitting(true)
     setFormError(null)
     try {
-      await signInWithGoogle()
+      await signInWithGoogle({ redirect: redirectGoogleAuth })
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? ''
       if (code === 'auth/disallowed-useragent' || code === 'auth/operation-not-supported-in-this-environment') {
@@ -218,7 +219,7 @@ export default function LoginPage() {
 
               <button
                 onClick={handleGoogleSignIn}
-                disabled={submitting || inAppBrowser}
+                disabled={submitting}
                 className="flex w-full items-center justify-center gap-3 rounded-lg bg-primary px-6 py-3 font-medium text-on-primary transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <GoogleIcon />
