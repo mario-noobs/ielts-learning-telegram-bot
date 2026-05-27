@@ -101,6 +101,9 @@
       "all": "All statuses"
     }
   },
+  "limits": {
+    "aiUsage": "{remaining}/{quota} AI calls remaining today. Used {used}. Resets at {reset}."
+  },
   "addWord": {
     "title": "Add word with AI description",
     "description": "Type a word or short phrase. Preview the IELTS card before saving it to My Words.",

@@ -82,7 +82,7 @@
     "provider_unavailable": "Dịch vụ AI hiện không khả dụng. Vui lòng thử lại."
   },
   "quota": {
-    "daily_exceeded": "Bạn đã dùng {used} / {plan_quota} lượt AI hôm nay trên gói này. Đặt lại lúc 00:00 UTC."
+    "daily_exceeded": "Bạn đã dùng {used} / {plan_quota} lượt AI hôm nay trên gói {plan}. Làm mới lúc {reset_at}."
   },
   "users": {
     "daily_words_count": {
@@ -94,6 +94,7 @@
     "word_duplicate": "\"{word}\" đã có trong Từ của tôi.",
     "import_input_too_long": "Nội dung này quá dài so với gói của bạn. Giới hạn: {max_chars} ký tự.",
     "import_count_exceeded": "Gói của bạn có thể xem trước tối đa {max_candidates} từ mỗi lần.",
+    "private_word_limit_exceeded": "Bạn đã lưu {used}/{limit} từ riêng trên gói {plan}. Nâng cấp hoặc xoá bớt từ để thêm tiếp.",
     "daily_not_found": "Hãy tạo từ vựng hôm nay trước khi thêm từ học thêm.",
     "extra_limit_exceeded": "Bạn đã dùng hết {limit} từ học thêm hôm nay. Làm mới lúc {next_reset_at}."
   }

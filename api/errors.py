@@ -259,6 +259,10 @@ class _Registry:
         "vocab.import_count_exceeded", 400,
         "Requested import candidate count exceeds the user's plan limit.",
     )
+    vocab_private_word_limit_exceeded = ErrorCode(
+        "vocab.private_word_limit_exceeded", 429,
+        "User has reached the private vocabulary limit for their plan.",
+    )
     vocab_override_rate_limited = ErrorCode(
         "vocab.override_rate_limited", 429,
         "Too many manual mastery changes today. Try again tomorrow.",

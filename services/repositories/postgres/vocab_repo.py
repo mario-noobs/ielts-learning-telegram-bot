@@ -229,6 +229,16 @@ class PostgresVocabRepo:
             ).scalars().all()
         return list(rows)
 
+    def count_by_user(self, user_id: UserId) -> int:
+        with get_sync_session() as s:
+            count = s.execute(
+                select(func.count(UserVocabulary.id)).where(
+                    UserVocabulary.user_id == str(user_id),
+                    UserVocabulary.archived_at.is_(None),
+                )
+            ).scalar_one()
+        return int(count or 0)
+
     def list_page(
         self,
         user_id: UserId,

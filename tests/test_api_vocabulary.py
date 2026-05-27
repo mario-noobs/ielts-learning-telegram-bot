@@ -212,6 +212,10 @@ class TestAddWordWithAi:
         saved = _fake_vocab_doc("scalability", saved_at, topic="technology")
         with patch("api.routes.vocabulary.word_service.get_word_detail_fast",
                    new=AsyncMock()) as fast, \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=None), \
+             patch("api.routes.vocabulary.firebase_service.count_user_vocabulary",
+                   return_value=12), \
              patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
                    return_value=("wid", True)) as add, \
              patch("api.routes.vocabulary.firebase_service.get_word_by_id",
@@ -233,6 +237,45 @@ class TestAddWordWithAi:
         word_data = add.call_args.args[1]
         assert word_data["definition"] == "ability to grow"
         assert word_data["source"] == 3
+
+    def test_private_word_cap_blocks_add_before_ai(self, client):
+        with patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=None), \
+             patch("api.routes.vocabulary.firebase_service.count_user_vocabulary",
+                   return_value=100), \
+             patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock()) as fast, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists") as add:
+            response = client.post("/api/v1/vocabulary", json={
+                "word": "constraint",
+                "definition": "limit",
+                "use_ai": False,
+            })
+
+        assert response.status_code == 429
+        body = response.json()["error"]
+        assert body["code"] == ERR.vocab_private_word_limit_exceeded.code
+        assert body["params"]["limit"] == 100
+        assert body["params"]["used"] == 100
+        fast.assert_not_awaited()
+        add.assert_not_called()
+
+    def test_duplicate_add_bypasses_private_word_cap(self, client):
+        existing = _fake_vocab_doc("scalability", datetime(2026, 5, 27, tzinfo=timezone.utc))
+        with patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=existing), \
+             patch("api.routes.vocabulary.firebase_service.count_user_vocabulary") as count, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists") as add:
+            response = client.post("/api/v1/vocabulary", json={
+                "word": "scalability",
+                "definition": "ability to grow",
+                "use_ai": False,
+            })
+
+        assert response.status_code == 409
+        assert response.json()["error"]["code"] == ERR.vocab_word_duplicate.code
+        count.assert_not_called()
+        add.assert_not_called()
 
 
 class TestImportWords:
@@ -305,6 +348,21 @@ class TestImportWords:
 
         assert response.status_code == 400
         assert response.json()["error"]["code"] == ERR.vocab_import_count_exceeded.code
+        quota.assert_not_called()
+        mock_gen.assert_not_awaited()
+
+    def test_import_rejects_input_above_plan_limit_before_ai(self, client):
+        with patch("api.routes.vocabulary.quota_service.check_and_increment") as quota, \
+             patch("api.routes.vocabulary.vocab_service.generate_import_candidates",
+                   new=AsyncMock()) as mock_gen:
+            response = client.post("/api/v1/vocabulary/import/draft", json={
+                "mode": "text",
+                "input": "x" * 1001,
+                "count": 1,
+            })
+
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == ERR.vocab_import_input_too_long.code
         quota.assert_not_called()
         mock_gen.assert_not_awaited()
 
