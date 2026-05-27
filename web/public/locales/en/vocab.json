@@ -44,6 +44,11 @@
     "subtitle": "Tap a topic to drill into its words. Topics with the most work to do show first.",
     "reviewCta": "Start review",
     "clearFilter": "Clear filter",
+    "tabs": {
+      "topics": "Topics",
+      "favourites": "Favourites",
+      "history": "History"
+    },
     "progress": {
       "label": "Mastered",
       "aria": "{pct}% of words mastered"
@@ -86,6 +91,28 @@
       "title": "No matching words",
       "description": "Try removing a filter or changing your search.",
       "cta": "Clear filters"
+    },
+    "favourites": {
+      "title": "No favourite words yet",
+      "description": "Tap the heart on daily words or vocab rows to collect them here.",
+      "cta": "View daily words"
+    },
+    "history": {
+      "title": "No daily history yet",
+      "description": "Daily vocab batches you generate will appear here for future review.",
+      "cta": "View daily words"
+    }
+  },
+  "history": {
+    "summary": "{reviewed}/{total} reviewed",
+    "reviewCta": "Review",
+    "reviewedBadge": "Reviewed",
+    "stats": {
+      "total": "Total",
+      "reviewed": "Reviewed",
+      "favourites": "Favourites",
+      "weak": "Weak",
+      "mastered": "Mastered"
     }
   },
   "review": {

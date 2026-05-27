@@ -13,6 +13,8 @@ from api.auth import get_current_user
 from api.models.vocabulary import (
     AddWordRequest,
     DailyGenerateRequest,
+    DailyHistoryEntry,
+    DailyHistoryResponse,
     DailyWord,
     DailyWordsResponse,
     VocabularyWord,
@@ -154,6 +156,20 @@ def _daily_response(
         total_count=len(words),
         timezone=timezone_name,
         next_reset_at=_next_reset_at(timezone_name),
+    )
+
+
+def _daily_history_entry(doc: dict, words: list[dict]) -> DailyHistoryEntry:
+    return DailyHistoryEntry(
+        date=doc.get("id", ""),
+        topic=doc.get("topic", ""),
+        words=[_to_daily_word(w) for w in words],
+        generated_at=doc.get("generated_at"),
+        total_count=len(words),
+        reviewed_count=_reviewed_count(words),
+        favourite_count=sum(1 for w in words if w.get("is_favourite")),
+        weak_count=sum(1 for w in words if w.get("strength") == "Weak"),
+        mastered_count=sum(1 for w in words if w.get("strength") == "Mastered"),
     )
 
 
@@ -453,6 +469,26 @@ async def add_word(
         firebase_service.get_word_by_id, user["id"], word_id
     )
     return _to_vocab_word(doc or {"id": word_id, **word_data})
+
+
+@router.get("/daily/history", response_model=DailyHistoryResponse)
+async def get_daily_history(
+    limit: int = Query(30, ge=1, le=90),
+    user: dict = Depends(get_current_user),
+) -> DailyHistoryResponse:
+    """Return cached daily-word batches, newest first."""
+    docs = await asyncio.to_thread(
+        firebase_service.list_user_daily_words, user["id"], limit,
+    )
+    items: list[DailyHistoryEntry] = []
+    for doc in docs:
+        words = await asyncio.to_thread(
+            _refresh_daily_word_status,
+            user["id"],
+            doc.get("words", []) or [],
+        )
+        items.append(_daily_history_entry(doc, words))
+    return DailyHistoryResponse(items=items, timezone=_user_timezone(user))
 
 
 def _band_tier(band: float) -> str:

@@ -68,5 +68,15 @@ class PostgresDailyWordsRepo:
             ).scalar_one_or_none()
         return _row_to_dto(row) if row else None
 
+    def list_recent(self, user_id: UserId, limit: int = 30) -> list[DailyWordsDoc]:
+        with get_sync_session() as s:
+            rows = s.execute(
+                select(UserDailyWords)
+                .where(UserDailyWords.user_id == str(user_id))
+                .order_by(UserDailyWords.date.desc())
+                .limit(limit)
+            ).scalars().all()
+        return [_row_to_dto(row) for row in rows]
+
 
 __all__ = ["PostgresDailyWordsRepo"]

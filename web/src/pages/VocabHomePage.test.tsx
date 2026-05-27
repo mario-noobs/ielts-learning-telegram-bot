@@ -51,6 +51,7 @@ describe('<VocabHomePage>', () => {
       ],
       total_words: 20,
     })
+    apiFetchMock.mockResolvedValueOnce({ topics: [] })
 
     render_()
     // Topics with words are linked. Empty topics (Technology) aren't.
@@ -81,6 +82,7 @@ describe('<VocabHomePage>', () => {
       ],
       total_words: 5,
     })
+    apiFetchMock.mockResolvedValueOnce({ topics: [] })
     render_()
     await waitFor(() => {
       expect(
@@ -98,6 +100,7 @@ describe('<VocabHomePage>', () => {
       ],
       total_words: 0,
     })
+    apiFetchMock.mockResolvedValueOnce({ topics: [] })
     render_()
     await waitFor(() =>
       expect(screen.getByText('empty.noWords.title')).toBeInTheDocument(),
@@ -171,6 +174,79 @@ describe('<VocabHomePage>', () => {
     expect(trackMock).toHaveBeenCalledWith('vocab_favourite_detail_opened', {
       word: 'scalability',
       word_id: 'w1',
+    })
+  })
+
+  it('loads daily history and tracks history interactions', async () => {
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({ items: [], total_words: 0 })
+      }
+      if (url === '/api/v1/me') {
+        return Promise.resolve({ topics: [] })
+      }
+      if (url === '/api/v1/vocabulary/daily/history?limit=30') {
+        return Promise.resolve({
+          timezone: 'Asia/Ho_Chi_Minh',
+          items: [
+            {
+              date: '2026-05-27',
+              topic: 'Technology',
+              total_count: 2,
+              reviewed_count: 1,
+              favourite_count: 1,
+              weak_count: 1,
+              mastered_count: 0,
+              words: [
+                {
+                  word: 'scalability',
+                  word_id: 'w1',
+                  reviewed: true,
+                  is_favourite: true,
+                  strength: 'Weak',
+                  definition_en: 'ability to grow',
+                  definition_vi: 'kha nang mo rong',
+                  ipa: '',
+                  part_of_speech: 'noun',
+                },
+              ],
+            },
+          ],
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /byTopic\.tabs\.history/ }),
+    )
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary/daily/history?limit=30')
+    })
+
+    const wordLink = await screen.findByRole('link', { name: /scalability/ })
+    const reviewLink = screen.getByRole('link', { name: /history\.reviewCta/ })
+
+    expect(trackMock).toHaveBeenCalledWith('vocab_history_tab_viewed')
+    expect(screen.getByText('2026-05-27')).toBeInTheDocument()
+    expect(screen.getByText('history.stats.favourites')).toBeInTheDocument()
+    expect(wordLink).toHaveAttribute('href', '/learn/vocab/scalability')
+
+    await userEvent.click(wordLink)
+    expect(trackMock).toHaveBeenCalledWith('vocab_history_word_detail_opened', {
+      date: '2026-05-27',
+      word: 'scalability',
+      word_id: 'w1',
+    })
+
+    await userEvent.click(reviewLink)
+    expect(reviewLink).toHaveAttribute('href', '/learn/review')
+    expect(trackMock).toHaveBeenCalledWith('vocab_history_review_started', {
+      date: '2026-05-27',
+      total: 2,
     })
   })
 })

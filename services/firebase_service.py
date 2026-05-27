@@ -447,6 +447,14 @@ def get_user_daily_words(telegram_id: int, date_str: str) -> Optional[dict]:
     return dto.model_dump(exclude={"id"})
 
 
+def list_user_daily_words(telegram_id: int, limit: int = 30) -> list[dict]:
+    """Return recent cached personal daily-word documents, newest first."""
+    return [
+        dto.model_dump()
+        for dto in get_daily_words_repo().list_recent(telegram_id, limit)
+    ]
+
+
 # ─── Challenge (Group) ────────────────────────────────────────────
 # M8 Block B (#234): now delegated to PostgresGroupChallengesRepo.
 
