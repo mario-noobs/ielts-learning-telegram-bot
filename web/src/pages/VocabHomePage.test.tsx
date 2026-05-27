@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import VocabHomePage from './VocabHomePage'
 
 const apiFetchMock = vi.fn()
 vi.mock('../lib/api', () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
+}))
+
+const trackMock = vi.fn()
+vi.mock('../lib/analytics', () => ({
+  track: (...args: unknown[]) => trackMock(...args),
 }))
 
 const useProfileMock = vi.fn(() => null as unknown)
@@ -22,6 +28,7 @@ vi.mock('react-i18next', () => ({
 
 beforeEach(() => {
   apiFetchMock.mockReset()
+  trackMock.mockReset()
   useProfileMock.mockReset()
   useProfileMock.mockReturnValue(null)
 })
@@ -114,10 +121,56 @@ describe('<VocabHomePage>', () => {
     useProfileMock.mockReturnValue({ id: '4242', role: 'user', plan: 'free' })
     render_()
     await waitFor(() =>
-      expect(apiFetchMock).toHaveBeenLastCalledWith('/api/v1/topics'),
+      expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/topics'),
     )
     expect(
       screen.queryByRole('region', { name: 'linkPrompt.title' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('loads favourite words with the favourite filter and tracks detail opens', async () => {
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({ items: [], total_words: 0 })
+      }
+      if (url === '/api/v1/me') {
+        return Promise.resolve({ topics: [] })
+      }
+      if (url === '/api/v1/vocabulary?favourite=true&limit=100') {
+        return Promise.resolve({
+          items: [
+            {
+              id: 'w1',
+              word: 'scalability',
+              definition: 'ability to grow',
+              definition_vi: 'kha nang mo rong',
+              ipa: 'ska-luh-bi-li-tee',
+              part_of_speech: 'noun',
+            },
+          ],
+          next_cursor: null,
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /byTopic\.tabs\.favourites/ }),
+    )
+
+    const favouriteLink = await screen.findByRole('link', {
+      name: /scalability/,
+    })
+    expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary?favourite=true&limit=100')
+    expect(trackMock).toHaveBeenCalledWith('vocab_favourites_tab_viewed')
+
+    await userEvent.click(favouriteLink)
+    expect(favouriteLink).toHaveAttribute('href', '/learn/vocab/scalability')
+    expect(trackMock).toHaveBeenCalledWith('vocab_favourite_detail_opened', {
+      word: 'scalability',
+      word_id: 'w1',
+    })
   })
 })
