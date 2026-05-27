@@ -13,11 +13,16 @@ class DueWord(BaseModel):
     definition_vi: str = ""
     example_en: str = ""
     example_vi: str = ""
+    source: str = "daily"
+    topic: str = ""
     strength: str = "New"
 
 
 class ReviewDueRequest(BaseModel):
     limit: int | None = Field(default=None, ge=1, le=50)
+    source: str | None = None
+    topic: str | None = None
+    status: Literal["New", "Weak", "Learning", "Good", "Mastered"] | None = None
 
 
 class ReviewDueResponse(BaseModel):

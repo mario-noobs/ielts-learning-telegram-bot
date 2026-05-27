@@ -24,6 +24,7 @@ export default defineConfig({
       'src/contexts/AuthContext.test.tsx',
       'src/pages/DailyWordsPage.test.tsx',
       'src/pages/DailyFillBlankPage.test.tsx',
+      'src/pages/FlashcardReviewPage.test.tsx',
       'src/pages/VocabHomePage.test.tsx',
       'src/pages/settings/LinkTelegramPage.test.tsx',
     ],

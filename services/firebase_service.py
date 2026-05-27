@@ -223,8 +223,17 @@ def get_mastered_words(telegram_id: int) -> list[dict]:
     return [v.model_dump() for v in get_vocab_repo().get_mastered(telegram_id)]
 
 
-def get_due_words(telegram_id: int, limit: int = 10) -> list[dict]:
-    return [v.model_dump() for v in get_vocab_repo().get_due(telegram_id, limit)]
+def get_due_words(
+    telegram_id: int,
+    limit: int = 10,
+    source: Optional[int] = None,
+    topic: Optional[str] = None,
+    status: Optional[str] = None,
+) -> list[dict]:
+    return [
+        v.model_dump()
+        for v in get_vocab_repo().get_due(telegram_id, limit, source, topic, status)
+    ]
 
 
 def update_word_srs(telegram_id: int, word_id: str, data: dict):

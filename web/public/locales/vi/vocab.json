@@ -204,6 +204,12 @@
       "mcq": "Trắc nghiệm",
       "mcqDesc": "Chọn đáp án đúng trong bốn lựa chọn."
     },
+    "filters": {
+      "source": "Nguồn",
+      "status": "Trạng thái",
+      "topic": "Chủ đề",
+      "topicPlaceholder": "Mọi chủ đề"
+    },
     "flip": {
       "reveal": "Mở nghĩa",
       "again": "Học lại",
@@ -218,6 +224,7 @@
     "seeResultsBtn": "Xem kết quả",
     "continueHint": "(Space)",
     "resultsHeading": "Kết quả",
+    "statusChanged": "{count} từ đã đổi trạng thái.",
     "reviewAgainBtn": "Ôn tiếp",
     "backToVocabBtn": "Về từ vựng",
     "progressAria": "Câu {current} trên {total}",
