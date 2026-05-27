@@ -129,6 +129,33 @@ async def test_fast_detail_cache_hit_schedules_backfill(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_fast_detail_schedules_backfill_when_antonyms_missing(monkeypatch):
+    cached = {
+        "word": "ubiquitous",
+        "definition_en": "Present everywhere.",
+        "examples_by_band": {"7": {"en": "Example.", "vi": ""}},
+        "synonyms": {"words": ["common"], "source": "test"},
+        "antonyms": None,
+    }
+    scheduled = {}
+    monkeypatch.setattr(
+        word_service.firebase_service,
+        "get_enriched_word_doc",
+        lambda word: cached,
+    )
+    monkeypatch.setattr(
+        word_service,
+        "_schedule_metadata_backfill",
+        lambda word, data: scheduled.update({"word": word, "data": data}),
+    )
+
+    result = await word_service.get_word_detail_fast("ubiquitous", 7.0)
+
+    assert result is cached
+    assert scheduled["word"] == "ubiquitous"
+
+
+@pytest.mark.asyncio
 async def test_fast_detail_uses_master_when_cache_misses(monkeypatch):
     master = {
         "word": "deficit",
@@ -168,6 +195,32 @@ async def test_backfill_caches_master_detail(monkeypatch):
     await word_service._backfill_missing_metadata("deficit", cached)
 
     assert writes == [("deficit", cached)]
+
+
+@pytest.mark.asyncio
+async def test_backfill_fetches_metadata_when_only_antonyms_missing(monkeypatch):
+    cached = {
+        "word": "deficit",
+        "synonyms": {"words": ["shortfall"], "source": "test"},
+        "antonyms": None,
+        "image_url": None,
+    }
+    writes = []
+    monkeypatch.setattr(word_service.config, "UNSPLASH_ACCESS_KEY", "")
+    monkeypatch.setattr(
+        word_service,
+        "_fetch_synonyms_antonyms",
+        AsyncMock(return_value=(["shortfall"], ["surplus"], "freedict")),
+    )
+    monkeypatch.setattr(
+        word_service.firebase_service,
+        "update_enriched_word_synonyms_antonyms",
+        lambda word, syns, ants, source: writes.append((word, syns, ants, source)),
+    )
+
+    await word_service._backfill_missing_metadata("deficit", cached)
+
+    assert writes == [("deficit", ["shortfall"], ["surplus"], "freedict")]
 
 
 def test_core_detail_complete_ignores_metadata(monkeypatch):

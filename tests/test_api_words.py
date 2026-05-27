@@ -159,3 +159,20 @@ class TestEnrichedWord:
         assert response.status_code == 200
         quota.assert_not_called()
         complete.assert_not_awaited()
+
+    def test_cached_core_detail_with_only_antonyms_missing_stays_fast(self, client):
+        data = _enriched_fixture()
+        data["antonyms"] = None
+
+        with patch("api.routes.words.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=data)), \
+             patch("api.routes.words.quota_service.check_and_increment") as quota, \
+             patch("api.routes.words.word_service.get_complete_word_detail",
+                   new=AsyncMock()) as complete:
+            response = client.get("/api/v1/words/ubiquitous")
+
+        assert response.status_code == 200
+        assert response.json()["synonyms"] == ["common"]
+        assert response.json()["antonyms"] == []
+        quota.assert_not_called()
+        complete.assert_not_awaited()
