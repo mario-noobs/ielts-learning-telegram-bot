@@ -45,6 +45,7 @@
     "reviewCta": "Bắt đầu ôn tập",
     "clearFilter": "Bỏ lọc",
     "tabs": {
+      "myWords": "Từ của tôi",
       "topics": "Chủ đề",
       "favourites": "Yêu thích",
       "history": "Lịch sử"
@@ -79,6 +80,27 @@
       }
     }
   },
+  "myWords": {
+    "heading": "Từ vựng của tôi",
+    "headingPill": "Từ của tôi",
+    "subtitle": "Kho từ IELTS riêng của bạn. Từ hằng ngày, từ tự thêm, yêu thích và ôn tập đều nằm ở đây.",
+    "listHeading": "Từ của tôi",
+    "listSummary": "{visible}/{total} từ",
+    "filters": {
+      "source": "Nguồn",
+      "status": "Trạng thái"
+    },
+    "sources": {
+      "all": "Tất cả nguồn",
+      "daily": "Hằng ngày",
+      "manual": "Tự thêm",
+      "quiz": "Quiz",
+      "reading": "Reading"
+    },
+    "statuses": {
+      "all": "Tất cả trạng thái"
+    }
+  },
   "loadMore": "Tải thêm",
   "loadingMore": "Đang tải…",
   "empty": {
@@ -101,6 +123,16 @@
       "title": "Chưa có lịch sử từ hằng ngày",
       "description": "Những bộ từ hằng ngày bạn tạo sẽ xuất hiện ở đây để xem lại sau.",
       "cta": "Xem từ hôm nay"
+    },
+    "myWords": {
+      "title": "Chưa có từ nào trong Từ của tôi",
+      "description": "Từ hằng ngày bạn tạo sẽ tự động xuất hiện ở đây.",
+      "cta": "Xem từ hôm nay"
+    },
+    "myWordsFiltered": {
+      "title": "Không có từ phù hợp",
+      "description": "Thử đổi bộ lọc nguồn hoặc trạng thái.",
+      "cta": "Xoá bộ lọc"
     }
   },
   "history": {

@@ -151,6 +151,7 @@ class VocabularyItem(_FirestoreDTO):
     topic: str = ""
     example_en: str = ""
     example_vi: str = ""
+    source: int = 1
 
     # SRS state
     srs_interval: int = 0

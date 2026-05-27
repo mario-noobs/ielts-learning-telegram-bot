@@ -42,18 +42,103 @@ function render_() {
 }
 
 describe('<VocabHomePage>', () => {
-  it('renders topic cards sorted by least-mastered first', async () => {
-    apiFetchMock.mockResolvedValueOnce({
-      items: [
-        { id: 'education', name: 'Education', word_count: 10, mastered_count: 8, subtopics: [] },
-        { id: 'environment', name: 'Environment', word_count: 10, mastered_count: 2, subtopics: [] },
-        { id: 'technology', name: 'Technology', word_count: 0, mastered_count: 0, subtopics: [] },
-      ],
-      total_words: 20,
+  it('renders My Words by default and filters by source/status', async () => {
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({ items: [], total_words: 2 })
+      }
+      if (url === '/api/v1/me') {
+        return Promise.resolve({ topics: [] })
+      }
+      if (url === '/api/v1/vocabulary?limit=100') {
+        return Promise.resolve({
+          items: [
+            {
+              id: 'w1',
+              word: 'scalability',
+              definition: 'ability to grow',
+              definition_vi: 'kha nang mo rong',
+              ipa: '',
+              part_of_speech: 'noun',
+              topic: 'technology',
+              strength: 'Weak',
+              source: 'daily',
+              is_favourite: false,
+            },
+            {
+              id: 'w2',
+              word: 'resilience',
+              definition: 'ability to recover',
+              definition_vi: 'kha nang phuc hoi',
+              ipa: '',
+              part_of_speech: 'noun',
+              topic: 'society',
+              strength: 'Mastered',
+              source: 'manual',
+              is_favourite: true,
+            },
+          ],
+          next_cursor: null,
+        })
+      }
+      if (url === '/api/v1/vocabulary?limit=100&source=manual') {
+        return Promise.resolve({
+          items: [
+            {
+              id: 'w2',
+              word: 'resilience',
+              definition: 'ability to recover',
+              definition_vi: 'kha nang phuc hoi',
+              ipa: '',
+              part_of_speech: 'noun',
+              topic: 'society',
+              strength: 'Mastered',
+              source: 'manual',
+              is_favourite: true,
+            },
+          ],
+          next_cursor: null,
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
     })
-    apiFetchMock.mockResolvedValueOnce({ topics: [] })
 
     render_()
+
+    expect(await screen.findByRole('link', { name: /scalability/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /resilience/ })).toBeInTheDocument()
+    expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary?limit=100')
+
+    await userEvent.selectOptions(screen.getByLabelText(/myWords\.filters\.source/), 'manual')
+
+    expect(await screen.findByRole('link', { name: /resilience/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /scalability/ })).not.toBeInTheDocument()
+    expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary?limit=100&source=manual')
+
+    await userEvent.selectOptions(screen.getByLabelText(/myWords\.filters\.status/), 'Weak')
+
+    expect(screen.getByText(/empty\.myWordsFiltered\.title/)).toBeInTheDocument()
+  })
+
+  it('renders topic cards sorted by least-mastered first', async () => {
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({
+          items: [
+            { id: 'education', name: 'Education', word_count: 10, mastered_count: 8, subtopics: [] },
+            { id: 'environment', name: 'Environment', word_count: 10, mastered_count: 2, subtopics: [] },
+            { id: 'technology', name: 'Technology', word_count: 0, mastered_count: 0, subtopics: [] },
+          ],
+          total_words: 20,
+        })
+      }
+      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/vocabulary?limit=100') return Promise.resolve({ items: [], next_cursor: null })
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+    await userEvent.click(await screen.findByRole('button', { name: /byTopic\.tabs\.topics/ }))
     // Topics with words are linked. Empty topics (Technology) aren't.
     await waitFor(() => {
       expect(
@@ -76,14 +161,21 @@ describe('<VocabHomePage>', () => {
   })
 
   it('topic card links to /learn/vocab/topic/:slug', async () => {
-    apiFetchMock.mockResolvedValueOnce({
-      items: [
-        { id: 'education', name: 'Education', word_count: 5, mastered_count: 1, subtopics: [] },
-      ],
-      total_words: 5,
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({
+          items: [
+            { id: 'education', name: 'Education', word_count: 5, mastered_count: 1, subtopics: [] },
+          ],
+          total_words: 5,
+        })
+      }
+      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/vocabulary?limit=100') return Promise.resolve({ items: [], next_cursor: null })
+      throw new Error(`Unexpected API call: ${url}`)
     })
-    apiFetchMock.mockResolvedValueOnce({ topics: [] })
     render_()
+    await userEvent.click(await screen.findByRole('button', { name: /byTopic\.tabs\.topics/ }))
     await waitFor(() => {
       expect(
         screen.getByRole('link', { name: /topicNames\.education/ }),
@@ -94,16 +186,22 @@ describe('<VocabHomePage>', () => {
   })
 
   it('shows empty state when user has no words', async () => {
-    apiFetchMock.mockResolvedValueOnce({
-      items: [
-        { id: 'education', name: 'Education', word_count: 0, mastered_count: 0, subtopics: [] },
-      ],
-      total_words: 0,
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({
+          items: [
+            { id: 'education', name: 'Education', word_count: 0, mastered_count: 0, subtopics: [] },
+          ],
+          total_words: 0,
+        })
+      }
+      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/vocabulary?limit=100') return Promise.resolve({ items: [], next_cursor: null })
+      throw new Error(`Unexpected API call: ${url}`)
     })
-    apiFetchMock.mockResolvedValueOnce({ topics: [] })
     render_()
     await waitFor(() =>
-      expect(screen.getByText('empty.noWords.title')).toBeInTheDocument(),
+      expect(screen.getByText(/empty\.myWords\.title/)).toBeInTheDocument(),
     )
   })
 
@@ -138,6 +236,9 @@ describe('<VocabHomePage>', () => {
       }
       if (url === '/api/v1/me') {
         return Promise.resolve({ topics: [] })
+      }
+      if (url === '/api/v1/vocabulary?limit=100') {
+        return Promise.resolve({ items: [], next_cursor: null })
       }
       if (url === '/api/v1/vocabulary?favourite=true&limit=100') {
         return Promise.resolve({
@@ -184,6 +285,9 @@ describe('<VocabHomePage>', () => {
       }
       if (url === '/api/v1/me') {
         return Promise.resolve({ topics: [] })
+      }
+      if (url === '/api/v1/vocabulary?limit=100') {
+        return Promise.resolve({ items: [], next_cursor: null })
       }
       if (url === '/api/v1/vocabulary/daily/history?limit=30') {
         return Promise.resolve({

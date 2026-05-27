@@ -128,7 +128,8 @@ def get_user_word_list(telegram_id: int) -> list[str]:
 def get_user_vocabulary_page(telegram_id, limit: int = 20,
                               after_added_at: Optional[datetime] = None,
                               topic: Optional[str] = None,
-                              favourite: Optional[bool] = None) -> list[dict]:
+                              favourite: Optional[bool] = None,
+                              source: Optional[int] = None) -> list[dict]:
     """Cursor-paginated vocabulary fetch ordered by added_at DESC.
 
     Cursor is the `added_at` timestamp of the last item from the previous page.
@@ -138,6 +139,7 @@ def get_user_vocabulary_page(telegram_id, limit: int = 20,
         v.model_dump()
         for v in get_vocab_repo().list_page(
             telegram_id, limit, after_added_at, topic, favourite,
+            source,
         )
     ]
 

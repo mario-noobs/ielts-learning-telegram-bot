@@ -87,6 +87,7 @@ def _row_to_dto(row: UserVocabulary) -> VocabularyItem:
         topic=_topic_slug(row.topic_id),
         example_en=row.example_en,
         example_vi=row.example_vi,
+        source=row.source,
         srs_interval=row.srs_interval,
         srs_ease=row.srs_ease,
         srs_reps=row.srs_reps,
@@ -221,6 +222,7 @@ class PostgresVocabRepo:
         after_added_at: Optional[datetime] = None,
         topic: Optional[str] = None,
         favourite: Optional[bool] = None,
+        source: Optional[int] = None,
     ) -> list[VocabularyItem]:
         conds = [
             UserVocabulary.user_id == str(user_id),
@@ -230,6 +232,8 @@ class PostgresVocabRepo:
             conds.append(UserVocabulary.topic_id == _topic_id(topic))
         if favourite is True:
             conds.append(UserVocabulary.is_favourite == True)  # noqa: E712
+        if source is not None:
+            conds.append(UserVocabulary.source == source)
         if after_added_at is not None:
             conds.append(UserVocabulary.created_at < after_added_at)
         with get_sync_session() as s:
