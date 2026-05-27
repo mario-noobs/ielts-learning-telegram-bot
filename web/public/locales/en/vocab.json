@@ -153,6 +153,12 @@
     "allWordsLabel": "See all words you've learned by topic",
     "allWordsCta": "Go to vocabulary",
     "retry": "Try again",
+    "status": {
+      "title": "Daily vocabulary status",
+      "progress": "{reviewed}/{total} reviewed today",
+      "complete": "Daily review complete",
+      "reset": "New words reset in {countdown} ({time})"
+    },
     "flip": {
       "done": "Done"
     },

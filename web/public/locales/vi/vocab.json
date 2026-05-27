@@ -153,6 +153,12 @@
     "allWordsLabel": "Xem toàn bộ từ đã học theo chủ đề",
     "allWordsCta": "Vào từ vựng",
     "retry": "Thử lại",
+    "status": {
+      "title": "Trạng thái từ vựng hôm nay",
+      "progress": "Đã ôn {reviewed}/{total} từ hôm nay",
+      "complete": "Đã ôn xong hôm nay",
+      "reset": "Từ mới sẽ làm mới sau {countdown} ({time})"
+    },
     "flip": {
       "done": "Xong"
     },

@@ -1,7 +1,8 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -22,6 +23,33 @@ from services.srs_service import get_word_strength
 
 router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
 logger = logging.getLogger(__name__)
+
+
+def _user_timezone(user: dict) -> str:
+    tz_name = (user.get("timezone") or config.DEFAULT_TIMEZONE).strip()
+    try:
+        ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        return config.DEFAULT_TIMEZONE
+    return tz_name
+
+
+def _local_date_str(tz_name: str) -> str:
+    return datetime.now(ZoneInfo(tz_name)).strftime("%Y-%m-%d")
+
+
+def _next_reset_at(tz_name: str) -> datetime:
+    tz = ZoneInfo(tz_name)
+    today = datetime.now(tz).date()
+    return datetime.combine(today + timedelta(days=1), time.min, tzinfo=tz)
+
+
+def _is_daily_word_reviewed(saved: dict) -> bool:
+    return (
+        int(saved.get("srs_reps") or 0) > 0
+        or int(saved.get("times_correct") or 0) > 0
+        or int(saved.get("times_incorrect") or 0) > 0
+    )
 
 
 def _to_vocab_word(doc: dict) -> VocabularyWord:
@@ -51,6 +79,7 @@ def _to_daily_word(doc: dict) -> DailyWord:
     return DailyWord(
         word=doc.get("word", ""),
         word_id=doc.get("word_id", ""),
+        reviewed=bool(doc.get("reviewed", False)),
         is_favourite=doc.get("is_favourite", False),
         strength=doc.get("strength", "New"),
         definition_en=doc.get("definition_en", doc.get("definition", "")),
@@ -85,6 +114,58 @@ def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
         saved = firebase_service.get_word_by_id(user_id, word_id) or {}
         w["is_favourite"] = saved.get("is_favourite", False)
         w["strength"] = get_word_strength(saved)
+        w["reviewed"] = _is_daily_word_reviewed(saved)
+
+
+def _refresh_daily_word_status(user_id: int, words: list[dict]) -> list[dict]:
+    refreshed = []
+    for w in words:
+        item = dict(w)
+        word_id = item.get("word_id")
+        if word_id:
+            saved = firebase_service.get_word_by_id(user_id, word_id) or {}
+            if saved:
+                item["is_favourite"] = saved.get(
+                    "is_favourite", item.get("is_favourite", False),
+                )
+                item["strength"] = get_word_strength(saved)
+                item["reviewed"] = _is_daily_word_reviewed(saved)
+        refreshed.append(item)
+    return refreshed
+
+
+def _reviewed_count(words: list[dict]) -> int:
+    return sum(1 for w in words if w.get("reviewed"))
+
+
+def _daily_response(
+    date_str: str,
+    topic: str,
+    words: list[dict],
+    timezone_name: str,
+    generated_at: datetime | None = None,
+) -> DailyWordsResponse:
+    return DailyWordsResponse(
+        date=date_str,
+        topic=topic,
+        words=[_to_daily_word(w) for w in words],
+        generated_at=generated_at,
+        reviewed_count=_reviewed_count(words),
+        total_count=len(words),
+        timezone=timezone_name,
+        next_reset_at=_next_reset_at(timezone_name),
+    )
+
+
+def _daily_status_dict(
+    reviewed_count: int, total_count: int, timezone_name: str,
+) -> dict:
+    return {
+        "reviewed_count": reviewed_count,
+        "total_count": total_count,
+        "timezone": timezone_name,
+        "next_reset_at": _next_reset_at(timezone_name).isoformat(),
+    }
 
 
 def _daily_word_dict(doc: dict) -> dict:
@@ -92,6 +173,7 @@ def _daily_word_dict(doc: dict) -> dict:
     return {
         "word": doc.get("word", ""),
         "word_id": doc.get("word_id", ""),
+        "reviewed": bool(doc.get("reviewed", False)),
         "is_favourite": doc.get("is_favourite", False),
         "strength": doc.get("strength", "New"),
         "definition_en": doc.get("definition_en", doc.get("definition", "")),
@@ -109,6 +191,7 @@ async def _daily_sse_generator(
     count: int,
     band: float,
     topics: list | None,
+    timezone_name: str,
 ):
     def sse(event: dict) -> str:
         return f"data: {json.dumps(event)}\n\n"
@@ -123,14 +206,31 @@ async def _daily_sse_generator(
             if words and any(not w.get("word_id") for w in words):
                 await asyncio.to_thread(_persist_daily_to_deck, user_id, words, topic)
                 await asyncio.to_thread(
-                    firebase_service.save_user_daily_words, user_id, date_str, words, topic
+                    firebase_service.save_user_daily_words,
+                    user_id,
+                    date_str,
+                    words,
+                    topic,
                 )
             elif words and any("is_favourite" not in w for w in words if w.get("word_id")):
                 await asyncio.to_thread(_persist_daily_to_deck, user_id, words, topic)
                 await asyncio.to_thread(
-                    firebase_service.save_user_daily_words, user_id, date_str, words, topic
+                    firebase_service.save_user_daily_words,
+                    user_id,
+                    date_str,
+                    words,
+                    topic,
                 )
-            yield sse({"type": "start", "count": len(words), "topic": topic, "date": date_str})
+            words = await asyncio.to_thread(_refresh_daily_word_status, user_id, words)
+            yield sse({
+                "type": "start",
+                "count": len(words),
+                "topic": topic,
+                "date": date_str,
+                "status": _daily_status_dict(
+                    _reviewed_count(words), len(words), timezone_name,
+                ),
+            })
             for w in words:
                 yield sse({"type": "word", "word": _daily_word_dict(w)})
             yield sse({"type": "done"})
@@ -147,10 +247,17 @@ async def _daily_sse_generator(
         ):
             if event["type"] == "start":
                 topic_name = event["topic"]
-                yield sse(event)
+                total_count = int(event.get("count", count))
+                yield sse({
+                    **event,
+                    "date": date_str,
+                    "status": _daily_status_dict(0, total_count, timezone_name),
+                })
             elif event["type"] == "word":
                 word = event["word"]
-                await asyncio.to_thread(_persist_daily_to_deck, user_id, [word], topic_name)
+                await asyncio.to_thread(
+                    _persist_daily_to_deck, user_id, [word], topic_name,
+                )
                 accumulated.append(word)
                 yield sse({"type": "word", "word": _daily_word_dict(word)})
             elif event["type"] == "done":
@@ -172,14 +279,15 @@ async def stream_daily(
     user: dict = Depends(get_current_user),
 ):
     """Stream today's personal daily words via SSE, one word at a time."""
-    date_str = config.local_date_str()
+    timezone_name = _user_timezone(user)
+    date_str = _local_date_str(timezone_name)
     count = (body.count if body and body.count
              else int(user.get("daily_words_count") or config.DEFAULT_WORD_COUNT))
     topics = body.topics if body and body.topics else user.get("topics") or None
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
 
     return StreamingResponse(
-        _daily_sse_generator(user["id"], date_str, count, band, topics),
+        _daily_sse_generator(user["id"], date_str, count, band, topics, timezone_name),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -241,7 +349,8 @@ async def generate_daily(
     user: dict = Depends(get_current_user),
 ) -> DailyWordsResponse:
     """Generate (or return cached) today's personal daily words."""
-    date_str = config.local_date_str()
+    timezone_name = _user_timezone(user)
+    date_str = _local_date_str(timezone_name)
 
     cached = await asyncio.to_thread(
         firebase_service.get_user_daily_words, user["id"], date_str
@@ -259,10 +368,14 @@ async def generate_daily(
                 firebase_service.save_user_daily_words,
                 user["id"], date_str, cached_words, cached_topic,
             )
-        return DailyWordsResponse(
-            date=date_str,
-            topic=cached_topic,
-            words=[_to_daily_word(w) for w in cached_words],
+        cached_words = await asyncio.to_thread(
+            _refresh_daily_word_status, user["id"], cached_words,
+        )
+        return _daily_response(
+            date_str,
+            cached_topic,
+            cached_words,
+            timezone_name,
             generated_at=cached.get("generated_at"),
         )
 
@@ -284,10 +397,12 @@ async def generate_daily(
         firebase_service.save_user_daily_words, user["id"], date_str, words, topic
     )
 
-    return DailyWordsResponse(
-        date=date_str,
-        topic=topic,
-        words=[_to_daily_word(w) for w in words],
+    words = await asyncio.to_thread(_refresh_daily_word_status, user["id"], words)
+    return _daily_response(
+        date_str,
+        topic,
+        words,
+        timezone_name,
         generated_at=datetime.utcnow(),
     )
 
@@ -372,9 +487,14 @@ async def get_daily_by_date(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No daily words cached for {date}.",
         )
-    return DailyWordsResponse(
-        date=date,
-        topic=cached.get("topic", ""),
-        words=[_to_daily_word(w) for w in cached.get("words", [])],
+    timezone_name = _user_timezone(user)
+    words = await asyncio.to_thread(
+        _refresh_daily_word_status, user["id"], cached.get("words", []),
+    )
+    return _daily_response(
+        date,
+        cached.get("topic", ""),
+        words,
+        timezone_name,
         generated_at=cached.get("generated_at"),
     )
