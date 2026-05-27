@@ -44,6 +44,11 @@
     "subtitle": "Bấm vào 1 chủ đề để xem chi tiết từ vựng. Chủ đề ít thuộc nhất hiện trước.",
     "reviewCta": "Bắt đầu ôn tập",
     "clearFilter": "Bỏ lọc",
+    "tabs": {
+      "topics": "Chủ đề",
+      "favourites": "Yêu thích",
+      "history": "Lịch sử"
+    },
     "progress": {
       "label": "Đã thuộc",
       "aria": "Đã thuộc {pct}% tổng số từ"
@@ -86,6 +91,28 @@
       "title": "Không có từ phù hợp",
       "description": "Thử bỏ bớt bộ lọc hoặc đổi từ khoá tìm kiếm.",
       "cta": "Xoá bộ lọc"
+    },
+    "favourites": {
+      "title": "Chưa có từ yêu thích",
+      "description": "Bấm trái tim ở từ hằng ngày hoặc dòng từ vựng để lưu vào đây.",
+      "cta": "Xem từ hôm nay"
+    },
+    "history": {
+      "title": "Chưa có lịch sử từ hằng ngày",
+      "description": "Những bộ từ hằng ngày bạn tạo sẽ xuất hiện ở đây để xem lại sau.",
+      "cta": "Xem từ hôm nay"
+    }
+  },
+  "history": {
+    "summary": "Đã ôn {reviewed}/{total}",
+    "reviewCta": "Ôn tập",
+    "reviewedBadge": "Đã ôn",
+    "stats": {
+      "total": "Tổng",
+      "reviewed": "Đã ôn",
+      "favourites": "Yêu thích",
+      "weak": "Yếu",
+      "mastered": "Thạo"
     }
   },
   "review": {

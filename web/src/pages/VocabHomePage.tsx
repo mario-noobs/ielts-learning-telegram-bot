@@ -48,6 +48,44 @@ interface WordListResponse {
   next_cursor: string | null
 }
 
+interface DailyHistoryWord {
+  word: string
+  word_id: string
+  reviewed: boolean
+  is_favourite: boolean
+  strength: string
+  definition_en: string
+  definition_vi: string
+  ipa: string
+  part_of_speech: string
+}
+
+interface DailyHistoryEntry {
+  date: string
+  topic: string
+  words: DailyHistoryWord[]
+  total_count: number
+  reviewed_count: number
+  favourite_count: number
+  weak_count: number
+  mastered_count: number
+}
+
+interface DailyHistoryResponse {
+  items: DailyHistoryEntry[]
+  timezone: string
+}
+
+type VocabTab = 'topics' | 'favourites' | 'history'
+
+const HISTORY_STATS = [
+  ['total', 'total_count'],
+  ['reviewed', 'reviewed_count'],
+  ['favourites', 'favourite_count'],
+  ['weak', 'weak_count'],
+  ['mastered', 'mastered_count'],
+] as const
+
 function topicLabel(
   slug: string,
   apiName: string,
@@ -132,15 +170,126 @@ function FavouriteWordRow({ word }: { word: VocabularyWord }) {
   )
 }
 
+function DailyHistoryWordRow({
+  date,
+  word,
+  t,
+}: {
+  date: string
+  word: DailyHistoryWord
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
+  return (
+    <Link
+      to={`/learn/vocab/${encodeURIComponent(word.word)}`}
+      onClick={() =>
+        track('vocab_history_word_detail_opened', {
+          date,
+          word: word.word,
+          word_id: word.word_id,
+        })
+      }
+      className="flex items-center gap-3 py-2.5 hover:text-primary"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-fg truncate">
+          {word.word}
+          {word.reviewed && (
+            <span className="ml-2 text-xs font-normal text-success">
+              {t('history.reviewedBadge')}
+            </span>
+          )}
+        </p>
+        {(word.definition_vi || word.definition_en) && (
+          <p className="mt-0.5 truncate text-xs text-muted-fg">
+            {word.definition_vi || word.definition_en}
+          </p>
+        )}
+      </div>
+      {word.is_favourite && <Icon name="Heart" size="sm" variant="danger" />}
+      <span className="hidden rounded-md bg-surface px-2 py-1 text-xs text-muted-fg sm:inline">
+        {t(`strength.${word.strength}`, { defaultValue: word.strength })}
+      </span>
+      <Icon name="ArrowRight" size="sm" variant="muted" />
+    </Link>
+  )
+}
+
+function DailyHistoryCard({
+  entry,
+  t,
+}: {
+  entry: DailyHistoryEntry
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
+  return (
+    <article className="rounded-xl border border-border bg-surface-raised p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-fg">{entry.date}</h2>
+            {entry.topic && (
+              <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {entry.topic}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-fg">
+            {t('history.summary', {
+              reviewed: entry.reviewed_count,
+              total: entry.total_count,
+            })}
+          </p>
+        </div>
+        <Link
+          to="/learn/review"
+          onClick={() =>
+            track('vocab_history_review_started', {
+              date: entry.date,
+              total: entry.total_count,
+            })
+          }
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
+        >
+          <Icon name="RotateCcw" size="sm" variant="muted" />
+          {t('history.reviewCta')}
+        </Link>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {HISTORY_STATS.map(([key, field]) => (
+          <div key={key} className="rounded-md bg-surface px-3 py-2">
+            <p className="text-xs text-muted-fg">{t(`history.stats.${key}`)}</p>
+            <p className="text-lg font-semibold text-fg">{entry[field]}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 divide-y divide-border">
+        {entry.words.map((word) => (
+          <DailyHistoryWordRow
+            key={`${entry.date}-${word.word_id || word.word}`}
+            date={entry.date}
+            word={word}
+            t={t}
+          />
+        ))}
+      </div>
+    </article>
+  )
+}
+
 export default function VocabHomePage() {
   const { t } = useTranslation('vocab')
   const profile = useProfile()
   const showLinkPrompt = profile != null && profile.id.startsWith('web_')
   const [topics, setTopics] = useState<TopicSummary[]>([])
   const [preferredSlugs, setPreferredSlugs] = useState<string[]>([])
-  const [activeTab, setActiveTab] = useState<'topics' | 'favourites'>('topics')
+  const [activeTab, setActiveTab] = useState<VocabTab>('topics')
   const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
+  const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[] | null>(null)
   const [loadingFavourites, setLoadingFavourites] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -176,6 +325,29 @@ export default function VocabHomePage() {
       cancelled = true
     }
   }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'history' || dailyHistory !== null) return
+    let cancelled = false
+    setLoadingHistory(true)
+    async function loadHistory() {
+      try {
+        const res = await apiFetch<DailyHistoryResponse>('/api/v1/vocabulary/daily/history?limit=30')
+        if (!cancelled) setDailyHistory(res.items)
+      } catch (e) {
+        if (!cancelled) {
+          setError(localizeError(e))
+          setDailyHistory([])
+        }
+      } finally {
+        if (!cancelled) setLoadingHistory(false)
+      }
+    }
+    void loadHistory()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, dailyHistory])
 
   const stats = useMemo(() => {
     const total = topics.reduce((sum, tp) => sum + tp.word_count, 0)
@@ -304,6 +476,23 @@ export default function VocabHomePage() {
           <Icon name="Heart" size="sm" variant={activeTab === 'favourites' ? 'fg' : 'muted'} />
           {t('byTopic.tabs.favourites', { defaultValue: 'Favourites' })}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeTab !== 'history') {
+              track('vocab_history_tab_viewed')
+            }
+            setActiveTab('history')
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeTab === 'history'
+              ? 'bg-primary text-primary-fg'
+              : 'text-muted-fg hover:text-fg'
+          }`}
+        >
+          <Icon name="Clock" size="sm" variant={activeTab === 'history' ? 'fg' : 'muted'} />
+          {t('byTopic.tabs.history', { defaultValue: 'History' })}
+        </button>
       </div>
 
       {showLinkPrompt && (
@@ -333,7 +522,36 @@ export default function VocabHomePage() {
         </div>
       )}
 
-      {activeTab === 'favourites' ? (
+      {activeTab === 'history' ? (
+        loadingHistory || dailyHistory === null ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-surface-raised p-4 animate-pulse"
+              >
+                <div className="h-4 bg-border rounded w-1/4" />
+                <div className="mt-4 h-12 bg-border rounded" />
+              </div>
+            ))}
+          </div>
+        ) : dailyHistory.length === 0 ? (
+          <EmptyState
+            illustration="empty-vocab"
+            title={t('empty.history.title', { defaultValue: 'No daily history yet' })}
+            description={t('empty.history.description', {
+              defaultValue: 'Daily vocab batches you generate will appear here for future review.',
+            })}
+            primaryAction={{ label: t('empty.history.cta', { defaultValue: 'View daily words' }), to: '/learn/daily' }}
+          />
+        ) : (
+          <div className="space-y-4">
+            {dailyHistory.map((entry) => (
+              <DailyHistoryCard key={entry.date} entry={entry} t={t} />
+            ))}
+          </div>
+        )
+      ) : activeTab === 'favourites' ? (
         loadingFavourites ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (

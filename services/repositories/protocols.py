@@ -168,6 +168,8 @@ class DailyWordsRepo(Protocol):
 
     def get(self, user_id: UserId, date_str: str) -> Optional[DailyWordsDoc]: ...
 
+    def list_recent(self, user_id: UserId, limit: int = 30) -> list[DailyWordsDoc]: ...
+
 
 @runtime_checkable
 class ListeningHistoryRepo(Protocol):

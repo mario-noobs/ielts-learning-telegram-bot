@@ -54,6 +54,23 @@ class DailyWordsResponse(BaseModel):
     next_reset_at: datetime | None = None
 
 
+class DailyHistoryEntry(BaseModel):
+    date: str
+    topic: str
+    words: list[DailyWord]
+    generated_at: datetime | None = None
+    total_count: int = 0
+    reviewed_count: int = 0
+    favourite_count: int = 0
+    weak_count: int = 0
+    mastered_count: int = 0
+
+
+class DailyHistoryResponse(BaseModel):
+    items: list[DailyHistoryEntry]
+    timezone: str = ""
+
+
 class DailyGenerateRequest(BaseModel):
     count: int | None = Field(default=None, ge=1, le=20)
     topics: list[str] | None = None
