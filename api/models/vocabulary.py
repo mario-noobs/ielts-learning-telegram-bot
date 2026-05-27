@@ -33,6 +33,7 @@ class DailyWord(BaseModel):
     word: str
     word_id: str = ""
     is_favourite: bool = False
+    strength: str = "New"
     definition_en: str = ""
     definition_vi: str = ""
     ipa: str = ""
