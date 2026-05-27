@@ -56,6 +56,16 @@ def test_filter_dupes_drops_existing_and_intra_batch_dupes():
     assert [w["word"] for w in out] == ["fresh"]
 
 
+def test_weighted_topics_prefer_private_vocab_topics():
+    out = vocab_service._weighted_topics_with_private_context(
+        ["education", "environment"],
+        {"technology": 7, "health": 3},
+    )
+
+    assert out[:4] == ["technology", "technology", "health", "health"]
+    assert out[-2:] == ["education", "environment"]
+
+
 @pytest.mark.asyncio
 async def test_generate_with_dedup_tops_up_when_short():
     """AI returns 3 words but 2 are dupes → top-up retry fills the gap."""
@@ -135,3 +145,44 @@ async def test_generate_with_master_first_tops_up_with_ai_when_master_short():
     assert [w["word"] for w in out] == ["deficit", "tariff"]
     assert mock.await_count == 1
     assert "deficit" in mock.await_args.kwargs["exclude_words"]
+
+
+@pytest.mark.asyncio
+async def test_personal_daily_uses_my_words_context_and_excludes_existing():
+    ai_words = [{"word": "throughput", "definition_en": "amount processed"}]
+    with patch.object(vocab_service.firebase_service, "get_user",
+                      return_value={"recent_personal_topics": []}), \
+            patch.object(vocab_service.firebase_service, "count_words_by_topic",
+                         return_value={"technology": 5}), \
+            patch.object(vocab_service.firebase_service, "get_user_vocabulary_page",
+                         return_value=[
+                             {"word": "latency"},
+                             {"word": "scalability"},
+                         ]) as recent_words, \
+            patch.object(vocab_service.firebase_service, "get_user_word_list",
+                         return_value=["latency"]), \
+            patch.object(vocab_service.firebase_service, "update_user"), \
+            patch.object(vocab_service, "_select_master_words", return_value=[]), \
+            patch.object(vocab_service, "_pick_topic_avoiding_recent",
+                         return_value="technology") as pick_topic, \
+            patch.object(vocab_service.ai_service, "generate_vocabulary",
+                         AsyncMock(return_value=ai_words)) as mock_ai:
+        words, topic = await vocab_service.generate_personal_daily_words(
+            telegram_id=123,
+            count=1,
+            band=7.0,
+            topics=["education", "environment"],
+            context_words=["cloud"],
+        )
+
+    assert topic == "Technology & Innovation"
+    assert [w["word"] for w in words] == ["throughput"]
+    pick_topic.assert_called_once_with(
+        ["technology", "technology", "education", "environment"],
+        [],
+    )
+    recent_words.assert_called_once_with(123, 10, None, None, None, 3)
+    assert "latency" in mock_ai.await_args.kwargs["exclude_words"]
+    prompt_topic = mock_ai.await_args.kwargs["topic"]
+    assert "cloud" in prompt_topic
+    assert "scalability" in prompt_topic

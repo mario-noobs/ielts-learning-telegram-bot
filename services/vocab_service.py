@@ -10,6 +10,8 @@ from services import ai_service, firebase_service
 logger = logging.getLogger(__name__)
 
 VOCAB_BATCH_SIZE = 5  # max words per AI prompt — keeps output tokens ≤ ~3500
+PRIVATE_CONTEXT_LIMIT = 10
+PRIVATE_TOPIC_LIMIT = 3
 
 # US-#226 — topic rotation. Picking a topic, we exclude the last
 # RECENT_TOPICS_AVOID entries from the candidate pool. Stored as a
@@ -79,6 +81,71 @@ def _normalize_word_key(word: str) -> str:
     normalized = unicodedata.normalize("NFC", word).lower().strip()
     normalized = _PUNCT_RE.sub("", normalized)
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _unique_word_context(
+    *groups: list[str] | None,
+    limit: int = PRIVATE_CONTEXT_LIMIT,
+) -> list[str]:
+    context: list[str] = []
+    seen: set[str] = set()
+    for group in groups:
+        for word in group or []:
+            clean = str(word or "").strip()
+            key = _normalize_word_key(clean)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            context.append(clean)
+            if len(context) >= limit:
+                return context
+    return context
+
+
+def _weighted_topics_with_private_context(
+    topics: list[str], topic_counts: dict[str, int],
+) -> list[str]:
+    private_topics = [
+        topic
+        for topic, _count in sorted(
+            topic_counts.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        if topic
+    ][:PRIVATE_TOPIC_LIMIT]
+    if not private_topics:
+        return topics
+
+    weighted: list[str] = []
+    for topic in private_topics:
+        weighted.extend([topic, topic])
+    weighted.extend(topic for topic in topics if topic not in private_topics)
+    return weighted
+
+
+def _private_daily_context(telegram_id: int) -> tuple[list[str], dict[str, int]]:
+    recent_words: list[str] = []
+    topic_counts: dict[str, int] = {}
+    try:
+        topic_counts = firebase_service.count_words_by_topic(telegram_id)
+    except Exception:  # noqa: BLE001 — context should never block daily generation
+        logger.exception("Failed to load private vocab topic context")
+
+    try:
+        recent_docs = firebase_service.get_user_vocabulary_page(
+            telegram_id,
+            PRIVATE_CONTEXT_LIMIT,
+            None,
+            None,
+            None,
+            3,
+        )
+        recent_words = [doc.get("word", "") for doc in recent_docs]
+    except Exception:  # noqa: BLE001 — context should never block daily generation
+        logger.exception("Failed to load recent private vocab context")
+
+    return _unique_word_context(recent_words), topic_counts
 
 
 def _target_master_difficulty(band: float) -> int:
@@ -211,6 +278,12 @@ async def _generate_with_dedup(
             break
 
         fresh = _filter_dupes_lc(batch, emitted_lc)
+        dropped = len(batch or []) - len(fresh)
+        if dropped:
+            logger.info(
+                "daily_vocab_duplicate_candidates_filtered",
+                extra={"topic": topic, "dropped": dropped},
+            )
         if not fresh:
             empty_batches += 1
             if empty_batches >= 2:
@@ -234,6 +307,10 @@ async def _generate_with_master_first(
         count=count, topic=topic, band=band, existing_lc=existing_lc,
     )
     if len(master_words) >= count:
+        logger.info(
+            "daily_vocab_generation_source_mix",
+            extra={"topic": topic, "source_master": count, "source_ai": 0},
+        )
         return master_words[:count]
 
     emitted_lc = set(existing_lc)
@@ -245,6 +322,14 @@ async def _generate_with_master_first(
         existing_lc=emitted_lc,
         context_words=context_words,
         plan=plan,
+    )
+    logger.info(
+        "daily_vocab_generation_source_mix",
+        extra={
+            "topic": topic,
+            "source_master": len(master_words),
+            "source_ai": len(fallback),
+        },
     )
     return (master_words + fallback)[:count]
 
@@ -315,15 +400,30 @@ async def generate_personal_daily_words(telegram_id: int, count: int = 10,
 
     user = firebase_service.get_user(telegram_id) or {}
     recent = user.get("recent_personal_topics") or []
+    private_context_words, topic_counts = _private_daily_context(telegram_id)
+    topics = _weighted_topics_with_private_context(topics, topic_counts)
     topic_id = _pick_topic_avoiding_recent(topics, recent)
     topic = _load_topic_map().get(topic_id, topic_id)
 
     existing_words = firebase_service.get_user_word_list(telegram_id)
     existing_lc = {_normalize_word_key(w) for w in existing_words}
+    merged_context = _unique_word_context(context_words, private_context_words)
 
     fresh = await _generate_with_master_first(
         count=count, band=band, topic=topic, existing_lc=existing_lc,
-        context_words=context_words,
+        context_words=merged_context,
+    )
+    logger.info(
+        "personal_daily_vocab_generated",
+        extra={
+            "user_id": telegram_id,
+            "topic": topic,
+            "requested_count": count,
+            "generated_count": len(fresh),
+            "existing_count": len(existing_lc),
+            "context_count": len(merged_context),
+            "private_topic_count": len(topic_counts),
+        },
     )
 
     next_recent = _push_recent_topic(recent, topic_id)
@@ -351,12 +451,14 @@ async def generate_extra_daily_words(
     """
     existing_words = firebase_service.get_user_word_list(telegram_id)
     existing_lc = {_normalize_word_key(w) for w in existing_words}
+    private_context_words, _topic_counts = _private_daily_context(telegram_id)
+    merged_context = _unique_word_context(context_words, private_context_words)
     return await _generate_with_master_first(
         count=count,
         band=band,
         topic=topic,
         existing_lc=existing_lc,
-        context_words=context_words,
+        context_words=merged_context,
     )
 
 
@@ -445,11 +547,14 @@ async def stream_personal_daily_words(
 
     user = firebase_service.get_user(telegram_id) or {}
     recent = user.get("recent_personal_topics") or []
+    private_context_words, topic_counts = _private_daily_context(telegram_id)
+    topics = _weighted_topics_with_private_context(topics, topic_counts)
     topic_id = _pick_topic_avoiding_recent(topics, recent)
     topic = _load_topic_map().get(topic_id, topic_id)
 
     existing_words = firebase_service.get_user_word_list(telegram_id)
     existing_lc: set[str] = {_normalize_word_key(w) for w in existing_words}
+    merged_context = _unique_word_context(context_words, private_context_words)
 
     date_str = _config.local_date_str()
     yield {"type": "start", "count": count, "topic": topic, "date": date_str}
@@ -459,7 +564,7 @@ async def stream_personal_daily_words(
         band=band,
         topic=topic,
         existing_lc=existing_lc,
-        context_words=context_words,
+        context_words=merged_context,
         plan=plan,
     )
     for w in _filter_dupes_lc(words, existing_lc):
