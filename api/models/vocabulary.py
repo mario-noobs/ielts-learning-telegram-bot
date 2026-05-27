@@ -164,3 +164,41 @@ class TopicSummary(BaseModel):
 class TopicsResponse(BaseModel):
     items: list[TopicSummary]
     total_words: int
+
+
+class PublicVocabPool(BaseModel):
+    id: str
+    title: str
+    source: str
+    source_theme: str = ""
+    word_count: int
+    difficulty: int | None = None
+    difficulty_min: int | None = None
+    difficulty_max: int | None = None
+    topics: list[str] = []
+    source_url: str = ""
+    license: str = ""
+    provenance: str = ""
+
+
+class PublicVocabPoolWord(BaseModel):
+    id: str
+    word: str
+    definition_en: str = ""
+    definition_vi: str = ""
+    ipa: str = ""
+    part_of_speech: str = ""
+    difficulty: int | None = None
+    topic: str = ""
+    source_ref: str = ""
+
+
+class PublicVocabPoolsResponse(BaseModel):
+    enabled: bool
+    items: list[PublicVocabPool] = []
+
+
+class PublicVocabPoolDetailResponse(BaseModel):
+    enabled: bool
+    pool: PublicVocabPool
+    words: list[PublicVocabPoolWord] = []

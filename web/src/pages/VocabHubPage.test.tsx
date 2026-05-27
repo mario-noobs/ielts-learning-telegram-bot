@@ -49,6 +49,9 @@ describe('<VocabHubPage>', () => {
       if (url === '/api/v1/review/due') {
         return Promise.resolve({ items: [{ word_id: 'w1' }, { word_id: 'w2' }] })
       }
+      if (url === '/api/v1/vocabulary/public-pools') {
+        return Promise.resolve({ enabled: true, items: [{ id: 'pool-1' }] })
+      }
       throw new Error(`Unexpected API call: ${url}`)
     })
 
@@ -62,6 +65,8 @@ describe('<VocabHubPage>', () => {
       .toHaveAttribute('href', '/learn/vocab/my-words')
     expect(screen.getByRole('link', { name: /hub\.explore\.title/ }))
       .toHaveAttribute('href', '/learn/vocab/explore')
+    expect(screen.getByRole('link', { name: /hub\.publicPools\.title/ }))
+      .toHaveAttribute('href', '/learn/vocab/pools')
     expect(screen.getByRole('link', { name: /hub\.add\.title/ }))
       .toHaveAttribute('href', '/learn/vocab/add')
     expect(screen.getByText(/hub\.review\.meta/)).toBeInTheDocument()
@@ -69,5 +74,27 @@ describe('<VocabHubPage>', () => {
 
     await userEvent.click(screen.getByRole('link', { name: /hub\.add\.title/ }))
     expect(trackMock).toHaveBeenCalledWith('vocab_hub_add_opened')
+  })
+
+  it('keeps the hub usable when public pools are not available', async () => {
+    apiFetchMock.mockImplementation((url: string) => {
+      if (url === '/api/v1/topics') {
+        return Promise.resolve({ total_words: 0, items: [] })
+      }
+      if (url === '/api/v1/review/due') {
+        return Promise.resolve({ items: [] })
+      }
+      if (url === '/api/v1/vocabulary/public-pools') {
+        return Promise.reject(new Error('not deployed yet'))
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+
+    expect(await screen.findByRole('link', { name: /hub\.today\.title/ }))
+      .toHaveAttribute('href', '/learn/daily')
+    expect(screen.queryByRole('link', { name: /hub\.publicPools\.title/ }))
+      .not.toBeInTheDocument()
   })
 })

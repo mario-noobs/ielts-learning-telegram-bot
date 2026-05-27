@@ -13,6 +13,7 @@ import PricingPage from './pages/PricingPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHubPage from './pages/VocabHubPage'
 import VocabHomePage, { VocabAddPage } from './pages/VocabHomePage'
+import PublicVocabPoolsPage from './pages/PublicVocabPoolsPage'
 import VocabTopicPage from './pages/VocabTopicPage'
 import WordDetailPage from './pages/WordDetailPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
@@ -124,6 +125,8 @@ export default function App() {
             <Route path="/learn/vocab/favourites" element={<VocabHomePage initialTab="favourites" />} />
             <Route path="/learn/vocab/history" element={<VocabHomePage initialTab="history" />} />
             <Route path="/learn/vocab/add" element={<VocabAddPage />} />
+            <Route path="/learn/vocab/pools" element={<PublicVocabPoolsPage />} />
+            <Route path="/learn/vocab/pools/:poolId" element={<PublicVocabPoolsPage />} />
             {/* Topic drill-down — must precede `:id` so /topic/:slug
                 doesn't get matched as a word id. */}
             <Route path="/learn/vocab/topic/:slug" element={<VocabTopicPage />} />

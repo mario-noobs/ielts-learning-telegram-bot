@@ -50,6 +50,11 @@
       "title": "Khám phá",
       "description": "Xem chủ đề và lộ trình học từng phần."
     },
+    "publicPools": {
+      "meta": "{count} bộ từ",
+      "title": "Kho từ công khai",
+      "description": "Xem bộ từ IELTS chỉ đọc theo nguồn và độ khó."
+    },
     "add": {
       "meta": "AI hoặc tự thêm",
       "title": "Thêm từ",
@@ -58,6 +63,43 @@
     "error": {
       "title": "Chưa tải được từ vựng",
       "cta": "Tải lại"
+    }
+  },
+  "publicPools": {
+    "back": "Trung tâm từ vựng",
+    "heading": "Kho từ công khai",
+    "subtitle": "Chọn bộ từ chỉ đọc theo cấp độ, chủ đề và nguồn dữ liệu.",
+    "difficultyValue": "Độ khó {value}/5",
+    "difficultyUnknown": "Chưa có độ khó",
+    "filters": {
+      "difficulty": "Độ khó",
+      "topic": "Chủ đề",
+      "allDifficulties": "Tất cả độ khó",
+      "allTopics": "Tất cả chủ đề"
+    },
+    "card": {
+      "wordCount": "{count} từ",
+      "source": "Nguồn: {source}",
+      "noLicense": "Chưa có giấy phép"
+    },
+    "detail": {
+      "sourceLink": "Mở nguồn",
+      "source": "Nguồn",
+      "license": "Giấy phép",
+      "provenance": "Nguồn gốc"
+    },
+    "disabled": {
+      "title": "Kho từ công khai chưa khả dụng",
+      "description": "Nguồn từ này vẫn đang trong giai đoạn rollout.",
+      "cta": "Quay lại từ vựng"
+    },
+    "empty": {
+      "title": "Không có bộ từ phù hợp",
+      "description": "Thử đổi độ khó hoặc chủ đề."
+    },
+    "error": {
+      "title": "Chưa tải được kho từ công khai",
+      "cta": "Quay lại từ vựng"
     }
   },
   "search": {
