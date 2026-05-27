@@ -88,4 +88,5 @@ async def complete_activity(
         raise ApiError(ERR.plan_not_found, date=date_str)
     if result == "NOT_FOUND":
         raise ApiError(ERR.plan_activity_not_found, activity_id=activity_id)
+    await asyncio.to_thread(firebase_service.update_streak, user["id"])
     return _to_plan(result, user)

@@ -34,6 +34,12 @@ def _reset_rate_limit():
     words_route._override_log.clear()
 
 
+@pytest.fixture(autouse=True)
+def _stub_streak_update():
+    with patch("api.routes.words.firebase_service.update_streak"):
+        yield
+
+
 @pytest.fixture()
 def client():
     app = create_app()

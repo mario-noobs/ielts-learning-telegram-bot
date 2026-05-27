@@ -124,6 +124,14 @@ def test_update_streak_same_day_holds() -> None:
     assert repo.get(1).streak == 7
 
 
+def test_update_streak_same_day_zero_starts_at_one() -> None:
+    repo = _repo()
+    repo.create(telegram_id=1, name="A")
+
+    repo.update_streak(1)
+    assert repo.get(1).streak == 1
+
+
 def test_update_streak_gap_resets_to_one() -> None:
     repo = _repo()
     repo.create(telegram_id=1, name="A")

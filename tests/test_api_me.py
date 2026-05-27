@@ -155,6 +155,22 @@ class TestPatchMe:
         assert "exam_date" not in captured
 
 
+class TestStudyStreakAck:
+    def test_acknowledges_study_streak_and_returns_refreshed_profile(self, client):
+        refreshed = {**FAKE_USER, "streak": 3}
+        with patch(
+            "api.routes.auth.firebase_service.update_streak",
+        ) as update_streak, patch(
+            "api.routes.auth.firebase_service.get_user",
+            return_value=refreshed,
+        ):
+            res = client.post("/api/v1/me/streak")
+
+        assert res.status_code == 200
+        update_streak.assert_called_once_with("123")
+        assert res.json()["streak"] == 3
+
+
 class TestDailyWordsCount:
     """#242: per-user daily_words_count round-trip + range validation."""
 

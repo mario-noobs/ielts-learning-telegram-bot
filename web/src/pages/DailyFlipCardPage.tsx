@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import LoadingScreen from '../components/LoadingScreen'
 import PronunciationButton from '../components/PronunciationButton'
+import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
 
@@ -26,8 +27,11 @@ interface DailyWordsResponse {
 
 export default function DailyFlipCardPage() {
   const { t } = useTranslation('vocab')
+  const navigate = useNavigate()
+  const { refreshProfile } = useAuth()
   const [words, setWords] = useState<DailyWord[]>([])
   const [loading, setLoading] = useState(true)
+  const [doneLoading, setDoneLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
@@ -52,6 +56,19 @@ export default function DailyFlipCardPage() {
     setIndex((i) => Math.min(words.length - 1, i + 1))
     setRevealed(false)
   }, [words.length])
+  const finish = useCallback(async () => {
+    if (doneLoading) return
+    setDoneLoading(true)
+    try {
+      await apiFetch('/api/v1/me/streak', { method: 'POST' })
+      await refreshProfile()
+      navigate('/learn/daily')
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setDoneLoading(false)
+    }
+  }, [doneLoading, navigate, refreshProfile])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -166,12 +183,14 @@ export default function DailyFlipCardPage() {
           ◀ {t('pagination.prev')}
         </button>
         {isLast ? (
-          <Link
-            to="/learn/daily"
+          <button
+            type="button"
+            onClick={finish}
+            disabled={doneLoading}
             className="py-3 min-h-[44px] rounded-xl bg-primary text-primary-fg font-medium hover:bg-primary-hover text-center flex items-center justify-center"
           >
-            ✅ {t('daily.flip.done')}
-          </Link>
+            ✅ {doneLoading ? t('daily.loading') : t('daily.flip.done')}
+          </button>
         ) : (
           <button
             onClick={reveal}
