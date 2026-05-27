@@ -30,8 +30,8 @@ function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/learn/vocab/pools" element={<PublicVocabPoolsPage />} />
-        <Route path="/learn/vocab/pools/:poolId" element={<PublicVocabPoolsPage />} />
+        <Route path="/learn/pools" element={<PublicVocabPoolsPage />} />
+        <Route path="/learn/pools/:poolId" element={<PublicVocabPoolsPage />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -67,10 +67,10 @@ describe('<PublicVocabPoolsPage>', () => {
       throw new Error(`Unexpected API call: ${url}`)
     })
 
-    renderAt('/learn/vocab/pools')
+    renderAt('/learn/pools')
 
     const card = await screen.findByRole('link', { name: /Cambridge IELTS 18/ })
-    expect(card).toHaveAttribute('href', '/learn/vocab/pools/pool-1')
+    expect(card).toHaveAttribute('href', '/learn/pools/pool-1')
     expect(screen.getByText(/publicPools\.card\.source/)).toBeInTheDocument()
     expect(screen.getByText('CC BY 4.0')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
@@ -111,11 +111,11 @@ describe('<PublicVocabPoolsPage>', () => {
       throw new Error(`Unexpected API call: ${url}`)
     })
 
-    renderAt('/learn/vocab/pools')
+    renderAt('/learn/pools')
 
     expect(await screen.findByText('publicPools.recommendations.heading')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Upper Intermediate/ }))
-      .toHaveAttribute('href', '/learn/vocab/pools/rec-1')
+      .toHaveAttribute('href', '/learn/pools/rec-1')
     expect(screen.getByText(/publicPools\.recommendations\.reasons\.weak_topic/))
       .toBeInTheDocument()
     expect(trackMock).toHaveBeenCalledWith('public_vocab_roadmap_recommendations_viewed', {
@@ -160,7 +160,7 @@ describe('<PublicVocabPoolsPage>', () => {
       ],
     })
 
-    renderAt('/learn/vocab/pools/pool-1')
+    renderAt('/learn/pools/pool-1')
 
     expect(await screen.findByText('scalability')).toBeInTheDocument()
     expect(screen.getByText('ability to be enlarged or increased')).toBeInTheDocument()
@@ -219,7 +219,7 @@ describe('<PublicVocabPoolsPage>', () => {
       throw new Error(`Unexpected API call: ${url}`)
     })
 
-    renderAt('/learn/vocab/pools/pool-1')
+    renderAt('/learn/pools/pool-1')
 
     await userEvent.click(await screen.findByRole('button', { name: 'publicPools.word.save' }))
 
@@ -262,7 +262,7 @@ describe('<PublicVocabPoolsPage>', () => {
       throw new Error(`Unexpected API call: ${url}`)
     })
 
-    renderAt('/learn/vocab/pools')
+    renderAt('/learn/pools')
     await screen.findByText('Education Pool')
 
     await userEvent.selectOptions(

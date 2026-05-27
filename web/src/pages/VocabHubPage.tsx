@@ -24,11 +24,6 @@ interface DueResponse {
   items: unknown[]
 }
 
-interface PublicPoolResponse {
-  enabled: boolean
-  items: Array<{ id: string }>
-}
-
 function HubAction({
   title,
   description,
@@ -75,8 +70,6 @@ export default function VocabHubPage() {
   const { t } = useTranslation('vocab')
   const [topics, setTopics] = useState<TopicSummary[]>([])
   const [dueCount, setDueCount] = useState<number | null>(null)
-  const [publicPoolCount, setPublicPoolCount] = useState<number | null>(null)
-  const [publicPoolsEnabled, setPublicPoolsEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -86,21 +79,16 @@ export default function VocabHubPage() {
       setLoading(true)
       setError('')
       try {
-        const publicPoolsRequest = apiFetch<PublicPoolResponse>('/api/v1/vocabulary/public-pools')
-          .catch(() => ({ enabled: false, items: [] }))
-        const [topicRes, dueRes, poolRes] = await Promise.all([
+        const [topicRes, dueRes] = await Promise.all([
           apiFetch<TopicsResponse>('/api/v1/topics'),
           apiFetch<DueResponse>('/api/v1/review/due', {
             method: 'POST',
             body: JSON.stringify({ limit: 10 }),
           }),
-          publicPoolsRequest,
         ])
         if (cancelled) return
         setTopics(topicRes.items)
         setDueCount(dueRes.items.length)
-        setPublicPoolsEnabled(poolRes.enabled)
-        setPublicPoolCount(poolRes.items.length)
       } catch (e) {
         if (!cancelled) setError(localizeError(e))
       } finally {
@@ -204,16 +192,6 @@ export default function VocabHubPage() {
           title={t('hub.explore.title')}
           description={t('hub.explore.description')}
         />
-        {publicPoolsEnabled && (
-          <HubAction
-            icon="BookOpen"
-            to="/learn/vocab/pools"
-            eventName="vocab_hub_public_pools_opened"
-            meta={t('hub.publicPools.meta', { count: publicPoolCount ?? 0 })}
-            title={t('hub.publicPools.title')}
-            description={t('hub.publicPools.description')}
-          />
-        )}
         <HubAction
           icon="Plus"
           to="/learn/vocab/add"

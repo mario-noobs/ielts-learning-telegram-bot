@@ -199,7 +199,7 @@ export default function PublicVocabPoolsPage() {
           illustration="empty-vocab"
           title={t('publicPools.error.title')}
           description={error}
-          primaryAction={{ label: t('publicPools.error.cta'), to: '/learn/vocab' }}
+          primaryAction={{ label: t('publicPools.error.cta'), to: '/' }}
         />
       </div>
     )
@@ -212,7 +212,7 @@ export default function PublicVocabPoolsPage() {
           illustration="empty-vocab"
           title={t('publicPools.disabled.title')}
           description={t('publicPools.disabled.description')}
-          primaryAction={{ label: t('publicPools.disabled.cta'), to: '/learn/vocab' }}
+          primaryAction={{ label: t('publicPools.disabled.cta'), to: '/' }}
         />
       </div>
     )
@@ -225,9 +225,11 @@ export default function PublicVocabPoolsPage() {
   return (
     <div className="mx-auto max-w-5xl p-4">
       <header className="mb-5">
-        <Link to="/learn/vocab" className="text-sm text-muted-fg hover:text-fg">
-          {t('publicPools.back')}
-        </Link>
+        {poolId && (
+          <Link to="/learn/pools" className="text-sm text-muted-fg hover:text-fg">
+            {t('publicPools.backToPools')}
+          </Link>
+        )}
         <h1 className="mt-2 text-2xl font-bold text-fg">{t('publicPools.heading')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-fg">{t('publicPools.subtitle')}</p>
       </header>
@@ -326,7 +328,7 @@ function RecommendationStrip({
         {recommendations.map((pool) => (
           <Link
             key={pool.id}
-            to={`/learn/vocab/pools/${encodeURIComponent(pool.id)}`}
+            to={`/learn/pools/${encodeURIComponent(pool.id)}`}
             onClick={() => track('public_vocab_roadmap_recommendation_clicked', { pool_id: pool.id })}
             className="rounded-xl border border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/60"
           >
@@ -362,7 +364,7 @@ function PoolCard({
 }) {
   return (
     <Link
-      to={`/learn/vocab/pools/${encodeURIComponent(pool.id)}`}
+      to={`/learn/pools/${encodeURIComponent(pool.id)}`}
       className="flex min-h-52 flex-col justify-between rounded-xl border border-border bg-surface-raised p-4 transition-colors hover:border-primary/40"
     >
       <div className="flex items-start justify-between gap-3">

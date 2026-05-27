@@ -50,11 +50,6 @@
       "title": "Explore",
       "description": "Browse topics and study paths one area at a time."
     },
-    "publicPools": {
-      "meta": "{count, plural, one {# pool} other {# pools}}",
-      "title": "Public pools",
-      "description": "Browse read-only IELTS word banks by source and difficulty."
-    },
     "add": {
       "meta": "AI or manual",
       "title": "Add words",
@@ -66,7 +61,7 @@
     }
   },
   "publicPools": {
-    "back": "Vocabulary hub",
+    "backToPools": "Public pools",
     "heading": "Public vocab pools",
     "subtitle": "Choose a read-only source pool by level, topic, and provenance.",
     "difficultyValue": "Difficulty {value}/5",
@@ -109,7 +104,7 @@
     "disabled": {
       "title": "Public pools are not available yet",
       "description": "This vocabulary source is still behind rollout.",
-      "cta": "Back to vocabulary"
+      "cta": "Back to home"
     },
     "empty": {
       "title": "No pools match these filters",
@@ -117,7 +112,7 @@
     },
     "error": {
       "title": "Could not load public pools",
-      "cta": "Back to vocabulary"
+      "cta": "Back to home"
     }
   },
   "search": {
