@@ -6,11 +6,16 @@ import Icon from '../components/Icon'
 import PronunciationButton from '../components/PronunciationButton'
 import { apiFetch, apiStream } from '../lib/api'
 import { localizeError } from '../lib/apiError'
+import { track } from '../lib/analytics'
+
+type Strength = 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
+type VisualStrength = 'Weak' | 'Learning' | 'Good' | 'Mastered'
 
 interface DailyWord {
   word: string
   word_id?: string
   is_favourite?: boolean
+  strength?: Strength
   definition_en: string
   definition_vi: string
   ipa: string
@@ -35,17 +40,26 @@ function topicLabel(
   return t(`topicNames.${slug}`, { defaultValue: slug })
 }
 
+const STRENGTH_OPTIONS: VisualStrength[] = ['Weak', 'Learning', 'Good', 'Mastered']
+
+function visualStrength(value?: Strength): VisualStrength {
+  return value === 'New' || !value ? 'Weak' : value
+}
+
 function DailyWordCard({
   item,
   index,
   isFavourite,
   onFavouriteToggle,
+  onStrengthChange,
 }: {
   item: DailyWord
   index: number
   isFavourite: boolean
   onFavouriteToggle: () => void
+  onStrengthChange: (next: VisualStrength) => void
 }) {
+  const strength = visualStrength(item.strength)
   return (
     <article className="bg-surface-raised rounded-xl shadow-sm p-5 border border-transparent">
       <header className="flex items-start justify-between gap-3">
@@ -64,6 +78,7 @@ function DailyWordCard({
         <div className="shrink-0 flex items-center gap-1.5">
           <Link
             to={`/learn/vocab/${encodeURIComponent(item.word)}`}
+            onClick={() => track('daily_word_detail_opened', { word: item.word })}
             aria-label={`Xem chi tiết ${item.word}`}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-fg hover:bg-surface hover:text-primary"
           >
@@ -99,6 +114,26 @@ function DailyWordCard({
           )}
         </div>
       )}
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {STRENGTH_OPTIONS.map((option) => {
+          const active = option === strength
+          return (
+            <button
+              key={option}
+              type="button"
+              disabled={!item.word_id}
+              onClick={() => onStrengthChange(option)}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 ${
+                active
+                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  : 'border-border text-muted-fg hover:border-primary/30 hover:text-fg'
+              }`}
+            >
+              {option}
+            </button>
+          )
+        })}
+      </div>
     </article>
   )
 }
@@ -232,8 +267,31 @@ export default function DailyWordsPage() {
         method: 'POST',
         body: JSON.stringify({ favourite: next }),
       })
+      track('daily_word_favourited', { word: word.word, favourite: next })
     } catch (e) {
       apply(!next)
+      setError(localizeError(e))
+    }
+  }
+
+  const updateStrength = async (word: DailyWord, next: VisualStrength) => {
+    if (!word.word_id) return
+    const before = words
+    const apply = (items: DailyWord[]) => {
+      setWords(items)
+      if (_cache?.date === todayKey()) {
+        _cache = { ..._cache, words: items }
+      }
+    }
+    apply(words.map((w) => (w.word_id === word.word_id ? { ...w, strength: next } : w)))
+    try {
+      await apiFetch(`/api/v1/words/${encodeURIComponent(word.word_id)}/strength`, {
+        method: 'PATCH',
+        body: JSON.stringify({ strength: next }),
+      })
+      track('daily_word_strength_changed', { word: word.word, strength: next })
+    } catch (e) {
+      apply(before)
       setError(localizeError(e))
     }
   }
@@ -285,6 +343,7 @@ export default function DailyWordsPage() {
             index={i + 1}
             isFavourite={Boolean(item.word_id && favouriteIds.has(item.word_id))}
             onFavouriteToggle={() => toggleFavourite(item)}
+            onStrengthChange={(next) => updateStrength(item, next)}
           />
         ))}
         {Array.from({ length: skeletonCount }).map((_, i) => (

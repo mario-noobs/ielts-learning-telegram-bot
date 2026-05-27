@@ -52,6 +52,7 @@ def _to_daily_word(doc: dict) -> DailyWord:
         word=doc.get("word", ""),
         word_id=doc.get("word_id", ""),
         is_favourite=doc.get("is_favourite", False),
+        strength=doc.get("strength", "New"),
         definition_en=doc.get("definition_en", doc.get("definition", "")),
         definition_vi=doc.get("definition_vi", ""),
         ipa=doc.get("ipa", ""),
@@ -83,6 +84,7 @@ def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
         w["word_id"] = word_id
         saved = firebase_service.get_word_by_id(user_id, word_id) or {}
         w["is_favourite"] = saved.get("is_favourite", False)
+        w["strength"] = get_word_strength(saved)
 
 
 def _daily_word_dict(doc: dict) -> dict:
@@ -91,6 +93,7 @@ def _daily_word_dict(doc: dict) -> dict:
         "word": doc.get("word", ""),
         "word_id": doc.get("word_id", ""),
         "is_favourite": doc.get("is_favourite", False),
+        "strength": doc.get("strength", "New"),
         "definition_en": doc.get("definition_en", doc.get("definition", "")),
         "definition_vi": doc.get("definition_vi", ""),
         "ipa": doc.get("ipa", ""),
