@@ -236,6 +236,7 @@ export default function DailyWordsPage() {
   }, [streaming, t])
 
   const skeletonCount = streaming && expectedCount > words.length ? expectedCount - words.length : 0
+  const reviewableCount = words.filter((word) => Boolean(word.word_id)).length
 
   const toggleFavourite = async (word: DailyWord) => {
     if (!word.word_id) return
@@ -353,18 +354,25 @@ export default function DailyWordsPage() {
 
       {!streaming && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          {reviewableCount > 0 && (
+            <Link
+              to="/learn/daily/quiz"
+              onClick={() => track('vocab_review_started_from_daily', { count: reviewableCount })}
+              className="block rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-fg hover:bg-primary-hover transition-colors"
+            >
+              {t('daily.reviewToday', {
+                defaultValue: "Review today's words",
+                count: reviewableCount,
+              })}
+            </Link>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 pt-2">
             <Link
               to="/learn/daily/flip"
               className="p-4 min-h-[56px] rounded-xl border-2 border-border bg-surface-raised text-fg text-center font-medium hover:border-primary hover:bg-primary/5 transition-colors"
             >
               📖 {t('daily.openFlip')}
-            </Link>
-            <Link
-              to="/learn/daily/quiz"
-              className="p-4 min-h-[56px] rounded-xl border-2 border-border bg-surface-raised text-fg text-center font-medium hover:border-primary hover:bg-primary/5 transition-colors"
-            >
-              ✏️ {t('daily.openQuiz')}
             </Link>
           </div>
 
