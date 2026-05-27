@@ -251,6 +251,14 @@ class _Registry:
         "vocab.word_duplicate", 409,
         "Word already exists in the user's vocabulary.",
     )
+    vocab_import_input_too_long = ErrorCode(
+        "vocab.import_input_too_long", 400,
+        "Import input exceeds the user's plan limit.",
+    )
+    vocab_import_count_exceeded = ErrorCode(
+        "vocab.import_count_exceeded", 400,
+        "Requested import candidate count exceeds the user's plan limit.",
+    )
     vocab_override_rate_limited = ErrorCode(
         "vocab.override_rate_limited", 429,
         "Too many manual mastery changes today. Try again tomorrow.",

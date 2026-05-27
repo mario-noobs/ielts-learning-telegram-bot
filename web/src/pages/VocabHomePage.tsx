@@ -60,6 +60,17 @@ interface WordDraft {
   existing_word_id: string | null
 }
 
+type ImportMode = 'topic' | 'text'
+
+interface ImportWordsResponse {
+  mode: ImportMode
+  input: string
+  candidates: WordDraft[]
+  duplicate_count: number
+  max_candidates: number
+  max_input_chars: number
+}
+
 interface DailyHistoryWord {
   word: string
   word_id: string
@@ -424,6 +435,250 @@ function AddWordWithAi({
             >
               {t('addWord.cancel')}
             </button>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ImportWordsPanel({
+  t,
+  onSaved,
+}: {
+  t: (k: string, o?: Record<string, unknown>) => string
+  onSaved: (word: VocabularyWord) => void
+}) {
+  const [mode, setMode] = useState<ImportMode>('topic')
+  const [input, setInput] = useState('')
+  const [count, setCount] = useState(5)
+  const [result, setResult] = useState<ImportWordsResponse | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [summary, setSummary] = useState('')
+
+  const trimmed = input.trim()
+  const selectable = result?.candidates.filter((candidate) => !candidate.already_exists) ?? []
+  const selectedCandidates = selectable.filter((candidate) => selected.has(candidate.word))
+
+  const createCandidates = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!trimmed) return
+    setLoading(true)
+    setError('')
+    setSummary('')
+    setResult(null)
+    try {
+      const next = await apiFetch<ImportWordsResponse>('/api/v1/vocabulary/import/draft', {
+        method: 'POST',
+        body: JSON.stringify({ mode, input: trimmed, count }),
+      })
+      setResult(next)
+      setSelected(new Set(next.candidates.filter((candidate) => !candidate.already_exists).map((candidate) => candidate.word)))
+      track('vocab_import_candidates_created', {
+        mode,
+        candidate_count: next.candidates.length,
+        duplicate_count: next.duplicate_count,
+      })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleCandidate = (word: string) => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(word)) {
+        next.delete(word)
+      } else {
+        next.add(word)
+      }
+      return next
+    })
+  }
+
+  const saveSelected = async () => {
+    if (selectedCandidates.length === 0) return
+    setSaving(true)
+    setError('')
+    setSummary('')
+    try {
+      const savedWords: VocabularyWord[] = []
+      for (const candidate of selectedCandidates) {
+        const saved = await apiFetch<VocabularyWord>('/api/v1/vocabulary', {
+          method: 'POST',
+          body: JSON.stringify({
+            word: candidate.word,
+            definition: candidate.definition,
+            definition_vi: candidate.definition_vi,
+            ipa: candidate.ipa,
+            part_of_speech: candidate.part_of_speech,
+            topic: candidate.topic,
+            example_en: candidate.example_en,
+            example_vi: candidate.example_vi,
+            use_ai: false,
+          }),
+        })
+        savedWords.push(saved)
+        onSaved(saved)
+      }
+      setSummary(t('importWords.savedSummary', { count: savedWords.length }))
+      setResult((current) => current
+        ? {
+            ...current,
+            candidates: current.candidates.map((candidate) =>
+              selected.has(candidate.word)
+                ? { ...candidate, already_exists: true, existing_word_id: candidate.existing_word_id ?? '' }
+                : candidate,
+            ),
+          }
+        : current)
+      setSelected(new Set())
+      track('vocab_import_candidates_saved', { mode, count: savedWords.length })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-raised p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="font-semibold text-fg">{t('importWords.title')}</h2>
+          <p className="mt-1 max-w-xl text-sm text-muted-fg">{t('importWords.description')}</p>
+        </div>
+        <div className="inline-flex w-fit rounded-md border border-border bg-bg p-1">
+          {(['topic', 'text'] as ImportMode[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => {
+                setMode(item)
+                setResult(null)
+                setSummary('')
+              }}
+              className={`rounded px-3 py-1 text-xs font-medium ${
+                mode === item ? 'bg-primary text-on-primary' : 'text-muted-fg hover:text-fg'
+              }`}
+            >
+              {t(`importWords.modes.${item}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <form onSubmit={createCandidates} className="mt-4 space-y-3">
+        <label className="block text-xs font-medium text-muted-fg" htmlFor="import-words-input">
+          {mode === 'topic' ? t('importWords.topicLabel') : t('importWords.textLabel')}
+        </label>
+        <textarea
+          id="import-words-input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          rows={mode === 'topic' ? 2 : 5}
+          maxLength={5000}
+          placeholder={mode === 'topic' ? t('importWords.topicPlaceholder') : t('importWords.textPlaceholder')}
+          className="w-full resize-y rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg"
+        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <label className="flex w-fit flex-col gap-1 text-xs font-medium text-muted-fg">
+            {t('importWords.countLabel')}
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={count}
+              onChange={(e) => setCount(Number(e.target.value))}
+              className="w-24 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!trimmed || loading || saving}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon name="Sparkles" size="sm" variant="fg" />
+            {loading ? t('importWords.generating') : t('importWords.generate')}
+          </button>
+        </div>
+      </form>
+
+      {error && (
+        <p className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      {summary && (
+        <p className="mt-3 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+          {summary}
+        </p>
+      )}
+
+      {result && (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-medium text-fg">
+              {t('importWords.previewSummary', {
+                count: result.candidates.length,
+                duplicates: result.duplicate_count,
+              })}
+            </p>
+            <button
+              type="button"
+              onClick={() => void saveSelected()}
+              disabled={selectedCandidates.length === 0 || saving}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-60"
+            >
+              <Icon name="Plus" size="sm" variant="fg" />
+              {saving
+                ? t('importWords.saving')
+                : t('importWords.saveSelected', { count: selectedCandidates.length })}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {result.candidates.map((candidate) => (
+              <label
+                key={candidate.word}
+                className={`flex gap-3 rounded-lg border p-3 ${
+                  candidate.already_exists
+                    ? 'border-border bg-bg/60 opacity-70'
+                    : 'border-border bg-bg'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(candidate.word)}
+                  disabled={candidate.already_exists || saving}
+                  onChange={() => toggleCandidate(candidate.word)}
+                  className="mt-1"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-semibold text-fg">{candidate.word}</span>
+                    {candidate.part_of_speech && (
+                      <span className="text-xs text-muted-fg">{candidate.part_of_speech}</span>
+                    )}
+                    {candidate.already_exists && (
+                      <span className="rounded-md bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                        {t('importWords.duplicate')}
+                      </span>
+                    )}
+                  </div>
+                  {(candidate.definition_vi || candidate.definition) && (
+                    <p className="mt-1 text-sm text-muted-fg">
+                      {candidate.definition_vi || candidate.definition}
+                    </p>
+                  )}
+                </div>
+              </label>
+            ))}
           </div>
         </div>
       )}
@@ -949,6 +1204,14 @@ export default function VocabHomePage() {
       ) : activeTab === 'myWords' ? (
         <section className="space-y-4">
           <AddWordWithAi
+            t={t}
+            onSaved={(word) => {
+              setMyWords((current) => [word, ...current.filter((item) => item.id !== word.id)])
+              setSourceFilter('all')
+              setStatusFilter('all')
+            }}
+          />
+          <ImportWordsPanel
             t={t}
             onSaved={(word) => {
               setMyWords((current) => [word, ...current.filter((item) => item.id !== word.id)])

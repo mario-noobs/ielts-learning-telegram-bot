@@ -19,6 +19,8 @@ from api.models.vocabulary import (
     DailyHistoryResponse,
     DailyWord,
     DailyWordsResponse,
+    ImportWordsRequest,
+    ImportWordsResponse,
     VocabularyDraftResponse,
     VocabularyWord,
     WordListResponse,
@@ -31,6 +33,11 @@ router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
 logger = logging.getLogger(__name__)
 EXTRA_DAILY_WORD_LIMIT = 5
 EXTRA_DAILY_SOURCE = "extra"
+IMPORT_LIMITS_BY_PLAN = {
+    "free": {"max_candidates": 5, "max_input_chars": 1000},
+    "personal_pro": {"max_candidates": 20, "max_input_chars": 3000},
+    "team_member": {"max_candidates": 30, "max_input_chars": 5000},
+}
 VOCAB_SOURCE_BY_ID = {
     1: "daily",
     2: "quiz",
@@ -64,6 +71,10 @@ def _parse_vocab_source_filter(source: str | None) -> int | None:
             allowed_sources=list(VOCAB_SOURCE_ID_BY_NAME),
         )
     return source_id
+
+
+def _import_limits(plan: str | None) -> dict[str, int]:
+    return IMPORT_LIMITS_BY_PLAN.get(plan or "free", IMPORT_LIMITS_BY_PLAN["free"])
 
 
 def _user_timezone(user: dict) -> str:
@@ -578,6 +589,30 @@ def _draft_from_word_data(
     )
 
 
+def _candidate_from_generated(
+    raw: dict,
+    *,
+    topic: str = "",
+    existing_word_id: str | None = None,
+) -> VocabularyDraftResponse | None:
+    word = str(raw.get("word") or "").strip()
+    if not word:
+        return None
+    return VocabularyDraftResponse(
+        word=word,
+        definition=raw.get("definition_en", raw.get("definition", "")) or "",
+        definition_vi=raw.get("definition_vi", "") or "",
+        ipa=raw.get("ipa", "") or "",
+        part_of_speech=raw.get("part_of_speech", "") or "",
+        topic=topic,
+        example_en=raw.get("example_en", "") or "",
+        example_vi=raw.get("example_vi", "") or "",
+        ielts_tip=raw.get("ielts_tip", "") or "",
+        already_exists=existing_word_id is not None,
+        existing_word_id=existing_word_id,
+    )
+
+
 async def _prepare_extra_daily_words(words: list[dict], band: float) -> list[dict]:
     prepared = []
     for word in words:
@@ -682,6 +717,87 @@ async def draft_word(
 
     data = _word_data_from_detail(detail, normalized, band, body.topic)
     return _draft_from_word_data(data, ielts_tip=detail.get("ielts_tip", ""))
+
+
+@router.post("/import/draft", response_model=ImportWordsResponse)
+async def draft_import_words(
+    body: ImportWordsRequest,
+    user: dict = Depends(get_current_user),
+) -> ImportWordsResponse:
+    """Generate unsaved candidates from a topic or English text."""
+    raw_input = body.input.strip()
+    if not raw_input:
+        raise ApiError(ERR.vocab_word_empty)
+
+    limits = _import_limits(user.get("plan", "free"))
+    if len(raw_input) > limits["max_input_chars"]:
+        raise ApiError(
+            ERR.vocab_import_input_too_long,
+            max_chars=limits["max_input_chars"],
+            got=len(raw_input),
+        )
+    if body.count > limits["max_candidates"]:
+        raise ApiError(
+            ERR.vocab_import_count_exceeded,
+            max_candidates=limits["max_candidates"],
+            got=body.count,
+        )
+
+    quota_service.check_and_increment(
+        user_uid=str(user["id"]),
+        feature="vocab",
+        plan=user.get("plan", "free"),
+        quota_override=user.get("quota_override"),
+    )
+    existing_words = await asyncio.to_thread(
+        firebase_service.get_user_word_list, user["id"],
+    )
+    existing_by_norm = {
+        word_service.normalize_word(word): word
+        for word in existing_words
+        if word_service.normalize_word(word)
+    }
+    band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+    generated = await vocab_service.generate_import_candidates(
+        mode=body.mode,
+        input_text=raw_input,
+        count=body.count,
+        band=band,
+        exclude_words=existing_words,
+        plan=user.get("plan", "free"),
+    )
+
+    candidates: list[VocabularyDraftResponse] = []
+    seen: set[str] = set()
+    for item in generated:
+        normalized = word_service.normalize_word(str(item.get("word") or ""))
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        existing_word_id = None
+        if normalized in existing_by_norm:
+            existing = await asyncio.to_thread(
+                firebase_service.get_word_by_text, user["id"], normalized,
+            )
+            existing_word_id = existing.get("id") if existing else None
+        candidate = _candidate_from_generated(
+            item,
+            topic=raw_input if body.mode == "topic" else "",
+            existing_word_id=existing_word_id,
+        )
+        if candidate is not None:
+            candidates.append(candidate)
+        if len(candidates) >= body.count:
+            break
+
+    return ImportWordsResponse(
+        mode=body.mode,
+        input=raw_input,
+        candidates=candidates,
+        duplicate_count=sum(1 for candidate in candidates if candidate.already_exists),
+        max_candidates=limits["max_candidates"],
+        max_input_chars=limits["max_input_chars"],
+    )
 
 
 @router.post("", response_model=VocabularyWord)
