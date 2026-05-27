@@ -19,10 +19,12 @@ from api.models.vocabulary import (
     DailyHistoryResponse,
     DailyWord,
     DailyWordsResponse,
+    VocabularyDraftResponse,
     VocabularyWord,
     WordListResponse,
 )
 from services import firebase_service, vocab_service, word_service
+from services.admin import quota_service
 from services.srs_service import get_word_strength
 
 router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
@@ -514,6 +516,68 @@ def _detail_to_daily_word(detail: dict, fallback: dict, band: float) -> dict:
     }
 
 
+def _word_data_from_detail(
+    detail: dict,
+    normalized: str,
+    band: float,
+    topic: str = "",
+) -> dict:
+    examples = detail.get("examples_by_band", {}) or {}
+    example = (
+        examples.get(_band_tier(band))
+        or examples.get(word_service.band_tier(band))
+        or next(iter(examples.values()), {})
+        or {}
+    )
+    return {
+        "word": detail.get("word", normalized),
+        "definition": detail.get("definition_en", ""),
+        "definition_vi": detail.get("definition_vi", ""),
+        "ipa": detail.get("ipa", ""),
+        "part_of_speech": detail.get("part_of_speech", ""),
+        "topic": topic or "",
+        "example_en": example.get("en", ""),
+        "example_vi": example.get("vi", ""),
+        "source": VOCAB_SOURCE_ID_BY_NAME["manual"],
+    }
+
+
+def _word_data_from_request(body: AddWordRequest, normalized: str) -> dict:
+    return {
+        "word": body.word.strip() or normalized,
+        "definition": body.definition,
+        "definition_vi": body.definition_vi,
+        "ipa": body.ipa,
+        "part_of_speech": body.part_of_speech,
+        "topic": body.topic or "",
+        "example_en": body.example_en,
+        "example_vi": body.example_vi,
+        "source": VOCAB_SOURCE_ID_BY_NAME["manual"],
+    }
+
+
+def _draft_from_word_data(
+    data: dict,
+    *,
+    already_exists: bool = False,
+    existing_word_id: str | None = None,
+    ielts_tip: str = "",
+) -> VocabularyDraftResponse:
+    return VocabularyDraftResponse(
+        word=data.get("word", ""),
+        definition=data.get("definition", data.get("definition_en", "")),
+        definition_vi=data.get("definition_vi", ""),
+        ipa=data.get("ipa", ""),
+        part_of_speech=data.get("part_of_speech", ""),
+        topic=data.get("topic", ""),
+        example_en=data.get("example_en", ""),
+        example_vi=data.get("example_vi", ""),
+        ielts_tip=ielts_tip,
+        already_exists=already_exists,
+        existing_word_id=existing_word_id,
+    )
+
+
 async def _prepare_extra_daily_words(words: list[dict], band: float) -> list[dict]:
     prepared = []
     for word in words:
@@ -585,6 +649,41 @@ async def add_extra_daily_words(
     )
 
 
+@router.post("/draft", response_model=VocabularyDraftResponse)
+async def draft_word(
+    body: AddWordRequest,
+    user: dict = Depends(get_current_user),
+) -> VocabularyDraftResponse:
+    """Create an IELTS-focused preview card without saving it."""
+    normalized = word_service.normalize_word(body.word)
+    if not normalized:
+        raise ApiError(ERR.vocab_word_empty)
+
+    existing = await asyncio.to_thread(
+        firebase_service.get_word_by_text, user["id"], normalized
+    )
+    if existing:
+        return _draft_from_word_data(
+            existing,
+            already_exists=True,
+            existing_word_id=existing.get("id"),
+        )
+
+    band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
+    detail = await word_service.get_word_detail_fast(normalized, band)
+    if detail is None or not word_service.is_word_core_detail_complete(detail, band):
+        quota_service.check_and_increment(
+            user_uid=str(user["id"]),
+            feature="vocab",
+            plan=user.get("plan", "free"),
+            quota_override=user.get("quota_override"),
+        )
+        detail = await word_service.get_complete_word_detail(normalized, band)
+
+    data = _word_data_from_detail(detail, normalized, band, body.topic)
+    return _draft_from_word_data(data, ielts_tip=detail.get("ielts_tip", ""))
+
+
 @router.post("", response_model=VocabularyWord)
 async def add_word(
     body: AddWordRequest,
@@ -598,36 +697,36 @@ async def add_word(
     """
     normalized = word_service.normalize_word(body.word)
     if not normalized:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Word cannot be empty.",
-        )
+        raise ApiError(ERR.vocab_word_empty)
 
     band = float(user.get("target_band", config.DEFAULT_BAND_TARGET))
-    enriched = await word_service.get_enriched_word(normalized, band)
-
-    tier = _band_tier(band)
-    example = (enriched.get("examples_by_band", {}) or {}).get(tier, {}) or {}
-    word_data = {
-        "word": enriched.get("word", normalized),
-        "definition": enriched.get("definition_en", ""),
-        "definition_vi": enriched.get("definition_vi", ""),
-        "ipa": enriched.get("ipa", ""),
-        "part_of_speech": enriched.get("part_of_speech", ""),
-        "topic": body.topic or "",
-        "example_en": example.get("en", ""),
-        "example_vi": example.get("vi", ""),
-        "source": VOCAB_SOURCE_ID_BY_NAME["manual"],
-    }
+    has_preview_data = any([
+        body.definition,
+        body.definition_vi,
+        body.ipa,
+        body.part_of_speech,
+        body.example_en,
+        body.example_vi,
+    ])
+    if body.use_ai and not has_preview_data:
+        detail = await word_service.get_word_detail_fast(normalized, band)
+        if detail is None or not word_service.is_word_core_detail_complete(detail, band):
+            quota_service.check_and_increment(
+                user_uid=str(user["id"]),
+                feature="vocab",
+                plan=user.get("plan", "free"),
+                quota_override=user.get("quota_override"),
+            )
+            detail = await word_service.get_complete_word_detail(normalized, band)
+        word_data = _word_data_from_detail(detail, normalized, band, body.topic)
+    else:
+        word_data = _word_data_from_request(body, normalized)
 
     word_id, created = await asyncio.to_thread(
         firebase_service.add_word_if_not_exists, user["id"], word_data
     )
     if not created:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Word already in vocabulary.",
-        )
+        raise ApiError(ERR.vocab_word_duplicate, word=normalized)
     doc = await asyncio.to_thread(
         firebase_service.get_word_by_id, user["id"], word_id
     )

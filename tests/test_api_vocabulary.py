@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.auth import get_current_user
+from api.errors import ERR, ApiError
 from api.main import create_app
 
 FAKE_USER = {
@@ -145,6 +146,93 @@ class TestListVocabulary:
             response = client.get("/api/v1/vocabulary")
         assert response.status_code == 200
         assert response.json() == {"items": [], "next_cursor": None}
+
+
+class TestAddWordWithAi:
+    def test_draft_returns_ai_card_preview(self, client):
+        with patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=None), \
+             patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=_complete_detail("scalability"))) as fast, \
+             patch("api.routes.vocabulary.word_service.get_complete_word_detail",
+                   new=AsyncMock()) as complete, \
+             patch("api.routes.vocabulary.quota_service.check_and_increment") as quota:
+            response = client.post("/api/v1/vocabulary/draft", json={"word": "scalability"})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["word"] == "scalability"
+        assert body["definition"] == "scalability definition"
+        assert body["example_en"] == "Example with scalability."
+        assert body["ielts_tip"] == "Use scalability in academic writing."
+        assert body["already_exists"] is False
+        fast.assert_awaited_once()
+        complete.assert_not_awaited()
+        quota.assert_not_called()
+
+    def test_draft_duplicate_does_not_call_ai(self, client):
+        existing = _fake_vocab_doc("scalability", datetime(2026, 5, 27, tzinfo=timezone.utc))
+        with patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=existing), \
+             patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock()) as fast, \
+             patch("api.routes.vocabulary.quota_service.check_and_increment") as quota:
+            response = client.post("/api/v1/vocabulary/draft", json={"word": "scalability"})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["already_exists"] is True
+        assert body["existing_word_id"] == "doc-scalability"
+        fast.assert_not_awaited()
+        quota.assert_not_called()
+
+    def test_draft_malformed_empty_word_returns_registered_error(self, client):
+        response = client.post("/api/v1/vocabulary/draft", json={"word": "   "})
+
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == ERR.vocab_word_empty.code
+
+    def test_draft_rate_limited_by_ai_quota(self, client):
+        with patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=None), \
+             patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock(return_value=None)), \
+             patch("api.routes.vocabulary.word_service.get_complete_word_detail",
+                   new=AsyncMock()) as complete, \
+             patch("api.routes.vocabulary.quota_service.check_and_increment",
+                   side_effect=ApiError(ERR.quota_daily_exceeded, plan_quota=1, used=2, feature="vocab")):
+            response = client.post("/api/v1/vocabulary/draft", json={"word": "scalability"})
+
+        assert response.status_code == 429
+        assert response.json()["error"]["code"] == ERR.quota_daily_exceeded.code
+        complete.assert_not_awaited()
+
+    def test_save_preview_without_second_ai_call(self, client):
+        saved_at = datetime(2026, 5, 27, tzinfo=timezone.utc)
+        saved = _fake_vocab_doc("scalability", saved_at, topic="technology")
+        with patch("api.routes.vocabulary.word_service.get_word_detail_fast",
+                   new=AsyncMock()) as fast, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   return_value=("wid", True)) as add, \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   return_value=saved):
+            response = client.post("/api/v1/vocabulary", json={
+                "word": "scalability",
+                "definition": "ability to grow",
+                "definition_vi": "kha nang mo rong",
+                "part_of_speech": "noun",
+                "topic": "technology",
+                "example_en": "Scalability matters.",
+                "example_vi": "Vi example.",
+                "use_ai": False,
+            })
+
+        assert response.status_code == 200
+        assert response.json()["word"] == "scalability"
+        fast.assert_not_awaited()
+        word_data = add.call_args.args[1]
+        assert word_data["definition"] == "ability to grow"
+        assert word_data["source"] == 3
 
 
 class TestGenerateDaily:

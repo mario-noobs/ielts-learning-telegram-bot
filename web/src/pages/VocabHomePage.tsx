@@ -1,17 +1,11 @@
 /**
- * /learn/vocab — topic index (US-#231).
+ * /learn/vocab — private vocabulary home.
  *
- * After user feedback that the inline expand/collapse layout couldn't
- * surface rare-strength words without paging through every batch of
- * 100, the home page is now a *topic index*. Each card shows the
- * topic's word count + mastered ratio. Click → drill into
- * `/learn/vocab/topic/:slug`, which paginates within that topic.
- *
- * Home no longer fetches the word list — only the lightweight
- * `/api/v1/topics` aggregate (word_count + mastered_count per topic).
+ * My Words is the primary view for the user's saved cards. Topic cards
+ * remain as a drill-down index for mastery-focused review.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
@@ -50,6 +44,20 @@ interface VocabularyWord {
 interface WordListResponse {
   items: VocabularyWord[]
   next_cursor: string | null
+}
+
+interface WordDraft {
+  word: string
+  definition: string
+  definition_vi: string
+  ipa: string
+  part_of_speech: string
+  topic: string
+  example_en: string
+  example_vi: string
+  ielts_tip: string
+  already_exists: boolean
+  existing_word_id: string | null
 }
 
 interface DailyHistoryWord {
@@ -239,6 +247,187 @@ function MyWordRow({
       {word.is_favourite && <Icon name="Heart" size="sm" variant="danger" />}
       <Icon name="ArrowRight" size="sm" variant="muted" />
     </Link>
+  )
+}
+
+function AddWordWithAi({
+  t,
+  onSaved,
+}: {
+  t: (k: string, o?: Record<string, unknown>) => string
+  onSaved: (word: VocabularyWord) => void
+}) {
+  const [input, setInput] = useState('')
+  const [draft, setDraft] = useState<WordDraft | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [savedMessage, setSavedMessage] = useState('')
+
+  const trimmed = input.trim()
+
+  const createDraft = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!trimmed) return
+    setLoading(true)
+    setError('')
+    setSavedMessage('')
+    setDraft(null)
+    try {
+      const nextDraft = await apiFetch<WordDraft>('/api/v1/vocabulary/draft', {
+        method: 'POST',
+        body: JSON.stringify({ word: trimmed }),
+      })
+      setDraft(nextDraft)
+      if (nextDraft.already_exists) {
+        setSavedMessage(t('addWord.alreadyExists', { word: nextDraft.word }))
+      } else {
+        track('vocab_ai_word_draft_created', { word: nextDraft.word })
+      }
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveDraft = async (useDraft: boolean) => {
+    const wordToSave = (useDraft ? draft?.word : trimmed) || trimmed
+    if (!wordToSave.trim()) return
+    setSaving(true)
+    setError('')
+    setSavedMessage('')
+    try {
+      const payload = useDraft && draft
+        ? {
+            word: draft.word,
+            definition: draft.definition,
+            definition_vi: draft.definition_vi,
+            ipa: draft.ipa,
+            part_of_speech: draft.part_of_speech,
+            topic: draft.topic,
+            example_en: draft.example_en,
+            example_vi: draft.example_vi,
+            use_ai: false,
+          }
+        : { word: wordToSave, use_ai: false }
+      const saved = await apiFetch<VocabularyWord>('/api/v1/vocabulary', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      onSaved(saved)
+      setInput('')
+      setDraft(null)
+      setSavedMessage(t('addWord.saved', { word: saved.word }))
+      track('vocab_ai_word_saved', { word: saved.word, used_draft: useDraft })
+    } catch (e) {
+      const msg = localizeError(e)
+      setError(msg)
+      if (msg.toLowerCase().includes('already')) {
+        setDraft((current) => current ? { ...current, already_exists: true } : current)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-raised p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="font-semibold text-fg">{t('addWord.title')}</h2>
+          <p className="mt-1 max-w-xl text-sm text-muted-fg">{t('addWord.description')}</p>
+        </div>
+        <span className="inline-flex w-fit items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+          {t('addWord.badge')}
+        </span>
+      </div>
+
+      <form onSubmit={createDraft} className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <label className="sr-only" htmlFor="ai-word-input">
+          {t('addWord.inputLabel')}
+        </label>
+        <input
+          id="ai-word-input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          maxLength={80}
+          placeholder={t('addWord.placeholder')}
+          className="min-w-0 flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg"
+        />
+        <button
+          type="submit"
+          disabled={!trimmed || loading || saving}
+          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Icon name="Sparkles" size="sm" variant="fg" />
+          {loading ? t('addWord.generating') : t('addWord.generate')}
+        </button>
+      </form>
+
+      {error && (
+        <div className="mt-3 rounded-md border border-danger/30 bg-danger/10 p-3">
+          <p className="text-sm text-danger">{error}</p>
+          <button
+            type="button"
+            onClick={() => void saveDraft(false)}
+            disabled={!trimmed || saving}
+            className="mt-2 text-sm font-medium text-danger underline-offset-2 hover:underline disabled:opacity-60"
+          >
+            {saving ? t('addWord.saving') : t('addWord.saveBasic')}
+          </button>
+        </div>
+      )}
+
+      {savedMessage && (
+        <p className="mt-3 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+          {savedMessage}
+        </p>
+      )}
+
+      {draft && !draft.already_exists && (
+        <div className="mt-4 rounded-lg border border-border bg-bg p-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-2">
+            <h3 className="text-lg font-semibold text-fg">{draft.word}</h3>
+            {draft.ipa && <span className="text-sm text-muted-fg">/{draft.ipa}/</span>}
+            {draft.part_of_speech && (
+              <span className="text-sm text-muted-fg">{draft.part_of_speech}</span>
+            )}
+          </div>
+          <p className="mt-2 text-sm text-fg">{draft.definition}</p>
+          {draft.definition_vi && (
+            <p className="mt-1 text-sm text-muted-fg">{draft.definition_vi}</p>
+          )}
+          {draft.example_en && (
+            <blockquote className="mt-3 border-l-2 border-primary/40 pl-3 text-sm text-muted-fg">
+              {draft.example_en}
+            </blockquote>
+          )}
+          {draft.ielts_tip && (
+            <p className="mt-3 text-xs text-muted-fg">{draft.ielts_tip}</p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void saveDraft(true)}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-60"
+            >
+              <Icon name="Plus" size="sm" variant="fg" />
+              {saving ? t('addWord.saving') : t('addWord.save')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDraft(null)}
+              disabled={saving}
+              className="rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-fg hover:text-fg disabled:opacity-60"
+            >
+              {t('addWord.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -759,6 +948,14 @@ export default function VocabHomePage() {
         )
       ) : activeTab === 'myWords' ? (
         <section className="space-y-4">
+          <AddWordWithAi
+            t={t}
+            onSaved={(word) => {
+              setMyWords((current) => [word, ...current.filter((item) => item.id !== word.id)])
+              setSourceFilter('all')
+              setStatusFilter('all')
+            }}
+          />
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-semibold text-fg">{t('myWords.listHeading', { defaultValue: 'My Words' })}</h2>

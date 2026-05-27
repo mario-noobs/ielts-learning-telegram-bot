@@ -42,6 +42,67 @@ function render_() {
 }
 
 describe('<VocabHomePage>', () => {
+  it('previews and saves an AI word card', async () => {
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/topics') return Promise.resolve({ items: [], total_words: 0 })
+      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/vocabulary?limit=100') {
+        return Promise.resolve({ items: [], next_cursor: null })
+      }
+      if (url === '/api/v1/vocabulary/draft') {
+        expect(options?.method).toBe('POST')
+        return Promise.resolve({
+          word: 'latency',
+          definition: 'delay before transfer',
+          definition_vi: 'do tre',
+          ipa: 'leɪtənsi',
+          part_of_speech: 'noun',
+          topic: 'technology',
+          example_en: 'Latency affects video calls.',
+          example_vi: 'Do tre anh huong cuoc goi video.',
+          ielts_tip: 'Use it for technology systems.',
+          already_exists: false,
+          existing_word_id: null,
+        })
+      }
+      if (url === '/api/v1/vocabulary') {
+        expect(options?.method).toBe('POST')
+        expect(JSON.parse(String(options?.body))).toMatchObject({
+          word: 'latency',
+          definition: 'delay before transfer',
+          use_ai: false,
+        })
+        return Promise.resolve({
+          id: 'w-latency',
+          word: 'latency',
+          definition: 'delay before transfer',
+          definition_vi: 'do tre',
+          ipa: 'leɪtənsi',
+          part_of_speech: 'noun',
+          topic: 'technology',
+          strength: 'New',
+          source: 'manual',
+          is_favourite: false,
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+
+    await userEvent.type(await screen.findByLabelText(/addWord\.inputLabel/), 'latency')
+    await userEvent.click(screen.getByRole('button', { name: /addWord\.generate/ }))
+
+    expect(await screen.findByText('delay before transfer')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /addWord\.save/ }))
+
+    expect(await screen.findByRole('link', { name: /latency/ })).toBeInTheDocument()
+    expect(trackMock).toHaveBeenCalledWith('vocab_ai_word_saved', {
+      word: 'latency',
+      used_draft: true,
+    })
+  })
+
   it('renders My Words by default and filters by source/status', async () => {
     apiFetchMock.mockImplementation((url: string) => {
       if (url === '/api/v1/topics') {

@@ -90,6 +90,8 @@
     }
   },
   "vocab": {
+    "word_empty": "Enter a word or short phrase.",
+    "word_duplicate": "\"{word}\" is already in My Words.",
     "daily_not_found": "Generate today's vocabulary before adding extra words.",
     "extra_limit_exceeded": "You've used all {limit} extra words for today. Resets at {next_reset_at}."
   }

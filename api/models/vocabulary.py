@@ -86,8 +86,29 @@ class DailyExtraRequest(BaseModel):
 
 
 class AddWordRequest(BaseModel):
-    word: str = Field(min_length=1, max_length=40)
+    word: str = Field(min_length=1, max_length=80)
     topic: str = ""
+    definition: str = ""
+    definition_vi: str = ""
+    ipa: str = ""
+    part_of_speech: str = ""
+    example_en: str = ""
+    example_vi: str = ""
+    use_ai: bool = True
+
+
+class VocabularyDraftResponse(BaseModel):
+    word: str
+    definition: str = ""
+    definition_vi: str = ""
+    ipa: str = ""
+    part_of_speech: str = ""
+    topic: str = ""
+    example_en: str = ""
+    example_vi: str = ""
+    ielts_tip: str = ""
+    already_exists: bool = False
+    existing_word_id: str | None = None
 
 
 class EnrichedExample(BaseModel):
