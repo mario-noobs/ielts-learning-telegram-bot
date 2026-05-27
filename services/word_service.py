@@ -198,7 +198,7 @@ async def _backfill_missing_metadata(word: str, cached: dict) -> None:
             except Exception:
                 logger.debug("master detail cache write failed for %s", word)
 
-        if cached.get("synonyms") is None:
+        if cached.get("synonyms") is None or cached.get("antonyms") is None:
             try:
                 syns, ants, source = await _fetch_synonyms_antonyms(word)
                 await asyncio.to_thread(
@@ -222,7 +222,7 @@ async def _backfill_missing_metadata(word: str, cached: dict) -> None:
 
 
 def _needs_metadata_backfill(data: dict) -> bool:
-    return data.get("synonyms") is None or (
+    return data.get("synonyms") is None or data.get("antonyms") is None or (
         data.get("image_url") is None and bool(getattr(config, "UNSPLASH_ACCESS_KEY", ""))
     )
 
@@ -442,7 +442,7 @@ async def get_enriched_word(word: str, band: float,
         _schedule_metadata_backfill(normalized, cached)
         return cached
 
-    if cached.get("synonyms") is None:
+    if cached.get("synonyms") is None or cached.get("antonyms") is None:
         try:
             syns, ants, source = await _fetch_synonyms_antonyms(normalized)
             await asyncio.to_thread(
