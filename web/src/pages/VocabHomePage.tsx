@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { localizeError } from '../lib/apiError'
+import { track } from '../lib/analytics'
 import EmptyState from '../components/EmptyState'
 import { useProfile } from '../contexts/AuthContext'
 import Icon from '../components/Icon'
@@ -97,6 +98,12 @@ function FavouriteWordRow({ word }: { word: VocabularyWord }) {
   return (
     <Link
       to={`/learn/vocab/${encodeURIComponent(word.word)}`}
+      onClick={() =>
+        track('vocab_favourite_detail_opened', {
+          word: word.word,
+          word_id: word.id,
+        })
+      }
       className="flex items-center gap-3 rounded-lg border border-transparent bg-surface-raised px-3 py-2.5 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <Icon name="Heart" size="sm" variant="danger" />
@@ -282,7 +289,12 @@ export default function VocabHomePage() {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('favourites')}
+          onClick={() => {
+            if (activeTab !== 'favourites') {
+              track('vocab_favourites_tab_viewed')
+            }
+            setActiveTab('favourites')
+          }}
           className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
             activeTab === 'favourites'
               ? 'bg-primary text-primary-fg'
