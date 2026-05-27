@@ -60,6 +60,23 @@ def _pool_row_to_dict(row: Any) -> dict:
     }
 
 
+def _word_row_to_dict(row: Any) -> dict:
+    word = row.VocabularyMaster
+    return {
+        "id": word.id,
+        "word": word.word,
+        "definition_en": word.definition_en,
+        "definition_vi": word.definition_vi,
+        "ipa": word.ipa,
+        "part_of_speech": word.part_of_speech,
+        "example_en": word.example_en,
+        "example_vi": word.example_vi,
+        "difficulty": word.difficulty,
+        "topic": row.topic_slug or "",
+        "source_ref": word.source_ref,
+    }
+
+
 def list_public_pools(
     *,
     difficulty: int | None = None,
@@ -135,18 +152,25 @@ def get_public_pool_detail(
             .limit(limit)
         ).all()
 
-    words = [
-        {
-            "id": row.VocabularyMaster.id,
-            "word": row.VocabularyMaster.word,
-            "definition_en": row.VocabularyMaster.definition_en,
-            "definition_vi": row.VocabularyMaster.definition_vi,
-            "ipa": row.VocabularyMaster.ipa,
-            "part_of_speech": row.VocabularyMaster.part_of_speech,
-            "difficulty": row.VocabularyMaster.difficulty,
-            "topic": row.topic_slug or "",
-            "source_ref": row.VocabularyMaster.source_ref,
-        }
-        for row in rows
-    ]
+    words = [_word_row_to_dict(row) for row in rows]
     return {"pool": pool, "words": words}
+
+
+def get_public_pool_word(pool_id: str, word_id: str) -> dict | None:
+    source, source_theme = decode_pool_id(pool_id)
+    conds = [
+        VocabularyMaster.status.in_(PUBLIC_POOL_STATUSES),
+        VocabularyMaster.id == word_id,
+        func.coalesce(VocabularyMaster.source, "") == source,
+        func.coalesce(VocabularyMaster.source_theme, "") == source_theme,
+    ]
+
+    with get_sync_session() as session:
+        row = session.execute(
+            select(VocabularyMaster, Topic.slug.label("topic_slug"))
+            .join(Topic, Topic.id == VocabularyMaster.topic_id, isouter=True)
+            .where(and_(*conds))
+            .limit(1)
+        ).first()
+
+    return _word_row_to_dict(row) if row else None

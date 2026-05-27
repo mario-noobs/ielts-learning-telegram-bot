@@ -88,6 +88,11 @@
       "license": "License",
       "provenance": "Provenance"
     },
+    "word": {
+      "save": "Save to My Words",
+      "saving": "Saving...",
+      "alreadySaved": "Already in My Words"
+    },
     "disabled": {
       "title": "Public pools are not available yet",
       "description": "This vocabulary source is still behind rollout.",
@@ -174,7 +179,8 @@
       "daily": "Daily",
       "manual": "Manual",
       "quiz": "Quiz",
-      "reading": "Reading"
+      "reading": "Reading",
+      "public_pool": "Public pool"
     },
     "statuses": {
       "all": "All statuses"

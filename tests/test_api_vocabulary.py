@@ -84,6 +84,22 @@ def _fake_public_pool() -> dict:
     }
 
 
+def _fake_public_pool_word() -> dict:
+    return {
+        "id": "master-1",
+        "word": "scalability",
+        "definition_en": "ability to be enlarged or increased",
+        "definition_vi": "kha nang mo rong",
+        "ipa": "skaelability",
+        "part_of_speech": "noun",
+        "example_en": "Scalability matters.",
+        "example_vi": "Kha nang mo rong rat quan trong.",
+        "difficulty": 4,
+        "topic": "technology",
+        "source_ref": "unit-1",
+    }
+
+
 class TestListVocabulary:
     def test_ac1_returns_paginated_words_with_srs(self, client):
         """AC1: GET /api/v1/vocabulary returns paginated list with SRS data."""
@@ -217,6 +233,8 @@ class TestPublicVocabPools:
                    return_value=True), \
              patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_detail",
                    return_value=detail) as service, \
+             patch("api.routes.vocabulary.firebase_service.get_user_word_list",
+                   return_value=[]), \
              patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists") as add_word:
             response = client.get("/api/v1/vocabulary/public-pools/pool-1")
 
@@ -227,6 +245,22 @@ class TestPublicVocabPools:
         assert body["words"][0]["word"] == "scalability"
         service.assert_called_once_with("pool-1", difficulty=None, topic=None)
         add_word.assert_not_called()
+
+    def test_detail_marks_words_already_saved(self, client):
+        detail = {
+            "pool": _fake_public_pool(),
+            "words": [_fake_public_pool_word()],
+        }
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_detail",
+                   return_value=detail), \
+             patch("api.routes.vocabulary.firebase_service.get_user_word_list",
+                   return_value=["Scalability"]):
+            response = client.get("/api/v1/vocabulary/public-pools/pool-1")
+
+        assert response.status_code == 200
+        assert response.json()["words"][0]["already_saved"] is True
 
     def test_detail_returns_403_when_feature_flag_off(self, client):
         with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
@@ -247,6 +281,62 @@ class TestPublicVocabPools:
 
         assert response.status_code == 404
         assert response.json()["error"]["code"] == ERR.not_found.code
+
+    def test_save_public_pool_word_copies_to_user_deck_with_public_source(self, client):
+        saved_at = datetime(2026, 5, 28, tzinfo=timezone.utc)
+        saved = _fake_vocab_doc("scalability", saved_at, topic="technology")
+        saved["id"] = "user-word-1"
+        saved["source"] = 5
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_word",
+                   return_value=_fake_public_pool_word()) as public_word, \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=None), \
+             patch("api.routes.vocabulary.firebase_service.count_user_vocabulary",
+                   return_value=10), \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists",
+                   return_value=("user-word-1", True)) as add_word, \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
+                   return_value=saved):
+            response = client.post(
+                "/api/v1/vocabulary/public-pools/pool-1/words/master-1/save"
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["created"] is True
+        assert body["already_saved"] is False
+        assert body["word"]["source"] == "public_pool"
+        public_word.assert_called_once_with("pool-1", "master-1")
+        word_data = add_word.call_args.args[1]
+        assert word_data["word"] == "scalability"
+        assert word_data["source"] == 5
+        assert word_data["topic"] == "technology"
+
+    def test_save_public_pool_word_returns_existing_duplicate(self, client):
+        existing = _fake_vocab_doc("scalability", datetime(2026, 5, 28, tzinfo=timezone.utc))
+        existing["id"] = "existing-word"
+        existing["source"] = 3
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_word",
+                   return_value=_fake_public_pool_word()), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_text",
+                   return_value=existing), \
+             patch("api.routes.vocabulary.firebase_service.count_user_vocabulary") as count, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists") as add_word:
+            response = client.post(
+                "/api/v1/vocabulary/public-pools/pool-1/words/master-1/save"
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["created"] is False
+        assert body["already_saved"] is True
+        assert body["word"]["id"] == "existing-word"
+        count.assert_not_called()
+        add_word.assert_not_called()
 
 
 class TestAddWordWithAi:

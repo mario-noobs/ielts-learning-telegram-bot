@@ -117,10 +117,10 @@ interface DailyWordsResponse {
 }
 
 type VocabTab = 'myWords' | 'topics' | 'favourites' | 'history'
-type SourceFilter = 'all' | 'daily' | 'manual' | 'quiz' | 'reading'
+type SourceFilter = 'all' | 'daily' | 'manual' | 'quiz' | 'reading' | 'public_pool'
 type StatusFilter = 'all' | 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
 
-const SOURCE_FILTERS: SourceFilter[] = ['all', 'daily', 'manual', 'quiz', 'reading']
+const SOURCE_FILTERS: SourceFilter[] = ['all', 'daily', 'manual', 'quiz', 'reading', 'public_pool']
 const STATUS_FILTERS: StatusFilter[] = ['all', 'New', 'Weak', 'Learning', 'Good', 'Mastered']
 
 const HISTORY_STATS = [
