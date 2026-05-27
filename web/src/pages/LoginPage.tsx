@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router-dom'
+import LoadingScreen from '../components/LoadingScreen'
 import LogoMark from '../components/brand/LogoMark'
 import { useAuth, type LocalRegisterData } from '../contexts/AuthContext'
 import { localizeError } from '../lib/apiError'
@@ -74,11 +75,7 @@ export default function LoginPage() {
   const strength = strengthScore(regFields.password)
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-muted-fg">
-        {t('status.loading')}
-      </div>
-    )
+    return <LoadingScreen fullScreen />
   }
   if (user || profile) return <Navigate to="/" replace />
 
