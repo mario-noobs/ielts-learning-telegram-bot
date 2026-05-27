@@ -197,6 +197,17 @@ describe('<VocabHomePage>', () => {
               favourite_count: 1,
               weak_count: 1,
               mastered_count: 0,
+              words: [],
+            },
+          ],
+        })
+      }
+      if (url === '/api/v1/vocabulary/daily/2026-05-27') {
+        return Promise.resolve({
+          date: '2026-05-27',
+          topic: 'Technology',
+          total_count: 2,
+          reviewed_count: 1,
               words: [
                 {
                   word: 'scalability',
@@ -210,8 +221,6 @@ describe('<VocabHomePage>', () => {
                   part_of_speech: 'noun',
                 },
               ],
-            },
-          ],
         })
       }
       throw new Error(`Unexpected API call: ${url}`)
@@ -227,10 +236,14 @@ describe('<VocabHomePage>', () => {
       expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary/daily/history?limit=30')
     })
 
+    expect(screen.queryByRole('link', { name: /scalability/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /history\.showDetails/ }))
+
     const wordLink = await screen.findByRole('link', { name: /scalability/ })
     const reviewLink = screen.getByRole('link', { name: /history\.reviewCta/ })
 
     expect(trackMock).toHaveBeenCalledWith('vocab_history_tab_viewed')
+    expect(apiFetchMock).toHaveBeenCalledWith('/api/v1/vocabulary/daily/2026-05-27')
     expect(screen.getByText('2026-05-27')).toBeInTheDocument()
     expect(screen.getByText('history.stats.favourites')).toBeInTheDocument()
     expect(wordLink).toHaveAttribute('href', '/learn/vocab/scalability')
@@ -243,7 +256,7 @@ describe('<VocabHomePage>', () => {
     })
 
     await userEvent.click(reviewLink)
-    expect(reviewLink).toHaveAttribute('href', '/learn/review')
+    expect(reviewLink).toHaveAttribute('href', '/learn/daily/quiz?date=2026-05-27')
     expect(trackMock).toHaveBeenCalledWith('vocab_history_review_started', {
       date: '2026-05-27',
       total: 2,

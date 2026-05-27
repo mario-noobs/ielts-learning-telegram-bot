@@ -410,38 +410,9 @@ class TestGetDailyByDate:
             },
         ]
 
-        def get_word(_uid, word_id):
-            return {
-                "wid-1": {
-                    "id": word_id,
-                    "is_favourite": True,
-                    "srs_reps": 1,
-                    "srs_interval": 1,
-                    "times_correct": 1,
-                    "times_incorrect": 0,
-                },
-                "wid-2": {
-                    "id": word_id,
-                    "is_favourite": False,
-                    "srs_reps": 0,
-                    "srs_interval": 1,
-                    "times_correct": 0,
-                    "times_incorrect": 0,
-                },
-                "wid-3": {
-                    "id": word_id,
-                    "is_favourite": False,
-                    "srs_reps": 8,
-                    "srs_interval": 45,
-                    "times_correct": 8,
-                    "times_incorrect": 0,
-                },
-            }[word_id]
-
         with patch("api.routes.vocabulary.firebase_service.list_user_daily_words",
                    return_value=docs) as mock_history, \
-             patch("api.routes.vocabulary.firebase_service.get_word_by_id",
-                   side_effect=get_word), \
+             patch("api.routes.vocabulary.firebase_service.get_word_by_id") as mock_get_word, \
              patch("api.routes.vocabulary.vocab_service.generate_personal_daily_words",
                    new=AsyncMock()) as mock_gen:
             response = client.get("/api/v1/vocabulary/daily/history?limit=10")
@@ -449,18 +420,17 @@ class TestGetDailyByDate:
         assert response.status_code == 200
         body = response.json()
         mock_history.assert_called_once_with("test-user-1", 10)
+        mock_get_word.assert_not_called()
         mock_gen.assert_not_called()
         assert body["timezone"] == "Asia/Ho_Chi_Minh"
         assert [item["date"] for item in body["items"]] == ["2026-05-27", "2026-05-26"]
         assert body["items"][0]["total_count"] == 2
-        assert body["items"][0]["reviewed_count"] == 1
-        assert body["items"][0]["favourite_count"] == 1
-        assert body["items"][0]["weak_count"] == 1
+        assert body["items"][0]["reviewed_count"] == 0
+        assert body["items"][0]["favourite_count"] == 0
+        assert body["items"][0]["weak_count"] == 0
         assert body["items"][0]["mastered_count"] == 0
-        assert body["items"][0]["words"][0]["is_favourite"] is True
-        assert body["items"][0]["words"][0]["strength"] == "Weak"
-        assert body["items"][0]["words"][1]["daily_source"] == "extra"
-        assert body["items"][1]["mastered_count"] == 1
+        assert body["items"][0]["words"] == []
+        assert body["items"][1]["mastered_count"] == 0
 
     def test_daily_history_empty_state_uses_cache_only(self, client):
         with patch("api.routes.vocabulary.firebase_service.list_user_daily_words",

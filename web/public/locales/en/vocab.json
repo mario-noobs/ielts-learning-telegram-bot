@@ -106,6 +106,10 @@
   "history": {
     "summary": "{reviewed}/{total} reviewed",
     "reviewCta": "Review",
+    "showDetails": "Show words",
+    "hideDetails": "Hide words",
+    "loadingDetails": "Loading words…",
+    "noDetails": "No words saved for this day.",
     "reviewedBadge": "Reviewed",
     "stats": {
       "total": "Total",

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import MultipleChoiceQuestion from '../components/MultipleChoiceQuestion'
 import QuizFeedbackOverlay from '../components/QuizFeedbackOverlay'
@@ -29,6 +29,8 @@ type Phase = 'loading' | 'error' | 'empty' | 'question' | 'feedback' | 'summary'
 
 export default function DailyFillBlankPage() {
   const { t } = useTranslation('vocab')
+  const [searchParams] = useSearchParams()
+  const reviewDate = searchParams.get('date')
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string>('')
@@ -41,9 +43,12 @@ export default function DailyFillBlankPage() {
     setPhase('loading')
     setError(null)
     try {
+      const dailyUrl = reviewDate
+        ? `/api/v1/vocabulary/daily/${encodeURIComponent(reviewDate)}`
+        : '/api/v1/vocabulary/daily'
       const daily = await apiFetch<DailyWordsResponse>(
-        '/api/v1/vocabulary/daily',
-        { method: 'POST' },
+        dailyUrl,
+        reviewDate ? undefined : { method: 'POST' },
       )
       const wordIds = daily.words.map((w) => w.word_id).filter(Boolean)
       if (wordIds.length === 0) {
@@ -72,7 +77,7 @@ export default function DailyFillBlankPage() {
       setError(localizeError(e))
       setPhase('error')
     }
-  }, [])
+  }, [reviewDate])
 
   useEffect(() => {
     begin()
