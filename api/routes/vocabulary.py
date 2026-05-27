@@ -29,6 +29,39 @@ router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
 logger = logging.getLogger(__name__)
 EXTRA_DAILY_WORD_LIMIT = 5
 EXTRA_DAILY_SOURCE = "extra"
+VOCAB_SOURCE_BY_ID = {
+    1: "daily",
+    2: "quiz",
+    3: "manual",
+    4: "reading",
+}
+VOCAB_SOURCE_ID_BY_NAME = {name: source_id for source_id, name in VOCAB_SOURCE_BY_ID.items()}
+
+
+def _vocab_source_label(raw: object) -> str:
+    if isinstance(raw, str):
+        normalized = raw.strip().lower()
+        return normalized if normalized in VOCAB_SOURCE_ID_BY_NAME else "daily"
+    try:
+        return VOCAB_SOURCE_BY_ID.get(int(raw or 1), "daily")
+    except (TypeError, ValueError):
+        return "daily"
+
+
+def _parse_vocab_source_filter(source: str | None) -> int | None:
+    if not source:
+        return None
+    normalized = source.strip().lower()
+    if not normalized or normalized == "all":
+        return None
+    source_id = VOCAB_SOURCE_ID_BY_NAME.get(normalized)
+    if source_id is None:
+        raise ApiError(
+            ERR.validation,
+            field="source",
+            allowed_sources=list(VOCAB_SOURCE_ID_BY_NAME),
+        )
+    return source_id
 
 
 def _user_timezone(user: dict) -> str:
@@ -69,6 +102,7 @@ def _to_vocab_word(doc: dict) -> VocabularyWord:
         topic=doc.get("topic", ""),
         example_en=doc.get("example_en", ""),
         example_vi=doc.get("example_vi", ""),
+        source=_vocab_source_label(doc.get("source")),
         srs_interval=doc.get("srs_interval", 0),
         srs_ease=doc.get("srs_ease", 2.5),
         srs_reps=doc.get("srs_reps", 0),
@@ -350,6 +384,7 @@ async def list_vocabulary(
     cursor: str | None = Query(None, description="ISO-8601 added_at from previous page"),
     topic: str | None = Query(None, description="Filter to a single topic slug"),
     favourite: bool | None = Query(None, description="Filter to favourited words only"),
+    source: str | None = Query(None, description="Filter to a vocabulary source"),
     user: dict = Depends(get_current_user),
 ) -> WordListResponse:
     """Paginated vocabulary list with SRS data, newest first.
@@ -367,10 +402,11 @@ async def list_vocabulary(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid cursor format; expected ISO-8601 datetime.",
             )
+    source_id = _parse_vocab_source_filter(source)
 
     docs = await asyncio.to_thread(
         firebase_service.get_user_vocabulary_page,
-        user["id"], limit, after, topic, favourite,
+        user["id"], limit, after, topic, favourite, source_id,
     )
     items = [_to_vocab_word(d) for d in docs]
     next_cursor = None
@@ -581,6 +617,7 @@ async def add_word(
         "topic": body.topic or "",
         "example_en": example.get("en", ""),
         "example_vi": example.get("vi", ""),
+        "source": VOCAB_SOURCE_ID_BY_NAME["manual"],
     }
 
     word_id, created = await asyncio.to_thread(

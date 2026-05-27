@@ -35,6 +35,7 @@ def _fake_vocab_doc(word: str, added_at: datetime, topic: str = "education") -> 
         "topic": topic,
         "example_en": f"Example with {word}.",
         "example_vi": "Vi example.",
+        "source": 1,
         "srs_interval": 1,
         "srs_ease": 2.5,
         "srs_reps": 0,
@@ -81,9 +82,10 @@ class TestListVocabulary:
         assert body["items"][0]["word"] == "word0"
         assert body["items"][0]["srs_interval"] == 1
         assert body["items"][0]["srs_ease"] == 2.5
+        assert body["items"][0]["source"] == "daily"
         assert "strength" in body["items"][0]
         assert body["next_cursor"] is None  # fewer than limit
-        mock_fn.assert_called_once_with("test-user-1", 20, None, None, None)
+        mock_fn.assert_called_once_with("test-user-1", 20, None, None, None, None)
 
     def test_next_cursor_populated_when_page_full(self, client):
         """When items count equals limit, next_cursor is the last added_at."""
@@ -115,6 +117,26 @@ class TestListVocabulary:
 
     def test_invalid_cursor_returns_400(self, client):
         response = client.get("/api/v1/vocabulary?cursor=not-a-date")
+        assert response.status_code == 400
+
+    def test_source_filter_parsed_and_forwarded(self, client):
+        with patch("api.routes.vocabulary.firebase_service.get_user_vocabulary_page",
+                   return_value=[]) as mock_fn:
+            response = client.get("/api/v1/vocabulary", params={"source": "manual"})
+
+        assert response.status_code == 200
+        mock_fn.assert_called_once_with("test-user-1", 20, None, None, None, 3)
+
+    def test_all_source_filter_is_ignored(self, client):
+        with patch("api.routes.vocabulary.firebase_service.get_user_vocabulary_page",
+                   return_value=[]) as mock_fn:
+            response = client.get("/api/v1/vocabulary", params={"source": "all"})
+
+        assert response.status_code == 200
+        mock_fn.assert_called_once_with("test-user-1", 20, None, None, None, None)
+
+    def test_invalid_source_filter_returns_400(self, client):
+        response = client.get("/api/v1/vocabulary?source=unknown")
         assert response.status_code == 400
 
     def test_empty_vocabulary(self, client):

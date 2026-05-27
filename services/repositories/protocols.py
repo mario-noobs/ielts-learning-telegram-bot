@@ -111,6 +111,9 @@ class VocabRepo(Protocol):
         user_id: UserId,
         limit: int = 20,
         after_added_at: Optional[datetime] = None,
+        topic: Optional[str] = None,
+        favourite: Optional[bool] = None,
+        source: Optional[int] = None,
     ) -> list[VocabularyItem]: ...
 
     def count_by_topic(self, user_id: UserId) -> dict[str, int]: ...

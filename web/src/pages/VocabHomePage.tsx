@@ -41,6 +41,10 @@ interface VocabularyWord {
   definition_vi: string
   ipa: string
   part_of_speech: string
+  topic: string
+  strength: string
+  source: string
+  is_favourite: boolean
 }
 
 interface WordListResponse {
@@ -85,7 +89,12 @@ interface DailyWordsResponse {
   total_count: number
 }
 
-type VocabTab = 'topics' | 'favourites' | 'history'
+type VocabTab = 'myWords' | 'topics' | 'favourites' | 'history'
+type SourceFilter = 'all' | 'daily' | 'manual' | 'quiz' | 'reading'
+type StatusFilter = 'all' | 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
+
+const SOURCE_FILTERS: SourceFilter[] = ['all', 'daily', 'manual', 'quiz', 'reading']
+const STATUS_FILTERS: StatusFilter[] = ['all', 'New', 'Weak', 'Learning', 'Good', 'Mastered']
 
 const HISTORY_STATS = [
   ['total', 'total_count'],
@@ -174,6 +183,60 @@ function FavouriteWordRow({ word }: { word: VocabularyWord }) {
           </p>
         )}
       </div>
+      <Icon name="ArrowRight" size="sm" variant="muted" />
+    </Link>
+  )
+}
+
+function MyWordRow({
+  word,
+  t,
+}: {
+  word: VocabularyWord
+  t: (k: string, o?: Record<string, unknown>) => string
+}) {
+  return (
+    <Link
+      to={`/learn/vocab/${encodeURIComponent(word.word)}`}
+      onClick={() =>
+        track('vocab_my_word_detail_opened', {
+          word: word.word,
+          word_id: word.id,
+          source: word.source,
+        })
+      }
+      className="flex items-center gap-3 rounded-lg border border-transparent bg-surface-raised px-3 py-2.5 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <Icon name="BookOpen" size="sm" variant="primary" />
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-fg truncate">
+          {word.word}
+          {word.ipa && (
+            <span className="ml-1.5 text-xs font-normal text-muted-fg">
+              /{word.ipa}/
+            </span>
+          )}
+          {word.part_of_speech && (
+            <span className="ml-1.5 text-xs font-normal text-muted-fg">
+              {word.part_of_speech}
+            </span>
+          )}
+        </p>
+        {(word.definition_vi || word.definition) && (
+          <p className="text-xs text-muted-fg truncate mt-0.5">
+            {word.definition_vi || word.definition}
+          </p>
+        )}
+      </div>
+      <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+        <span className="rounded-md bg-surface px-2 py-1 text-xs text-muted-fg">
+          {t(`myWords.sources.${word.source}`, { defaultValue: word.source })}
+        </span>
+        <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+          {t(`strength.${word.strength}`, { defaultValue: word.strength })}
+        </span>
+      </div>
+      {word.is_favourite && <Icon name="Heart" size="sm" variant="danger" />}
       <Icon name="ArrowRight" size="sm" variant="muted" />
     </Link>
   )
@@ -322,12 +385,16 @@ export default function VocabHomePage() {
   const showLinkPrompt = profile != null && profile.id.startsWith('web_')
   const [topics, setTopics] = useState<TopicSummary[]>([])
   const [preferredSlugs, setPreferredSlugs] = useState<string[]>([])
-  const [activeTab, setActiveTab] = useState<VocabTab>('topics')
+  const [activeTab, setActiveTab] = useState<VocabTab>('myWords')
+  const [myWords, setMyWords] = useState<VocabularyWord[]>([])
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
   const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[] | null>(null)
   const [openHistoryDate, setOpenHistoryDate] = useState<string | null>(null)
   const [historyDetails, setHistoryDetails] = useState<Record<string, DailyWordsResponse>>({})
   const [loadingHistoryDetails, setLoadingHistoryDetails] = useState<string | null>(null)
+  const [loadingMyWords, setLoadingMyWords] = useState(false)
   const [loadingFavourites, setLoadingFavourites] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -350,6 +417,23 @@ export default function VocabHomePage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'myWords') return
+    let cancelled = false
+    setLoadingMyWords(true)
+    const params = new URLSearchParams({ limit: '100' })
+    if (sourceFilter !== 'all') params.set('source', sourceFilter)
+    apiFetch<WordListResponse>(`/api/v1/vocabulary?${params.toString()}`)
+      .then((res) => {
+        if (!cancelled) setMyWords(res.items)
+      })
+      .catch((e) => !cancelled && setError(localizeError(e)))
+      .finally(() => !cancelled && setLoadingMyWords(false))
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, sourceFilter])
 
   useEffect(() => {
     if (activeTab !== 'favourites') return
@@ -417,6 +501,11 @@ export default function VocabHomePage() {
     return { total, mastered }
   }, [topics])
 
+  const visibleMyWords = useMemo(() => {
+    if (statusFilter === 'all') return myWords
+    return myWords.filter((word) => word.strength === statusFilter)
+  }, [myWords, statusFilter])
+
   // Preferred topics: shown even with 0 words so the user sees their
   // settings reflected immediately. Sorted least-mastered first among
   // those that have words; 0-word ones trail alphabetically.
@@ -468,13 +557,15 @@ export default function VocabHomePage() {
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-fg">
-            {t('byTopic.heading')}{' '}
+            {t('myWords.heading', { defaultValue: 'My Vocabulary' })}{' '}
             <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-primary text-xl md:text-2xl">
-              {t('byTopic.headingPill')}
+              {t('myWords.headingPill', { defaultValue: 'My Words' })}
             </span>
           </h1>
           <p className="mt-2 text-sm text-muted-fg max-w-xl">
-            {t('byTopic.subtitle')}
+            {t('myWords.subtitle', {
+              defaultValue: 'Your private IELTS vocabulary. Daily words, manual additions, favourites, and reviews all live here.',
+            })}
           </p>
         </div>
         {stats.total > 0 && (
@@ -508,7 +599,24 @@ export default function VocabHomePage() {
         )}
       </header>
 
-      <div className="mb-5 inline-flex rounded-lg border border-border bg-surface-raised p-1">
+      <div className="mb-5 flex w-full overflow-x-auto rounded-lg border border-border bg-surface-raised p-1 sm:inline-flex sm:w-auto">
+        <button
+          type="button"
+          onClick={() => {
+            if (activeTab !== 'myWords') {
+              track('vocab_my_words_tab_viewed')
+            }
+            setActiveTab('myWords')
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeTab === 'myWords'
+              ? 'bg-primary text-primary-fg'
+              : 'text-muted-fg hover:text-fg'
+          }`}
+        >
+          <Icon name="BookOpen" size="sm" variant={activeTab === 'myWords' ? 'fg' : 'muted'} />
+          {t('byTopic.tabs.myWords', { defaultValue: 'My Words' })}
+        </button>
         <button
           type="button"
           onClick={() => setActiveTab('topics')}
@@ -649,6 +757,96 @@ export default function VocabHomePage() {
             ))}
           </div>
         )
+      ) : activeTab === 'myWords' ? (
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-fg">{t('myWords.listHeading', { defaultValue: 'My Words' })}</h2>
+              <p className="mt-1 text-sm text-muted-fg">
+                {t('myWords.listSummary', {
+                  visible: visibleMyWords.length,
+                  total: myWords.length,
+                  defaultValue: `${visibleMyWords.length}/${myWords.length} words`,
+                })}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-fg">
+                {t('myWords.filters.source', { defaultValue: 'Source' })}
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg"
+                >
+                  {SOURCE_FILTERS.map((source) => (
+                    <option key={source} value={source}>
+                      {t(`myWords.sources.${source}`, { defaultValue: source })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-fg">
+                {t('myWords.filters.status', { defaultValue: 'Status' })}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg"
+                >
+                  {STATUS_FILTERS.map((status) => (
+                    <option key={status} value={status}>
+                      {status === 'all'
+                        ? t('myWords.statuses.all', { defaultValue: 'All statuses' })
+                        : t(`strength.${status}`, { defaultValue: status })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {loadingMyWords ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-border bg-surface-raised p-3 animate-pulse"
+                >
+                  <div className="h-4 bg-border rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : myWords.length === 0 ? (
+            <EmptyState
+              illustration="empty-vocab"
+              title={t('empty.myWords.title', { defaultValue: 'No words in My Words yet' })}
+              description={t('empty.myWords.description', {
+                defaultValue: 'Daily words you generate will appear here automatically.',
+              })}
+              primaryAction={{ label: t('empty.myWords.cta', { defaultValue: 'View daily words' }), to: '/learn/daily' }}
+            />
+          ) : visibleMyWords.length === 0 ? (
+            <EmptyState
+              illustration="empty-vocab"
+              title={t('empty.myWordsFiltered.title', { defaultValue: 'No matching words' })}
+              description={t('empty.myWordsFiltered.description', {
+                defaultValue: 'Try a different source or status filter.',
+              })}
+              primaryAction={{
+                label: t('empty.myWordsFiltered.cta', { defaultValue: 'Clear filters' }),
+                onClick: () => {
+                  setSourceFilter('all')
+                  setStatusFilter('all')
+                },
+              }}
+            />
+          ) : (
+            <div className="space-y-1.5">
+              {visibleMyWords.map((word) => (
+                <MyWordRow key={word.id} word={word} t={t} />
+              ))}
+            </div>
+          )}
+        </section>
       ) : loading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (

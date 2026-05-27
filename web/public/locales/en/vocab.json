@@ -45,6 +45,7 @@
     "reviewCta": "Start review",
     "clearFilter": "Clear filter",
     "tabs": {
+      "myWords": "My Words",
       "topics": "Topics",
       "favourites": "Favourites",
       "history": "History"
@@ -79,6 +80,27 @@
       }
     }
   },
+  "myWords": {
+    "heading": "My Vocabulary",
+    "headingPill": "My Words",
+    "subtitle": "Your private IELTS vocabulary. Daily words, manual additions, favourites, and reviews all live here.",
+    "listHeading": "My Words",
+    "listSummary": "{visible}/{total} words",
+    "filters": {
+      "source": "Source",
+      "status": "Status"
+    },
+    "sources": {
+      "all": "All sources",
+      "daily": "Daily",
+      "manual": "Manual",
+      "quiz": "Quiz",
+      "reading": "Reading"
+    },
+    "statuses": {
+      "all": "All statuses"
+    }
+  },
   "loadMore": "Load more",
   "loadingMore": "Loading…",
   "empty": {
@@ -101,6 +123,16 @@
       "title": "No daily history yet",
       "description": "Daily vocab batches you generate will appear here for future review.",
       "cta": "View daily words"
+    },
+    "myWords": {
+      "title": "No words in My Words yet",
+      "description": "Daily words you generate will appear here automatically.",
+      "cta": "View daily words"
+    },
+    "myWordsFiltered": {
+      "title": "No matching words",
+      "description": "Try a different source or status filter.",
+      "cta": "Clear filters"
     }
   },
   "history": {

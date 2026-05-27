@@ -13,6 +13,7 @@ class VocabularyWord(BaseModel):
     topic: str = ""
     example_en: str = ""
     example_vi: str = ""
+    source: str = "daily"
     srs_interval: int = 0
     srs_ease: float = 2.5
     srs_reps: int = 0
