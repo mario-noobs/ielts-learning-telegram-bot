@@ -9,6 +9,7 @@ import {
 } from 'react'
 import {
   type User,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
   signInWithRedirect,
@@ -125,14 +126,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
-      if (authTransitionRef.current) return
-      setUser(u)
+    let cancelled = false
+    let authSettled = false
+    let redirectSettled = false
+    let pendingUser: User | null = null
+
+    const finishInitialAuth = async () => {
+      if (!authSettled || !redirectSettled || authTransitionRef.current) return
+      setUser(pendingUser)
       // Always attempt profile fetch — works for Firebase Bearer (when u is set)
       // and for local auth via httpOnly cookie (when u is null).
       await fetchProfile()
-      setLoading(false)
+      if (!cancelled) setLoading(false)
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (authTransitionRef.current) return
+      authSettled = true
+      pendingUser = u
+      await finishInitialAuth()
     })
+
+    void getRedirectResult(auth)
+      .then(async (result) => {
+        redirectSettled = true
+        if (result?.user) pendingUser = result.user
+        await finishInitialAuth()
+      })
+      .catch(async () => {
+        redirectSettled = true
+        await finishInitialAuth()
+      })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [fetchProfile])
 
   const signInWithGoogle = async (options?: { redirect?: boolean }) => {

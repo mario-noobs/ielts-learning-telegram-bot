@@ -10,11 +10,11 @@ afterEach(() => {
 })
 
 describe('browser auth helpers', () => {
-  it('uses redirect auth for mobile browsers', () => {
+  it('keeps popup auth for normal mobile browsers', () => {
     stubUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148 Safari/604.1')
 
     expect(isInAppBrowser()).toBe(false)
-    expect(shouldUseRedirectAuth()).toBe(true)
+    expect(shouldUseRedirectAuth()).toBe(false)
   })
 
   it('uses redirect auth for in-app browsers', () => {
