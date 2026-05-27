@@ -42,6 +42,9 @@ vi.mock('react-i18next', () => ({
         'nav.tabs.progress': 'Progress',
         'nav.tabs.profile': 'Me',
         'nav.tabs.admin': 'Admin',
+        'nav.subnav.vocab': 'Vocabulary',
+        'nav.subnav.daily': 'Daily',
+        'nav.subnav.review': 'Review',
         'nav.subnav.writing': 'Writing',
         'nav.subnav.listening': 'Listening',
         'nav.subnav.reading': 'Reading',
@@ -122,5 +125,14 @@ describe('<AppShell> sidebar IA — US-M15.0', () => {
     const desktop = screen.getAllByRole('navigation', { name: 'Main navigation' })[0]
     const listeningLink = within(desktop).getByRole('link', { name: /Listening/ })
     expect(listeningLink).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('links Learn to the vocabulary hub without showing learn subtabs', () => {
+    renderAt('/learn/vocab')
+    const desktop = screen.getAllByRole('navigation', { name: 'Main navigation' })[0]
+    expect(within(desktop).getByRole('link', { name: /Learn/ }))
+      .toHaveAttribute('href', '/learn/vocab')
+    expect(screen.queryByRole('navigation', { name: 'Section navigation' }))
+      .not.toBeInTheDocument()
   })
 })

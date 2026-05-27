@@ -29,7 +29,7 @@ interface Tab {
 // US-#211 redirects keep old /vocab, /write, /listening, /reading bookmarks alive.
 const TABS: Tab[] = [
   { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
-  { to: '/learn/daily', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
+  { to: '/learn/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
   { to: '/practice/listening', labelKey: 'nav.tabs.listening', icon: 'Headphones', matches: ['/practice/listening', '/listening'] },
   { to: '/practice/reading', labelKey: 'nav.tabs.reading', icon: 'FileText', matches: ['/practice/reading', '/reading'] },
   { to: '/practice/writing', labelKey: 'nav.tabs.writing', icon: 'PenLine', matches: ['/practice/writing', '/write'] },
@@ -43,7 +43,7 @@ const TABS: Tab[] = [
 // PRACTICE_SUBNAV inside /practice/*.
 const MOBILE_TABS: Tab[] = [
   { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
-  { to: '/learn/daily', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
+  { to: '/learn/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
   { to: '/practice/writing', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/practice/', '/write', '/listening', '/reading'] },
   { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
   { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
@@ -56,12 +56,6 @@ interface SubNavItem {
   disabled?: boolean
 }
 
-const LEARN_SUBNAV: SubNavItem[] = [
-  { to: '/learn/daily', labelKey: 'nav.subnav.daily', matches: ['/learn/daily'] },
-  { to: '/learn/vocab', labelKey: 'nav.subnav.vocab', matches: ['/learn/vocab'] },
-  { to: '/learn/review', labelKey: 'nav.subnav.review', matches: ['/learn/review'] },
-]
-
 const PRACTICE_SUBNAV: SubNavItem[] = [
   { to: '/practice/writing', labelKey: 'nav.subnav.writing', matches: ['/practice/writing'] },
   { to: '/practice/listening', labelKey: 'nav.subnav.listening', matches: ['/practice/listening'] },
@@ -70,7 +64,6 @@ const PRACTICE_SUBNAV: SubNavItem[] = [
 ]
 
 function activeSubnav(pathname: string): SubNavItem[] | null {
-  if (pathname.startsWith('/learn/')) return LEARN_SUBNAV
   if (pathname.startsWith('/practice/')) return PRACTICE_SUBNAV
   return null
 }
