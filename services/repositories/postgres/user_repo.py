@@ -145,7 +145,7 @@ class PostgresUserRepo:
                 if delta_days == 1:
                     new_streak = (row.streak or 0) + 1
                 elif delta_days == 0:
-                    new_streak = row.streak or 0
+                    new_streak = row.streak or 1
                 else:
                     new_streak = 1
             row.streak = new_streak

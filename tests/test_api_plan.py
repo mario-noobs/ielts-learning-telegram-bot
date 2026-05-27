@@ -143,12 +143,15 @@ class TestCompleteActivity:
         with patch(
             "api.routes.plan.firebase_service.complete_plan_activity",
             return_value=updated_plan,
-        ):
+        ), patch(
+            "api.routes.plan.firebase_service.update_streak",
+        ) as update_streak:
             res = client.post("/api/v1/plan/today/complete/b")
         assert res.status_code == 200
         body = res.json()
         assert body["completed_count"] == 1
         assert body["activities"][1]["completed"] is True
+        update_streak.assert_called_once_with("123")
 
     def test_missing_plan_returns_404(self, client):
         with patch(

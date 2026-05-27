@@ -78,7 +78,8 @@ def test_rate_returns_status_change_summary(client):
     after = _word_doc(srs_reps=1, srs_interval=3)
     with patch("api.routes.review.firebase_service.get_word_by_id",
                side_effect=[before, after]), \
-         patch("api.routes.review.firebase_service.update_word_srs") as update:
+         patch("api.routes.review.firebase_service.update_word_srs") as update, \
+         patch("api.routes.review.firebase_service.update_streak") as update_streak:
         response = client.post("/api/v1/review/rate", json={
             "word_id": "w1",
             "rating": "good",
@@ -90,3 +91,4 @@ def test_rate_returns_status_change_summary(client):
     assert body["new_strength"] == "Learning"
     assert body["strength_change"] is True
     update.assert_called_once()
+    update_streak.assert_called_once_with("test-user-1")

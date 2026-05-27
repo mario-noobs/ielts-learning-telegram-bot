@@ -11,7 +11,7 @@ import config
 from api.auth import get_current_user
 from api.errors import ApiError, ERR
 from api.models.vocabulary import Collocation, EnrichedExample, EnrichedWord
-from services import word_service
+from services import firebase_service, word_service
 from services.admin import quota_service
 
 
@@ -108,6 +108,7 @@ async def update_word_strength(
             word_service.set_word_strength_manual,
             user_id, word_id, body.strength,
         )
+        await asyncio.to_thread(firebase_service.update_streak, user_id)
     except ValueError:
         raise ApiError(ERR.vocab_word_not_found)
 

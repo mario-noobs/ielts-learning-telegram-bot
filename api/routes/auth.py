@@ -146,6 +146,21 @@ async def update_me(
     return _to_profile(merged)
 
 
+@router.post("/me/streak", response_model=UserProfile)
+async def acknowledge_study_streak(
+    user: dict = Depends(get_current_user),
+) -> UserProfile:
+    """Tick the user's study streak after an explicit learning action.
+
+    Mirrors Telegram's daily-vocab ack button. The repository keeps this
+    idempotent per UTC day, so multiple web actions in one day do not inflate
+    the streak.
+    """
+    await asyncio.to_thread(firebase_service.update_streak, user["id"])
+    refreshed = await asyncio.to_thread(firebase_service.get_user, user["id"])
+    return _to_profile(refreshed or user)
+
+
 @router.post("/users", response_model=UserProfile, status_code=201)
 async def create_user(
     body: UserCreate,

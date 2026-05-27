@@ -101,6 +101,7 @@ export default function DashboardPage() {
         { method: 'POST' },
       )
       setPlan(updated)
+      loadProfile()
     } catch (e) {
       setError(localizeError(e))
     } finally {

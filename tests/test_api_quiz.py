@@ -106,7 +106,8 @@ class TestAnswerQuiz:
                    side_effect=[old_word, new_word]), \
              patch("api.routes.quiz.quiz_service.check_answer",
                    new=AsyncMock(return_value=(True, "✅ Correct!"))), \
-             patch("api.routes.quiz.firebase_service.mark_session_question_answered"):
+             patch("api.routes.quiz.firebase_service.mark_session_question_answered"), \
+             patch("api.routes.quiz.firebase_service.update_streak") as update_streak:
             response = client.post(
                 "/api/v1/quiz/answer",
                 json={"session_id": "s1", "question_id": "q0", "answer": "C"},
@@ -118,6 +119,7 @@ class TestAnswerQuiz:
         assert body["feedback"].startswith("✅")
         assert body["srs_update"]["next_review"] is not None
         assert body["srs_update"]["strength_change"] is True
+        update_streak.assert_called_once_with("u1")
 
     def test_incorrect_answer_returns_feedback(self, client):
         session = self._session_fixture()
@@ -128,7 +130,8 @@ class TestAnswerQuiz:
                    return_value=word), \
              patch("api.routes.quiz.quiz_service.check_answer",
                    new=AsyncMock(return_value=(False, "❌ Wrong. Answer: C."))), \
-             patch("api.routes.quiz.firebase_service.mark_session_question_answered"):
+             patch("api.routes.quiz.firebase_service.mark_session_question_answered"), \
+             patch("api.routes.quiz.firebase_service.update_streak") as update_streak:
             response = client.post(
                 "/api/v1/quiz/answer",
                 json={"session_id": "s1", "question_id": "q0", "answer": "A"},
@@ -136,6 +139,7 @@ class TestAnswerQuiz:
 
         assert response.status_code == 200
         assert response.json()["is_correct"] is False
+        update_streak.assert_called_once_with("u1")
 
     def test_numeric_index_is_normalized_to_letter(self, client):
         session = self._session_fixture()
@@ -145,7 +149,8 @@ class TestAnswerQuiz:
                    return_value={"id": "word-0"}), \
              patch("api.routes.quiz.quiz_service.check_answer",
                    new=AsyncMock(return_value=(True, "ok"))) as check, \
-             patch("api.routes.quiz.firebase_service.mark_session_question_answered"):
+             patch("api.routes.quiz.firebase_service.mark_session_question_answered"), \
+             patch("api.routes.quiz.firebase_service.update_streak"):
             response = client.post(
                 "/api/v1/quiz/answer",
                 json={"session_id": "s1", "question_id": "q0", "answer": "2"},
@@ -175,7 +180,8 @@ class TestAnswerQuiz:
              patch("api.routes.quiz.quota_service.check_and_increment") as quota, \
              patch("api.routes.quiz.quiz_service.check_answer",
                    new=AsyncMock(return_value=(True, "ok"))), \
-             patch("api.routes.quiz.firebase_service.mark_session_question_answered"):
+             patch("api.routes.quiz.firebase_service.mark_session_question_answered"), \
+             patch("api.routes.quiz.firebase_service.update_streak"):
             response = client.post(
                 "/api/v1/quiz/answer",
                 json={"session_id": "s1", "question_id": "q0", "answer": "Everywhere."},

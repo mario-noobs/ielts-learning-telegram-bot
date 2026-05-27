@@ -146,6 +146,7 @@ async def answer_quiz(
         firebase_service.mark_session_question_answered,
         user["id"], body.session_id, body.question_id,
     )
+    await asyncio.to_thread(firebase_service.update_streak, user["id"])
 
     next_review = (new_word or {}).get("srs_next_review")
     return QuizAnswerResponse(

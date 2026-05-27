@@ -119,6 +119,7 @@ async def rate_word(
     await asyncio.to_thread(
         firebase_service.update_word_srs, user["id"], body.word_id, srs_update
     )
+    await asyncio.to_thread(firebase_service.update_streak, user["id"])
 
     new_word = await asyncio.to_thread(
         firebase_service.get_word_by_id, user["id"], body.word_id
