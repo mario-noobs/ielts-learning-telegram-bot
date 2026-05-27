@@ -24,6 +24,42 @@
     "streak": "Streak",
     "mastered": "Đã thạo"
   },
+  "hub": {
+    "eyebrow": "Từ vựng",
+    "heading": "Chọn một bước học từ",
+    "subtitle": "Bắt đầu với hôm nay, ôn từ đến hạn, hoặc đi sâu vào kho từ đã lưu khi cần.",
+    "today": {
+      "meta": "Làm mới mỗi ngày",
+      "title": "Hôm nay",
+      "description": "Học bộ từ hiện tại và thêm từ mới khi bạn muốn."
+    },
+    "review": {
+      "meta": "{count, plural, one {# từ cần ôn} other {# từ cần ôn}}",
+      "metaUnknown": "Ôn SRS",
+      "title": "Ôn tập",
+      "description": "Luyện các thẻ đến hạn mà không cần mở toàn bộ kho từ."
+    },
+    "myWords": {
+      "meta": "{mastered}/{total} đã nhớ",
+      "title": "Từ của tôi",
+      "description": "Tìm kiếm, lọc, yêu thích và mở từ đã lưu."
+    },
+    "explore": {
+      "meta": "Lộ trình",
+      "metaTopic": "Tập trung: {topic}",
+      "title": "Khám phá",
+      "description": "Xem chủ đề và lộ trình học từng phần."
+    },
+    "add": {
+      "meta": "AI hoặc tự thêm",
+      "title": "Thêm từ",
+      "description": "Tạo một thẻ từ hoặc nhập một nhóm gợi ý nhỏ."
+    },
+    "error": {
+      "title": "Chưa tải được từ vựng",
+      "cta": "Tải lại"
+    }
+  },
   "search": {
     "placeholder": "Tìm từ, nghĩa…"
   },
@@ -86,6 +122,7 @@
     "subtitle": "Kho từ IELTS riêng của bạn. Từ hằng ngày, từ tự thêm, yêu thích và ôn tập đều nằm ở đây.",
     "listHeading": "Từ của tôi",
     "listSummary": "{visible}/{total} từ",
+    "addCta": "Thêm từ",
     "filters": {
       "source": "Nguồn",
       "status": "Trạng thái"
@@ -103,6 +140,14 @@
   },
   "limits": {
     "aiUsage": "Còn {remaining}/{quota} lượt AI hôm nay. Đã dùng {used}. Làm mới lúc {reset}."
+  },
+  "addFlow": {
+    "backToHub": "Trung tâm từ vựng",
+    "heading": "Thêm từ",
+    "subtitle": "Tạo một thẻ chất lượng hoặc nhập một nhóm nhỏ. Từ đã lưu sẽ vào Từ của tôi.",
+    "savedHeading": "Đã lưu trong phiên này",
+    "savedSummary": "{count, plural, one {# từ đã lưu} other {# từ đã lưu}}",
+    "viewMyWords": "Xem Từ của tôi"
   },
   "addWord": {
     "title": "Tạo từ vựng với AI",

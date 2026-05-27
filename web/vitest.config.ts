@@ -25,6 +25,7 @@ export default defineConfig({
       'src/pages/DailyWordsPage.test.tsx',
       'src/pages/DailyFillBlankPage.test.tsx',
       'src/pages/FlashcardReviewPage.test.tsx',
+      'src/pages/VocabHubPage.test.tsx',
       'src/pages/VocabHomePage.test.tsx',
       'src/pages/settings/LinkTelegramPage.test.tsx',
     ],

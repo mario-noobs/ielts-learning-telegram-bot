@@ -10,7 +10,8 @@ import LegalPage from './pages/LegalPage'
 import LoginPage from './pages/LoginPage'
 import PricingPage from './pages/PricingPage'
 import DashboardPage from './pages/DashboardPage'
-import VocabHomePage from './pages/VocabHomePage'
+import VocabHubPage from './pages/VocabHubPage'
+import VocabHomePage, { VocabAddPage } from './pages/VocabHomePage'
 import VocabTopicPage from './pages/VocabTopicPage'
 import WordDetailPage from './pages/WordDetailPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
@@ -128,7 +129,12 @@ export default function App() {
           <Route element={<ProtectedShell />}>
             {/* New paths under /learn/* and /practice/* (US-#211 IA). */}
             <Route path="/learn" element={<Navigate to="/learn/daily" replace />} />
-            <Route path="/learn/vocab" element={<VocabHomePage />} />
+            <Route path="/learn/vocab" element={<VocabHubPage />} />
+            <Route path="/learn/vocab/my-words" element={<VocabHomePage />} />
+            <Route path="/learn/vocab/explore" element={<VocabHomePage initialTab="topics" />} />
+            <Route path="/learn/vocab/favourites" element={<VocabHomePage initialTab="favourites" />} />
+            <Route path="/learn/vocab/history" element={<VocabHomePage initialTab="history" />} />
+            <Route path="/learn/vocab/add" element={<VocabAddPage />} />
             {/* Topic drill-down — must precede `:id` so /topic/:slug
                 doesn't get matched as a word id. */}
             <Route path="/learn/vocab/topic/:slug" element={<VocabTopicPage />} />

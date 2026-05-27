@@ -130,6 +130,10 @@ const HISTORY_STATS = [
   ['mastered', 'mastered_count'],
 ] as const
 
+interface VocabHomePageProps {
+  initialTab?: VocabTab
+}
+
 function AiUsageNote({
   usage,
   t,
@@ -851,17 +855,100 @@ function DailyHistoryCard({
   )
 }
 
-export default function VocabHomePage() {
+export function VocabAddPage() {
+  const { t } = useTranslation('vocab')
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null)
+  const [savedWords, setSavedWords] = useState<VocabularyWord[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadAiUsage() {
+      try {
+        const res = await apiFetch<AiUsage>('/api/v1/me/ai-usage')
+        if (!cancelled) setAiUsage(res)
+      } catch {
+        if (!cancelled) setAiUsage(null)
+      }
+    }
+    void loadAiUsage()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const onSaved = (word: VocabularyWord) => {
+    setSavedWords((current) => [word, ...current.filter((item) => item.id !== word.id)])
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl p-4">
+      <header className="mb-6">
+        <Link
+          to="/learn/vocab"
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-fg hover:text-fg"
+        >
+          <Icon name="ArrowLeft" size="sm" variant="muted" />
+          {t('addFlow.backToHub', { defaultValue: 'Vocabulary hub' })}
+        </Link>
+        <h1 className="text-2xl font-bold text-fg">
+          {t('addFlow.heading', { defaultValue: 'Add words' })}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm text-muted-fg">
+          {t('addFlow.subtitle', {
+            defaultValue: 'Create one strong card or import a small set. Saved words go into My Words.',
+          })}
+        </p>
+        <AiUsageNote usage={aiUsage} t={t} />
+      </header>
+
+      <div className="space-y-4">
+        <AddWordWithAi t={t} onSaved={onSaved} />
+        <ImportWordsPanel t={t} onSaved={onSaved} />
+      </div>
+
+      {savedWords.length > 0 && (
+        <section className="mt-6 rounded-xl border border-border bg-surface-raised p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-fg">
+                {t('addFlow.savedHeading', { defaultValue: 'Saved this session' })}
+              </h2>
+              <p className="mt-1 text-sm text-muted-fg">
+                {t('addFlow.savedSummary', {
+                  count: savedWords.length,
+                  defaultValue: `${savedWords.length} saved`,
+                })}
+              </p>
+            </div>
+            <Link
+              to="/learn/vocab/my-words"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
+            >
+              {t('addFlow.viewMyWords', { defaultValue: 'View My Words' })}
+              <Icon name="ArrowRight" size="sm" variant="muted" />
+            </Link>
+          </div>
+          <div className="mt-3 space-y-1.5">
+            {savedWords.map((word) => (
+              <MyWordRow key={word.id} word={word} t={t} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageProps) {
   const { t } = useTranslation('vocab')
   const profile = useProfile()
   const showLinkPrompt = profile != null && profile.id.startsWith('web_')
   const [topics, setTopics] = useState<TopicSummary[]>([])
   const [preferredSlugs, setPreferredSlugs] = useState<string[]>([])
-  const [activeTab, setActiveTab] = useState<VocabTab>('myWords')
+  const [activeTab, setActiveTab] = useState<VocabTab>(initialTab)
   const [myWords, setMyWords] = useState<VocabularyWord[]>([])
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null)
   const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
   const [dailyHistory, setDailyHistory] = useState<DailyHistoryEntry[] | null>(null)
   const [openHistoryDate, setOpenHistoryDate] = useState<string | null>(null)
@@ -907,23 +994,6 @@ export default function VocabHomePage() {
       cancelled = true
     }
   }, [activeTab, sourceFilter])
-
-  useEffect(() => {
-    if (activeTab !== 'myWords') return
-    let cancelled = false
-    async function loadAiUsage() {
-      try {
-        const res = await apiFetch<AiUsage>('/api/v1/me/ai-usage')
-        if (!cancelled) setAiUsage(res)
-      } catch {
-        if (!cancelled) setAiUsage(null)
-      }
-    }
-    void loadAiUsage()
-    return () => {
-      cancelled = true
-    }
-  }, [activeTab])
 
   useEffect(() => {
     if (activeTab !== 'favourites') return
@@ -1249,23 +1319,6 @@ export default function VocabHomePage() {
         )
       ) : activeTab === 'myWords' ? (
         <section className="space-y-4">
-          <AiUsageNote usage={aiUsage} t={t} />
-          <AddWordWithAi
-            t={t}
-            onSaved={(word) => {
-              setMyWords((current) => [word, ...current.filter((item) => item.id !== word.id)])
-              setSourceFilter('all')
-              setStatusFilter('all')
-            }}
-          />
-          <ImportWordsPanel
-            t={t}
-            onSaved={(word) => {
-              setMyWords((current) => [word, ...current.filter((item) => item.id !== word.id)])
-              setSourceFilter('all')
-              setStatusFilter('all')
-            }}
-          />
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-semibold text-fg">{t('myWords.listHeading', { defaultValue: 'My Words' })}</h2>
@@ -1278,6 +1331,13 @@ export default function VocabHomePage() {
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                to="/learn/vocab/add"
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90"
+              >
+                <Icon name="Plus" size="sm" variant="fg" />
+                {t('myWords.addCta', { defaultValue: 'Add words' })}
+              </Link>
               <label className="flex flex-col gap-1 text-xs font-medium text-muted-fg">
                 {t('myWords.filters.source', { defaultValue: 'Source' })}
                 <select
