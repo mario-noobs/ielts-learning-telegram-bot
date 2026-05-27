@@ -29,7 +29,8 @@ interface Tab {
 // US-#211 redirects keep old /vocab, /write, /listening, /reading bookmarks alive.
 const TABS: Tab[] = [
   { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
-  { to: '/learn/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
+  { to: '/learn/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/vocab', '/learn/review', '/learn/daily', '/vocab', '/review', '/daily'] },
+  { to: '/learn/pools', labelKey: 'nav.tabs.pools', icon: 'Globe' },
   { to: '/practice/listening', labelKey: 'nav.tabs.listening', icon: 'Headphones', matches: ['/practice/listening', '/listening'] },
   { to: '/practice/reading', labelKey: 'nav.tabs.reading', icon: 'FileText', matches: ['/practice/reading', '/reading'] },
   { to: '/practice/writing', labelKey: 'nav.tabs.writing', icon: 'PenLine', matches: ['/practice/writing', '/write'] },
@@ -38,12 +39,12 @@ const TABS: Tab[] = [
   { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },
 ]
 
-// Mobile bottom bar can't fit 8 entries. Keep the pre-M15.0 5-tab shape so
-// mobile UX is unchanged; cross-skill navigation on mobile happens via
-// PRACTICE_SUBNAV inside /practice/*.
+// Mobile bottom bar can't fit every desktop entry. Keep IELTS skills grouped
+// under Practice, but expose Pools because it is no longer part of Vocabulary.
 const MOBILE_TABS: Tab[] = [
   { to: '/', labelKey: 'nav.tabs.home', icon: 'LayoutDashboard' },
-  { to: '/learn/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/', '/vocab', '/review', '/daily'] },
+  { to: '/learn/vocab', labelKey: 'nav.tabs.learn', icon: 'BookOpen', matches: ['/learn/vocab', '/learn/review', '/learn/daily', '/vocab', '/review', '/daily'] },
+  { to: '/learn/pools', labelKey: 'nav.tabs.pools', icon: 'Globe' },
   { to: '/practice/writing', labelKey: 'nav.tabs.practice', icon: 'PenLine', matches: ['/practice/', '/write', '/listening', '/reading'] },
   { to: '/progress', labelKey: 'nav.tabs.progress', icon: 'TrendingUp' },
   { to: '/settings', labelKey: 'nav.tabs.profile', icon: 'User' },

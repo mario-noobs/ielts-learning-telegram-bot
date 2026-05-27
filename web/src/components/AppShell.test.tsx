@@ -34,6 +34,7 @@ vi.mock('react-i18next', () => ({
       const map: Record<string, string> = {
         'nav.tabs.home': 'Home',
         'nav.tabs.learn': 'Learn',
+        'nav.tabs.pools': 'Pools',
         'nav.tabs.listening': 'Listening',
         'nav.tabs.reading': 'Reading',
         'nav.tabs.writing': 'Writing',
@@ -87,14 +88,15 @@ beforeEach(() => {
 })
 
 describe('<AppShell> sidebar IA — US-M15.0', () => {
-  it('renders 8 top-level entries on the desktop sidebar', () => {
+  it('renders 9 top-level entries on the desktop sidebar', () => {
     renderAt('/')
     const navs = screen.getAllByRole('navigation', { name: 'Main navigation' })
     // First nav is desktop side rail, second is mobile bottom bar.
     const desktop = navs[0]
     const items = within(desktop).getAllByRole('listitem')
-    expect(items).toHaveLength(8)
+    expect(items).toHaveLength(9)
     // The 4 IELTS skills are present as top-level entries.
+    expect(within(desktop).getByText('Pools')).toBeInTheDocument()
     expect(within(desktop).getByText('Listening')).toBeInTheDocument()
     expect(within(desktop).getByText('Reading')).toBeInTheDocument()
     expect(within(desktop).getByText('Writing')).toBeInTheDocument()
@@ -111,12 +113,13 @@ describe('<AppShell> sidebar IA — US-M15.0', () => {
     expect(within(speaking).getByText('Coming soon')).toBeInTheDocument()
   })
 
-  it('renders mobile bottom bar with 5 entries and no Speaking', () => {
+  it('renders mobile bottom bar with 6 entries and no Speaking', () => {
     renderAt('/')
     const navs = screen.getAllByRole('navigation', { name: 'Main navigation' })
     const mobile = navs[1]
     const items = within(mobile).getAllByRole('listitem')
-    expect(items).toHaveLength(5)
+    expect(items).toHaveLength(6)
+    expect(within(mobile).getByText('Pools')).toBeInTheDocument()
     expect(within(mobile).queryByText('Speaking')).toBeNull()
   })
 
@@ -134,5 +137,14 @@ describe('<AppShell> sidebar IA — US-M15.0', () => {
       .toHaveAttribute('href', '/learn/vocab')
     expect(screen.queryByRole('navigation', { name: 'Section navigation' }))
       .not.toBeInTheDocument()
+  })
+
+  it('marks Pools current without also marking Vocabulary current', () => {
+    renderAt('/learn/pools')
+    const desktop = screen.getAllByRole('navigation', { name: 'Main navigation' })[0]
+    expect(within(desktop).getByRole('link', { name: /Pools/ }))
+      .toHaveAttribute('aria-current', 'page')
+    expect(within(desktop).getByRole('link', { name: /Learn/ }))
+      .not.toHaveAttribute('aria-current')
   })
 })

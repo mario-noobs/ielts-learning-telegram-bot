@@ -75,6 +75,10 @@ function LegacyVocabRedirect() {
   const { id } = useParams<{ id: string }>()
   return <Navigate to={`/learn/vocab/${id}`} replace />
 }
+function LegacyPublicPoolRedirect() {
+  const { poolId } = useParams<{ poolId?: string }>()
+  return <Navigate to={poolId ? `/learn/pools/${poolId}` : '/learn/pools'} replace />
+}
 function LegacyWriteRedirect() {
   const { id } = useParams<{ id: string }>()
   return <Navigate to={`/practice/writing/${id}`} replace />
@@ -125,8 +129,10 @@ export default function App() {
             <Route path="/learn/vocab/favourites" element={<VocabHomePage initialTab="favourites" />} />
             <Route path="/learn/vocab/history" element={<VocabHomePage initialTab="history" />} />
             <Route path="/learn/vocab/add" element={<VocabAddPage />} />
-            <Route path="/learn/vocab/pools" element={<PublicVocabPoolsPage />} />
-            <Route path="/learn/vocab/pools/:poolId" element={<PublicVocabPoolsPage />} />
+            <Route path="/learn/pools" element={<PublicVocabPoolsPage />} />
+            <Route path="/learn/pools/:poolId" element={<PublicVocabPoolsPage />} />
+            <Route path="/learn/vocab/pools" element={<LegacyPublicPoolRedirect />} />
+            <Route path="/learn/vocab/pools/:poolId" element={<LegacyPublicPoolRedirect />} />
             {/* Topic drill-down — must precede `:id` so /topic/:slug
                 doesn't get matched as a word id. */}
             <Route path="/learn/vocab/topic/:slug" element={<VocabTopicPage />} />

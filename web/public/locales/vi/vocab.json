@@ -50,11 +50,6 @@
       "title": "Khám phá",
       "description": "Xem chủ đề và lộ trình học từng phần."
     },
-    "publicPools": {
-      "meta": "{count} bộ từ",
-      "title": "Kho từ công khai",
-      "description": "Xem bộ từ IELTS chỉ đọc theo nguồn và độ khó."
-    },
     "add": {
       "meta": "AI hoặc tự thêm",
       "title": "Thêm từ",
@@ -66,7 +61,7 @@
     }
   },
   "publicPools": {
-    "back": "Trung tâm từ vựng",
+    "backToPools": "Kho từ công khai",
     "heading": "Kho từ công khai",
     "subtitle": "Chọn bộ từ chỉ đọc theo cấp độ, chủ đề và nguồn dữ liệu.",
     "difficultyValue": "Độ khó {value}/5",
@@ -109,7 +104,7 @@
     "disabled": {
       "title": "Kho từ công khai chưa khả dụng",
       "description": "Nguồn từ này vẫn đang trong giai đoạn rollout.",
-      "cta": "Quay lại từ vựng"
+      "cta": "Về trang chủ"
     },
     "empty": {
       "title": "Không có bộ từ phù hợp",
@@ -117,7 +112,7 @@
     },
     "error": {
       "title": "Chưa tải được kho từ công khai",
-      "cta": "Quay lại từ vựng"
+      "cta": "Về trang chủ"
     }
   },
   "search": {
