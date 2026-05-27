@@ -67,6 +67,23 @@ def _complete_detail(word: str) -> dict:
     }
 
 
+def _fake_public_pool() -> dict:
+    return {
+        "id": "pool-1",
+        "title": "Cambridge IELTS 18",
+        "source": "cambridge",
+        "source_theme": "ielts_18",
+        "word_count": 30,
+        "difficulty": 4,
+        "difficulty_min": 3,
+        "difficulty_max": 5,
+        "topics": ["education"],
+        "source_url": "https://example.test/source",
+        "license": "CC BY 4.0",
+        "provenance": "Seed import",
+    }
+
+
 class TestListVocabulary:
     def test_ac1_returns_paginated_words_with_srs(self, client):
         """AC1: GET /api/v1/vocabulary returns paginated list with SRS data."""
@@ -146,6 +163,90 @@ class TestListVocabulary:
             response = client.get("/api/v1/vocabulary")
         assert response.status_code == 200
         assert response.json() == {"items": [], "next_cursor": None}
+
+
+class TestPublicVocabPools:
+    def test_list_returns_disabled_when_feature_flag_off(self, client):
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=False) as flag, \
+             patch("api.routes.vocabulary.public_vocab_pool_service.list_public_pools") as service:
+            response = client.get("/api/v1/vocabulary/public-pools")
+
+        assert response.status_code == 200
+        assert response.json() == {"enabled": False, "items": []}
+        flag.assert_called_once_with("public_vocab_pools", "test-user-1")
+        service.assert_not_called()
+
+    def test_list_returns_read_only_public_pools_with_filters(self, client):
+        pool = _fake_public_pool()
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.list_public_pools",
+                   return_value=[pool]) as service:
+            response = client.get(
+                "/api/v1/vocabulary/public-pools",
+                params={"difficulty": 4, "topic": "education"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["enabled"] is True
+        assert body["items"][0]["title"] == "Cambridge IELTS 18"
+        assert body["items"][0]["source"] == "cambridge"
+        assert body["items"][0]["license"] == "CC BY 4.0"
+        service.assert_called_once_with(difficulty=4, topic="education")
+
+    def test_detail_returns_words_without_mutating_user_collection(self, client):
+        detail = {
+            "pool": _fake_public_pool(),
+            "words": [
+                {
+                    "id": "w1",
+                    "word": "scalability",
+                    "definition_en": "ability to be enlarged or increased",
+                    "definition_vi": "kha nang mo rong",
+                    "ipa": "skaelability",
+                    "part_of_speech": "noun",
+                    "difficulty": 4,
+                    "topic": "technology",
+                    "source_ref": "unit-1",
+                }
+            ],
+        }
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_detail",
+                   return_value=detail) as service, \
+             patch("api.routes.vocabulary.firebase_service.add_word_if_not_exists") as add_word:
+            response = client.get("/api/v1/vocabulary/public-pools/pool-1")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["enabled"] is True
+        assert body["pool"]["id"] == "pool-1"
+        assert body["words"][0]["word"] == "scalability"
+        service.assert_called_once_with("pool-1", difficulty=None, topic=None)
+        add_word.assert_not_called()
+
+    def test_detail_returns_403_when_feature_flag_off(self, client):
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=False), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_detail") as service:
+            response = client.get("/api/v1/vocabulary/public-pools/pool-1")
+
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == ERR.forbidden.code
+        service.assert_not_called()
+
+    def test_detail_returns_404_for_unknown_pool(self, client):
+        with patch("api.routes.vocabulary.feature_flag_service.is_enabled",
+                   return_value=True), \
+             patch("api.routes.vocabulary.public_vocab_pool_service.get_public_pool_detail",
+                   return_value=None):
+            response = client.get("/api/v1/vocabulary/public-pools/missing")
+
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == ERR.not_found.code
 
 
 class TestAddWordWithAi:

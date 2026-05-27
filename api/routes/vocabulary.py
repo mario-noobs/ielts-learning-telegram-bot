@@ -21,11 +21,19 @@ from api.models.vocabulary import (
     DailyWordsResponse,
     ImportWordsRequest,
     ImportWordsResponse,
+    PublicVocabPoolDetailResponse,
+    PublicVocabPoolsResponse,
     VocabularyDraftResponse,
     VocabularyWord,
     WordListResponse,
 )
-from services import firebase_service, vocab_service, word_service
+from services import (
+    feature_flag_service,
+    firebase_service,
+    public_vocab_pool_service,
+    vocab_service,
+    word_service,
+)
 from services.admin import quota_service
 from services.srs_service import get_word_strength
 
@@ -33,6 +41,7 @@ router = APIRouter(prefix="/api/v1/vocabulary", tags=["vocabulary"])
 logger = logging.getLogger(__name__)
 EXTRA_DAILY_WORD_LIMIT = 5
 EXTRA_DAILY_SOURCE = "extra"
+PUBLIC_POOLS_FLAG = "public_vocab_pools"
 VOCAB_LIMITS_BY_PLAN = {
     "free": {
         "max_private_words": 100,
@@ -92,6 +101,11 @@ def _parse_vocab_source_filter(source: str | None) -> int | None:
 
 def _vocab_limits(plan: str | None) -> dict[str, int]:
     return VOCAB_LIMITS_BY_PLAN.get(plan or "free", VOCAB_LIMITS_BY_PLAN["free"])
+
+
+def _public_pools_enabled(user: dict) -> bool:
+    uid = str(user.get("auth_uid") or user.get("id") or "")
+    return feature_flag_service.is_enabled(PUBLIC_POOLS_FLAG, uid)
 
 
 def _user_timezone(user: dict) -> str:
@@ -218,6 +232,45 @@ def _refresh_daily_word_status(
                 item["reviewed"] = _is_daily_word_reviewed(saved)
         refreshed.append(item)
     return refreshed, changed
+
+
+@router.get("/public-pools", response_model=PublicVocabPoolsResponse)
+async def list_public_vocab_pools(
+    difficulty: int | None = Query(default=None, ge=1, le=5),
+    topic: str | None = Query(default=None, min_length=1, max_length=80),
+    user: dict = Depends(get_current_user),
+) -> PublicVocabPoolsResponse:
+    if not _public_pools_enabled(user):
+        return PublicVocabPoolsResponse(enabled=False, items=[])
+    items = await asyncio.to_thread(
+        public_vocab_pool_service.list_public_pools,
+        difficulty=difficulty,
+        topic=topic,
+    )
+    return PublicVocabPoolsResponse(enabled=True, items=items)
+
+
+@router.get("/public-pools/{pool_id}", response_model=PublicVocabPoolDetailResponse)
+async def get_public_vocab_pool(
+    pool_id: str,
+    difficulty: int | None = Query(default=None, ge=1, le=5),
+    topic: str | None = Query(default=None, min_length=1, max_length=80),
+    user: dict = Depends(get_current_user),
+) -> PublicVocabPoolDetailResponse:
+    if not _public_pools_enabled(user):
+        raise ApiError(ERR.forbidden)
+    try:
+        detail = await asyncio.to_thread(
+            public_vocab_pool_service.get_public_pool_detail,
+            pool_id,
+            difficulty=difficulty,
+            topic=topic,
+        )
+    except ValueError:
+        raise ApiError(ERR.not_found)
+    if detail is None:
+        raise ApiError(ERR.not_found)
+    return PublicVocabPoolDetailResponse(enabled=True, **detail)
 
 
 def _reviewed_count(words: list[dict]) -> int:
