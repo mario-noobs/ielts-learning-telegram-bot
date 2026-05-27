@@ -186,3 +186,38 @@ async def test_personal_daily_uses_my_words_context_and_excludes_existing():
     prompt_topic = mock_ai.await_args.kwargs["topic"]
     assert "cloud" in prompt_topic
     assert "scalability" in prompt_topic
+
+
+@pytest.mark.asyncio
+async def test_stream_personal_daily_yields_after_first_ai_batch():
+    first_batch = [{"word": f"word{i}", "definition_en": "d"} for i in range(5)]
+    second_batch = [{"word": "word5", "definition_en": "d"}]
+    mock_ai = AsyncMock(side_effect=[first_batch, second_batch])
+
+    with patch.object(vocab_service.firebase_service, "get_user",
+                      return_value={"recent_personal_topics": []}), \
+            patch.object(vocab_service.firebase_service, "count_words_by_topic",
+                         return_value={}), \
+            patch.object(vocab_service.firebase_service, "get_user_vocabulary_page",
+                         return_value=[]), \
+            patch.object(vocab_service.firebase_service, "get_user_word_list",
+                         return_value=[]), \
+            patch.object(vocab_service.firebase_service, "update_user"), \
+            patch.object(vocab_service, "_select_master_words", return_value=[]), \
+            patch.object(vocab_service, "_pick_topic_avoiding_recent",
+                         return_value="education"), \
+            patch.object(vocab_service.ai_service, "generate_vocabulary", mock_ai):
+        stream = vocab_service.stream_personal_daily_words(
+            telegram_id=123,
+            count=6,
+            band=7.0,
+            topics=["education"],
+        )
+
+        start = await stream.__anext__()
+        first_word = await stream.__anext__()
+        await stream.aclose()
+
+    assert start["type"] == "start"
+    assert first_word == {"type": "word", "word": first_batch[0]}
+    assert mock_ai.await_count == 1

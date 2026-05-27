@@ -532,8 +532,8 @@ async def stream_personal_daily_words(
 
     Splits the request into VOCAB_BATCH_SIZE-word batches run sequentially.
     Each batch receives the growing exclude list so the AI never repeats words
-    from earlier batches. Words are persisted inline so word_id is ready
-    before the client receives the event.
+    from earlier batches. The API route persists each yielded word before it
+    is sent to the client.
 
     Event shapes:
       {"type": "start", "count": N, "topic": "...", "date": "YYYY-MM-DD"}
@@ -559,39 +559,86 @@ async def stream_personal_daily_words(
     date_str = _config.local_date_str()
     yield {"type": "start", "count": count, "topic": topic, "date": date_str}
 
-    words = await _generate_with_master_first(
-        count=count,
-        band=band,
-        topic=topic,
-        existing_lc=existing_lc,
-        context_words=merged_context,
-        plan=plan,
-    )
-    for w in _filter_dupes_lc(words, existing_lc):
-        word_str = (w.get("word") or "").strip()
-        if not word_str:
-            continue
-        try:
-            word_id, _ = firebase_service.add_word_if_not_exists(
-                telegram_id,
-                {
-                    "word": word_str,
-                    "definition": w.get("definition_en", w.get("definition", "")),
-                    "definition_vi": w.get("definition_vi", ""),
-                    "ipa": w.get("ipa", ""),
-                    "part_of_speech": w.get("part_of_speech", ""),
-                    "topic": topic,
-                    "example_en": w.get("example_en", w.get("example", "")),
-                    "example_vi": w.get("example_vi", ""),
-                },
-            )
-            w["word_id"] = word_id
-        except Exception as exc:
-            logger.warning("vocab stream: persist %r failed — %s", word_str, exc)
-            w["word_id"] = ""
+    emitted_lc = set(existing_lc)
+    emitted_count = 0
+    master_count = 0
+    ai_count = 0
 
-        existing_lc.add(_normalize_word_key(word_str))
-        yield {"type": "word", "word": w}
+    master_words = _select_master_words(
+        count=count,
+        topic=topic,
+        band=band,
+        existing_lc=emitted_lc,
+    )
+    for word in _filter_dupes_lc(master_words, emitted_lc):
+        if emitted_count >= count:
+            break
+        key = _normalize_word_key(word.get("word") or "")
+        if not key:
+            continue
+        emitted_lc.add(key)
+        emitted_count += 1
+        master_count += 1
+        yield {"type": "word", "word": word}
+
+    context_topic = topic
+    if merged_context and len(merged_context) >= 3:
+        joined = ", ".join(merged_context[:10])
+        context_topic = f"{topic} [CONTEXT: The learner is interested in words related to: {joined}. Prefer semantically related words.]"
+
+    max_batches = math.ceil(max(0, count - emitted_count) / VOCAB_BATCH_SIZE) + 3
+    empty_batches = 0
+    for _ in range(max_batches):
+        remaining = count - emitted_count
+        if remaining <= 0:
+            break
+        batch_size = min(VOCAB_BATCH_SIZE, remaining)
+        try:
+            batch = await ai_service.generate_vocabulary(
+                count=batch_size,
+                band=band,
+                topic=context_topic,
+                exclude_words=list(emitted_lc),
+                plan=plan,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Vocab stream batch failed: %s — returning %d/%d words",
+                exc,
+                emitted_count,
+                count,
+            )
+            break
+
+        fresh = _filter_dupes_lc(batch, emitted_lc)
+        dropped = len(batch or []) - len(fresh)
+        if dropped:
+            logger.info(
+                "daily_vocab_duplicate_candidates_filtered",
+                extra={"topic": topic, "dropped": dropped},
+            )
+        if not fresh:
+            empty_batches += 1
+            if empty_batches >= 2:
+                break
+            continue
+
+        empty_batches = 0
+        for word in fresh:
+            if emitted_count >= count:
+                break
+            key = _normalize_word_key(word.get("word") or "")
+            if not key:
+                continue
+            emitted_lc.add(key)
+            emitted_count += 1
+            ai_count += 1
+            yield {"type": "word", "word": word}
+
+    logger.info(
+        "daily_vocab_generation_source_mix",
+        extra={"topic": topic, "source_master": master_count, "source_ai": ai_count},
+    )
 
     next_recent = _push_recent_topic(recent, topic_id)
     try:
