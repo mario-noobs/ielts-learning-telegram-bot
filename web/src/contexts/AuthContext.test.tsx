@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './AuthContext'
 const mocks = vi.hoisted(() => ({
   auth: { currentUser: null as null | { uid: string; email?: string } },
   apiFetch: vi.fn(),
+  getRedirectResult: vi.fn(),
   onAuthStateChanged: vi.fn(),
   signInWithPopup: vi.fn(),
   signInWithRedirect: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('../lib/api', () => ({
 }))
 
 vi.mock('firebase/auth', () => ({
+  getRedirectResult: (...args: unknown[]) => mocks.getRedirectResult(...args),
   onAuthStateChanged: (...args: unknown[]) => mocks.onAuthStateChanged(...args),
   signInWithPopup: (...args: unknown[]) => mocks.signInWithPopup(...args),
   signInWithRedirect: (...args: unknown[]) => mocks.signInWithRedirect(...args),
@@ -43,6 +45,7 @@ function Harness() {
   return (
     <div>
       <p data-testid="profile">{auth.profile?.id ?? 'none'}</p>
+      <p data-testid="loading">{auth.loading ? 'loading' : 'ready'}</p>
       <button type="button" onClick={() => void auth.signInLocal('local@test.dev', 'password')}>
         local
       </button>
@@ -71,6 +74,8 @@ beforeEach(() => {
   mocks.auth.currentUser = null
   mocks.authStateHandler = null
   mocks.apiFetch.mockReset()
+  mocks.getRedirectResult.mockReset()
+  mocks.getRedirectResult.mockResolvedValue(null)
   mocks.signInWithPopup.mockReset()
   mocks.signInWithRedirect.mockReset()
   mocks.signOut.mockReset()
@@ -140,6 +145,35 @@ describe('<AuthProvider>', () => {
     expect(mocks.apiFetch.mock.calls[0][0]).toBe('/api/v1/auth/local/logout')
     expect(mocks.signInWithRedirect).toHaveBeenCalledTimes(1)
     expect(mocks.signInWithPopup).not.toHaveBeenCalled()
+  })
+
+  it('waits for Google redirect result before finishing initial auth', async () => {
+    const googleUser = { uid: 'google-mobile', email: 'mobile@test.dev' }
+    let resolveRedirect: (value: { user: typeof googleUser }) => void = () => {}
+    mocks.getRedirectResult.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRedirect = resolve
+      }),
+    )
+    mocks.apiFetch.mockImplementation((path: string) => {
+      if (path === '/api/v1/me') return Promise.resolve(profilePayload('google-mobile'))
+      throw new Error(`Unexpected API call: ${path}`)
+    })
+
+    renderAuth()
+    await act(async () => {
+      await mocks.authStateHandler?.(null)
+    })
+
+    expect(screen.getByTestId('loading')).toHaveTextContent('loading')
+    expect(mocks.apiFetch).not.toHaveBeenCalled()
+
+    await act(async () => {
+      resolveRedirect({ user: googleUser })
+    })
+
+    await waitFor(() => expect(screen.getByTestId('profile')).toHaveTextContent('google-mobile'))
+    expect(screen.getByTestId('loading')).toHaveTextContent('ready')
   })
 
   it('clears client state even when logout cleanup fails', async () => {
