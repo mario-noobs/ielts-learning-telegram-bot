@@ -24,6 +24,42 @@
     "streak": "Streak",
     "mastered": "Mastered"
   },
+  "hub": {
+    "eyebrow": "Vocabulary",
+    "heading": "Choose one vocabulary step",
+    "subtitle": "Start with today, review what is due, or go deeper into your saved words when you need it.",
+    "today": {
+      "meta": "Daily reset",
+      "title": "Today",
+      "description": "Learn the current daily set and add more only when you want."
+    },
+    "review": {
+      "meta": "{count, plural, one {# word due} other {# words due}}",
+      "metaUnknown": "SRS review",
+      "title": "Review",
+      "description": "Practice due cards without browsing the full collection."
+    },
+    "myWords": {
+      "meta": "{mastered}/{total} mastered",
+      "title": "My Words",
+      "description": "Search, filter, favourite, and open saved vocabulary."
+    },
+    "explore": {
+      "meta": "Roadmap",
+      "metaTopic": "Focus: {topic}",
+      "title": "Explore",
+      "description": "Browse topics and study paths one area at a time."
+    },
+    "add": {
+      "meta": "AI or manual",
+      "title": "Add words",
+      "description": "Create a single card or import a small candidate set."
+    },
+    "error": {
+      "title": "Vocabulary is unavailable",
+      "cta": "Reload"
+    }
+  },
   "search": {
     "placeholder": "Search words, meanings…"
   },
@@ -86,6 +122,7 @@
     "subtitle": "Your private IELTS vocabulary. Daily words, manual additions, favourites, and reviews all live here.",
     "listHeading": "My Words",
     "listSummary": "{visible}/{total} words",
+    "addCta": "Add words",
     "filters": {
       "source": "Source",
       "status": "Status"
@@ -103,6 +140,14 @@
   },
   "limits": {
     "aiUsage": "{remaining}/{quota} AI calls remaining today. Used {used}. Resets at {reset}."
+  },
+  "addFlow": {
+    "backToHub": "Vocabulary hub",
+    "heading": "Add words",
+    "subtitle": "Create one strong card or import a small set. Saved words go into My Words.",
+    "savedHeading": "Saved this session",
+    "savedSummary": "{count, plural, one {# saved} other {# saved}}",
+    "viewMyWords": "View My Words"
   },
   "addWord": {
     "title": "Add word with AI description",

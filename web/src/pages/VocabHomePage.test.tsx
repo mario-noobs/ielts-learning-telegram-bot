@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import VocabHomePage from './VocabHomePage'
+import VocabHomePage, { VocabAddPage } from './VocabHomePage'
 
 const apiFetchMock = vi.fn()
 vi.mock('../lib/api', () => ({
@@ -33,10 +34,10 @@ beforeEach(() => {
   useProfileMock.mockReturnValue(null)
 })
 
-function render_() {
+function render_(page: ReactNode = <VocabHomePage />) {
   return render(
     <MemoryRouter>
-      <VocabHomePage />
+      {page}
     </MemoryRouter>,
   )
 }
@@ -44,8 +45,6 @@ function render_() {
 describe('<VocabHomePage>', () => {
   it('previews and saves an AI word card', async () => {
     apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
-      if (url === '/api/v1/topics') return Promise.resolve({ items: [], total_words: 0 })
-      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
       if (url === '/api/v1/me/ai-usage') {
         return Promise.resolve({
           plan: 'free',
@@ -54,9 +53,6 @@ describe('<VocabHomePage>', () => {
           by_feature: [{ feature: 'vocab', count: 3 }],
           reset_at: '2026-05-28T00:00:00+00:00',
         })
-      }
-      if (url === '/api/v1/vocabulary?limit=100') {
-        return Promise.resolve({ items: [], next_cursor: null })
       }
       if (url === '/api/v1/vocabulary/draft') {
         expect(options?.method).toBe('POST')
@@ -97,7 +93,7 @@ describe('<VocabHomePage>', () => {
       throw new Error(`Unexpected API call: ${url}`)
     })
 
-    render_()
+    render_(<VocabAddPage />)
 
     await userEvent.type(await screen.findByLabelText(/addWord\.inputLabel/), 'latency')
     expect(await screen.findByText(/limits\.aiUsage/)).toBeInTheDocument()
@@ -115,11 +111,6 @@ describe('<VocabHomePage>', () => {
 
   it('imports candidates from text and saves selected non-duplicates', async () => {
     apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
-      if (url === '/api/v1/topics') return Promise.resolve({ items: [], total_words: 0 })
-      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
-      if (url === '/api/v1/vocabulary?limit=100') {
-        return Promise.resolve({ items: [], next_cursor: null })
-      }
       if (url === '/api/v1/vocabulary/import/draft') {
         expect(options?.method).toBe('POST')
         expect(JSON.parse(String(options?.body))).toMatchObject({
@@ -185,7 +176,7 @@ describe('<VocabHomePage>', () => {
       throw new Error(`Unexpected API call: ${url}`)
     })
 
-    render_()
+    render_(<VocabAddPage />)
 
     await userEvent.click(await screen.findByRole('button', { name: /importWords\.modes\.text/ }))
     await userEvent.type(screen.getByLabelText(/importWords\.textLabel/), 'Cities need resilience and adaptation.')
