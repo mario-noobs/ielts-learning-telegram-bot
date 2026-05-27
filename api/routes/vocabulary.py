@@ -162,22 +162,26 @@ def _to_daily_word(doc: dict) -> DailyWord:
     )
 
 
-def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
+def _daily_vocab_doc(word: dict, topic: str) -> dict:
+    return {
+        "word": word.get("word", ""),
+        "definition": word.get("definition_en", word.get("definition", "")),
+        "definition_vi": word.get("definition_vi", ""),
+        "ipa": word.get("ipa", ""),
+        "part_of_speech": word.get("part_of_speech", ""),
+        "topic": topic,
+        "example_en": word.get("example_en", word.get("example", "")),
+        "example_vi": word.get("example_vi", ""),
+    }
+
+
+def _persist_daily_to_deck(user_id: int | str, words: list[dict], topic: str) -> None:
     """Add each daily word to the user's vocab deck (idempotent via
     add_word_if_not_exists). Stamps word_id into the daily payload so
     downstream clients can target the word for quizzes/reviews.
     """
     for w in words:
-        doc = {
-            "word": w.get("word", ""),
-            "definition": w.get("definition_en", w.get("definition", "")),
-            "definition_vi": w.get("definition_vi", ""),
-            "ipa": w.get("ipa", ""),
-            "part_of_speech": w.get("part_of_speech", ""),
-            "topic": topic,
-            "example_en": w.get("example_en", w.get("example", "")),
-            "example_vi": w.get("example_vi", ""),
-        }
+        doc = _daily_vocab_doc(w, topic)
         if not doc["word"]:
             continue
         word_id, _ = firebase_service.add_word_if_not_exists(user_id, doc)
@@ -188,13 +192,24 @@ def _persist_daily_to_deck(user_id: int, words: list[dict], topic: str) -> None:
         w["reviewed"] = _is_daily_word_reviewed(saved)
 
 
-def _refresh_daily_word_status(user_id: int, words: list[dict]) -> list[dict]:
+def _refresh_daily_word_status(
+    user_id: int | str,
+    words: list[dict],
+    topic: str = "",
+) -> tuple[list[dict], bool]:
     refreshed = []
+    changed = False
     for w in words:
         item = dict(w)
         word_id = item.get("word_id")
-        if word_id:
+        saved = firebase_service.get_word_by_id(user_id, word_id) if word_id else None
+        if not saved and item.get("word"):
+            doc = _daily_vocab_doc(item, topic or item.get("topic", ""))
+            word_id, _ = firebase_service.add_word_if_not_exists(user_id, doc)
+            item["word_id"] = word_id
             saved = firebase_service.get_word_by_id(user_id, word_id) or {}
+            changed = True
+        if word_id:
             if saved:
                 item["is_favourite"] = saved.get(
                     "is_favourite", item.get("is_favourite", False),
@@ -202,7 +217,7 @@ def _refresh_daily_word_status(user_id: int, words: list[dict]) -> list[dict]:
                 item["strength"] = get_word_strength(saved)
                 item["reviewed"] = _is_daily_word_reviewed(saved)
         refreshed.append(item)
-    return refreshed
+    return refreshed, changed
 
 
 def _reviewed_count(words: list[dict]) -> int:
@@ -336,7 +351,17 @@ async def _daily_sse_generator(
                     words,
                     topic,
                 )
-            words = await asyncio.to_thread(_refresh_daily_word_status, user_id, words)
+            words, changed = await asyncio.to_thread(
+                _refresh_daily_word_status, user_id, words, topic
+            )
+            if changed:
+                await asyncio.to_thread(
+                    firebase_service.save_user_daily_words,
+                    user_id,
+                    date_str,
+                    words,
+                    topic,
+                )
             yield sse({
                 "type": "start",
                 "count": len(words),
@@ -489,9 +514,14 @@ async def generate_daily(
                 firebase_service.save_user_daily_words,
                 user["id"], date_str, cached_words, cached_topic,
             )
-        cached_words = await asyncio.to_thread(
-            _refresh_daily_word_status, user["id"], cached_words,
+        cached_words, changed = await asyncio.to_thread(
+            _refresh_daily_word_status, user["id"], cached_words, cached_topic,
         )
+        if changed:
+            await asyncio.to_thread(
+                firebase_service.save_user_daily_words,
+                user["id"], date_str, cached_words, cached_topic,
+            )
         return _daily_response(
             date_str,
             cached_topic,
@@ -518,7 +548,9 @@ async def generate_daily(
         firebase_service.save_user_daily_words, user["id"], date_str, words, topic
     )
 
-    words = await asyncio.to_thread(_refresh_daily_word_status, user["id"], words)
+    words, _ = await asyncio.to_thread(
+        _refresh_daily_word_status, user["id"], words, topic
+    )
     return _daily_response(
         date_str,
         topic,
@@ -718,9 +750,17 @@ async def add_extra_daily_words(
         next_words,
         topic,
     )
-    refreshed = await asyncio.to_thread(
-        _refresh_daily_word_status, user["id"], next_words,
+    refreshed, changed = await asyncio.to_thread(
+        _refresh_daily_word_status, user["id"], next_words, topic,
     )
+    if changed:
+        await asyncio.to_thread(
+            firebase_service.save_user_daily_words,
+            user["id"],
+            date_str,
+            refreshed,
+            topic,
+        )
     return _daily_response(
         date_str,
         topic,
@@ -948,12 +988,18 @@ async def get_daily_by_date(
             detail=f"No daily words cached for {date}.",
         )
     timezone_name = _user_timezone(user)
-    words = await asyncio.to_thread(
-        _refresh_daily_word_status, user["id"], cached.get("words", []),
+    topic = cached.get("topic", "")
+    words, changed = await asyncio.to_thread(
+        _refresh_daily_word_status, user["id"], cached.get("words", []), topic,
     )
+    if changed:
+        await asyncio.to_thread(
+            firebase_service.save_user_daily_words,
+            user["id"], date, words, topic,
+        )
     return _daily_response(
         date,
-        cached.get("topic", ""),
+        topic,
         words,
         timezone_name,
         generated_at=cached.get("generated_at"),

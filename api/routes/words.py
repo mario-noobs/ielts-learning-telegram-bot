@@ -88,20 +88,17 @@ async def update_word_strength(
     quiz progress: if the user is already past the chosen tier's
     interval, the request is acknowledged but state is not changed.
     """
-    user_id_raw = str(user.get("id") or "")
-    if not user_id_raw.isdigit():
-        # Web-only users have no Telegram-side vocab. Their words live
-        # under a `web_*` doc tree — currently unsupported by the bot
-        # vocab repo. Surface as not-found until web vocab ships.
+    user_id = str(user.get("id") or "")
+    if not user_id:
         raise ApiError(ERR.vocab_word_not_found)
 
-    auth_uid = user.get("auth_uid") or user_id_raw
+    auth_uid = str(user.get("auth_uid") or user_id)
     _check_override_rate_limit(auth_uid)
 
     try:
         before_word = await asyncio.to_thread(
             word_service.firebase_service.get_word_by_id,
-            int(user_id_raw), word_id,
+            user_id, word_id,
         )
         if not before_word:
             raise ApiError(ERR.vocab_word_not_found)
@@ -109,7 +106,7 @@ async def update_word_strength(
         before_interval = int(before_word.get("srs_interval") or 0)
         updated = await asyncio.to_thread(
             word_service.set_word_strength_manual,
-            int(user_id_raw), word_id, body.strength,
+            user_id, word_id, body.strength,
         )
     except ValueError:
         raise ApiError(ERR.vocab_word_not_found)
