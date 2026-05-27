@@ -243,6 +243,14 @@ class _Registry:
         "vocab.word_not_found", 404,
         "Word not found in your vocabulary.",
     )
+    vocab_word_empty = ErrorCode(
+        "vocab.word_empty", 400,
+        "Vocabulary word cannot be empty.",
+    )
+    vocab_word_duplicate = ErrorCode(
+        "vocab.word_duplicate", 409,
+        "Word already exists in the user's vocabulary.",
+    )
     vocab_override_rate_limited = ErrorCode(
         "vocab.override_rate_limited", 429,
         "Too many manual mastery changes today. Try again tomorrow.",

@@ -90,6 +90,8 @@
     }
   },
   "vocab": {
+    "word_empty": "Nhập một từ hoặc cụm từ ngắn.",
+    "word_duplicate": "\"{word}\" đã có trong Từ của tôi.",
     "daily_not_found": "Hãy tạo từ vựng hôm nay trước khi thêm từ học thêm.",
     "extra_limit_exceeded": "Bạn đã dùng hết {limit} từ học thêm hôm nay. Làm mới lúc {next_reset_at}."
   }

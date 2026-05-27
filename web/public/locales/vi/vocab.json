@@ -101,6 +101,21 @@
       "all": "Tất cả trạng thái"
     }
   },
+  "addWord": {
+    "title": "Tạo từ vựng với AI",
+    "description": "Nhập một từ hoặc cụm từ ngắn. Xem trước thẻ IELTS trước khi lưu vào Từ của tôi.",
+    "badge": "AI preview",
+    "inputLabel": "Từ hoặc cụm từ ngắn",
+    "placeholder": "VD: scalability, carbon footprint",
+    "generate": "Tạo",
+    "generating": "Đang tạo…",
+    "save": "Lưu vào Từ của tôi",
+    "saving": "Đang lưu…",
+    "cancel": "Huỷ",
+    "saveBasic": "Lưu từ không dùng AI",
+    "saved": "Đã lưu \"{word}\" vào Từ của tôi.",
+    "alreadyExists": "\"{word}\" đã có trong Từ của tôi."
+  },
   "loadMore": "Tải thêm",
   "loadingMore": "Đang tải…",
   "empty": {

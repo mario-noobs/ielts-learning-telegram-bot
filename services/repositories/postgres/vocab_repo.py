@@ -191,6 +191,20 @@ class PostgresVocabRepo:
             get_user_repo().increment_counters(user_id, total_words=1)
         return word_id, created
 
+    def get_by_word(self, user_id: UserId, word: str) -> Optional[VocabularyItem]:
+        norm = _normalize(word)
+        if not norm:
+            return None
+        with get_sync_session() as s:
+            row = s.execute(
+                select(UserVocabulary).where(
+                    UserVocabulary.user_id == str(user_id),
+                    UserVocabulary.normalized_word == norm,
+                    UserVocabulary.archived_at.is_(None),
+                )
+            ).scalar_one_or_none()
+        return _row_to_dto(row) if row else None
+
     def list_by_user(self, user_id: UserId, limit: int = 50) -> list[VocabularyItem]:
         with get_sync_session() as s:
             rows = s.execute(

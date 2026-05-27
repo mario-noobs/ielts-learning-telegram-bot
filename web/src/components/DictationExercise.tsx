@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { apiFetch } from '../lib/api'
-import { localizeError } from '../lib/apiError'
+import { ApiError, localizeError } from '../lib/apiError'
 import {
   DictationDiffItem,
   ListeningExerciseResult,
@@ -78,7 +78,7 @@ function MisheardBridge({ words }: { words: string[] }) {
       setAdded((prev) => new Set(prev).add(word))
     } catch (e) {
       const msg = localizeError(e)
-      if (msg.toLowerCase().includes('already')) {
+      if (e instanceof ApiError && e.code === 'vocab.word_duplicate') {
         setAdded((prev) => new Set(prev).add(word))
       } else {
         setError(msg)

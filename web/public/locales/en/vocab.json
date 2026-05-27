@@ -101,6 +101,21 @@
       "all": "All statuses"
     }
   },
+  "addWord": {
+    "title": "Add word with AI description",
+    "description": "Type a word or short phrase. Preview the IELTS card before saving it to My Words.",
+    "badge": "AI preview",
+    "inputLabel": "Word or short phrase",
+    "placeholder": "e.g. scalability, carbon footprint",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "save": "Save to My Words",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "saveBasic": "Save word without AI",
+    "saved": "\"{word}\" saved to My Words.",
+    "alreadyExists": "\"{word}\" is already in My Words."
+  },
   "loadMore": "Load more",
   "loadingMore": "Loading…",
   "empty": {
