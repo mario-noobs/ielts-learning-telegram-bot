@@ -124,7 +124,14 @@ class VocabRepo(Protocol):
 
     def get_mastered(self, user_id: UserId) -> list[VocabularyItem]: ...
 
-    def get_due(self, user_id: UserId, limit: int = 10) -> list[VocabularyItem]: ...
+    def get_due(
+        self,
+        user_id: UserId,
+        limit: int = 10,
+        source: Optional[int] = None,
+        topic: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> list[VocabularyItem]: ...
 
     def update_srs(self, user_id: UserId, word_id: str, data: dict) -> None: ...
 

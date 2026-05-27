@@ -324,16 +324,44 @@ class PostgresVocabRepo:
             ).scalars().all()
         return [_row_to_dto(r) for r in rows]
 
-    def get_due(self, user_id: UserId, limit: int = 10) -> list[VocabularyItem]:
+    def get_due(
+        self,
+        user_id: UserId,
+        limit: int = 10,
+        source: Optional[int] = None,
+        topic: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> list[VocabularyItem]:
         now = datetime.now(timezone.utc)
+        conds = [
+            UserVocabulary.user_id == str(user_id),
+            UserVocabulary.srs_next_review <= now,
+            UserVocabulary.archived_at.is_(None),
+        ]
+        if source is not None:
+            conds.append(UserVocabulary.source == source)
+        if topic:
+            conds.append(UserVocabulary.topic_id == _topic_id(topic))
+        if status == "New":
+            conds.append(UserVocabulary.srs_reps == 0)
+        elif status == "Weak":
+            conds.append(UserVocabulary.srs_reps > 0)
+            conds.append(UserVocabulary.srs_interval <= 1)
+        elif status == "Learning":
+            conds.append(UserVocabulary.srs_reps > 0)
+            conds.append(UserVocabulary.srs_interval > 1)
+            conds.append(UserVocabulary.srs_interval <= 7)
+        elif status == "Good":
+            conds.append(UserVocabulary.srs_reps > 0)
+            conds.append(UserVocabulary.srs_interval > 7)
+            conds.append(UserVocabulary.srs_interval <= 30)
+        elif status == "Mastered":
+            conds.append(UserVocabulary.srs_reps > 0)
+            conds.append(UserVocabulary.srs_interval > 30)
         with get_sync_session() as s:
             rows = s.execute(
                 select(UserVocabulary)
-                .where(
-                    UserVocabulary.user_id == str(user_id),
-                    UserVocabulary.srs_next_review <= now,
-                    UserVocabulary.archived_at.is_(None),
-                )
+                .where(and_(*conds))
                 .order_by(UserVocabulary.srs_next_review)
                 .limit(limit)
             ).scalars().all()

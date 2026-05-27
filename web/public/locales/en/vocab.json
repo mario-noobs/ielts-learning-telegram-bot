@@ -204,6 +204,12 @@
       "mcq": "Multiple Choice",
       "mcqDesc": "Pick the right answer from four options."
     },
+    "filters": {
+      "source": "Source",
+      "status": "Status",
+      "topic": "Topic",
+      "topicPlaceholder": "Any topic"
+    },
     "flip": {
       "reveal": "Reveal",
       "again": "Again",
@@ -218,6 +224,7 @@
     "seeResultsBtn": "See results",
     "continueHint": "(Space)",
     "resultsHeading": "Results",
+    "statusChanged": "{count} words changed status.",
     "reviewAgainBtn": "Review more",
     "backToVocabBtn": "Back to vocabulary",
     "progressAria": "Question {current} of {total}",

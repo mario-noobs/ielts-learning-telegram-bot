@@ -3,6 +3,7 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.auth import get_current_user
+from api.errors import ApiError, ERR
 from api.models.review import (
     DueWord,
     ReviewDueRequest,
@@ -16,6 +17,39 @@ from services.srs_service import calculate_next_review, get_word_strength
 router = APIRouter(prefix="/api/v1/review", tags=["review"])
 
 DEFAULT_DUE_LIMIT = 10
+VOCAB_SOURCE_BY_ID = {
+    1: "daily",
+    2: "quiz",
+    3: "manual",
+    4: "reading",
+}
+VOCAB_SOURCE_ID_BY_NAME = {name: source_id for source_id, name in VOCAB_SOURCE_BY_ID.items()}
+
+
+def _source_label(raw: object) -> str:
+    if isinstance(raw, str):
+        normalized = raw.strip().lower()
+        return normalized if normalized in VOCAB_SOURCE_ID_BY_NAME else "daily"
+    try:
+        return VOCAB_SOURCE_BY_ID.get(int(raw or 1), "daily")
+    except (TypeError, ValueError):
+        return "daily"
+
+
+def _parse_source_filter(source: str | None) -> int | None:
+    if not source:
+        return None
+    normalized = source.strip().lower()
+    if not normalized or normalized == "all":
+        return None
+    source_id = VOCAB_SOURCE_ID_BY_NAME.get(normalized)
+    if source_id is None:
+        raise ApiError(
+            ERR.validation,
+            field="source",
+            allowed_sources=list(VOCAB_SOURCE_ID_BY_NAME),
+        )
+    return source_id
 
 
 def _to_due_word(doc: dict) -> DueWord:
@@ -28,6 +62,8 @@ def _to_due_word(doc: dict) -> DueWord:
         definition_vi=doc.get("definition_vi", ""),
         example_en=doc.get("example_en", ""),
         example_vi=doc.get("example_vi", ""),
+        source=_source_label(doc.get("source")),
+        topic=doc.get("topic", ""),
         strength=get_word_strength(doc),
     )
 
@@ -39,7 +75,17 @@ async def get_due(
 ) -> ReviewDueResponse:
     """Return vocab rows whose SRS next_review is in the past, newest first."""
     limit = (body.limit if body and body.limit else DEFAULT_DUE_LIMIT)
-    docs = await asyncio.to_thread(firebase_service.get_due_words, user["id"], limit)
+    source_id = _parse_source_filter(body.source if body else None)
+    topic = body.topic if body else None
+    status_filter = body.status if body else None
+    docs = await asyncio.to_thread(
+        firebase_service.get_due_words,
+        user["id"],
+        limit,
+        source_id,
+        topic,
+        status_filter,
+    )
     return ReviewDueResponse(items=[_to_due_word(d) for d in docs])
 
 
