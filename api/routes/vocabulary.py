@@ -404,7 +404,11 @@ async def stream_daily(
     return StreamingResponse(
         _daily_sse_generator(user["id"], date_str, count, band, topics, timezone_name),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
