@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 import { localizeError } from '../lib/apiError'
 import {
   PassageDetail,
@@ -129,14 +130,7 @@ export default function ReadingExercisePage() {
   // ─── Render ─────────────────────────────────────────────────────────
 
   if (status === 'loading') {
-    return (
-      <div className="mx-auto max-w-6xl p-4 md:p-6">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="h-[60vh] animate-pulse rounded-xl bg-surface" />
-          <div className="h-[60vh] animate-pulse rounded-xl bg-surface" />
-        </div>
-      </div>
-    )
+    return <LoadingScreen className="mx-auto max-w-6xl p-4 md:p-6" />
   }
 
   if (status === 'error' || !passage || !session) {

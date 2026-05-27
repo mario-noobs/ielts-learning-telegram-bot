@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 import { apiFetch } from '../lib/api'
 import { playPronunciation } from '../lib/audio'
 import { localizeError } from '../lib/apiError'
@@ -63,17 +64,6 @@ function PlayButton({ word }: { word: string }) {
       <Icon name="Play" size="md" variant="primary" />
       <span className="text-sm">Phát âm</span>
     </button>
-  )
-}
-
-function Skeleton() {
-  return (
-    <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-border rounded w-1/2" />
-      <div className="h-4 bg-border rounded w-1/3" />
-      <div className="h-20 bg-border rounded" />
-      <div className="h-32 bg-border rounded" />
-    </div>
   )
 }
 
@@ -229,7 +219,7 @@ export default function WordDetailPage() {
         </div>
       )}
 
-      {!data && !error && <Skeleton />}
+      {!data && !error && <LoadingScreen compact title="Loading word" />}
 
       {data && (
         <>

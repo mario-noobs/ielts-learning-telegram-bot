@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
+import LoadingScreen from '../components/LoadingScreen'
 import { localizeError } from '../lib/apiError'
 import {
   BAND_TIERS,
@@ -106,11 +107,7 @@ export default function ReadingHomePage() {
       )}
 
       {items === null ? (
-        <div className="space-y-2" aria-hidden="true">
-          <div className="h-16 animate-pulse rounded-xl bg-surface" />
-          <div className="h-16 animate-pulse rounded-xl bg-surface" />
-          <div className="h-16 animate-pulse rounded-xl bg-surface" />
-        </div>
+        <LoadingScreen compact title="Reading Lab" />
       ) : items.length === 0 ? (
         <EmptyState
           illustration="plan-complete"
