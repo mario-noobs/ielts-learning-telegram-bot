@@ -80,6 +80,45 @@ interface TeamMemberProgressResponse {
   members: TeamMemberProgressRow[]
 }
 
+interface TeamWordSnapshot {
+  word: string
+  definition_en: string
+  definition_vi: string
+  ipa: string
+  part_of_speech: string
+  example_en: string
+  example_vi: string
+  topic: string
+}
+
+interface TeamKnowledgePost {
+  id: string
+  team_id: string
+  type: 'question' | 'shared_word' | 'note'
+  category: string | null
+  title: string | null
+  body: string | null
+  author: {
+    user_id: string
+    name: string
+  }
+  word_snapshot: TeamWordSnapshot | null
+  saved_to_my_words: boolean
+  existing_word_id: string | null
+  created_at: string
+}
+
+interface TeamKnowledgePostsResponse {
+  items: TeamKnowledgePost[]
+  next_cursor: string | null
+}
+
+interface TeamSaveSharedWordResponse {
+  word: {
+    id: string
+  }
+}
+
 const ROLE_META: Record<TeamRole, { icon: IconName; className: string }> = {
   owner: {
     icon: 'Crown',
@@ -113,12 +152,14 @@ export default function TeamPage() {
   const [members, setMembers] = useState<TeamMemberSummary[]>([])
   const [overview, setOverview] = useState<TeamOverviewResponse | null>(null)
   const [memberProgress, setMemberProgress] = useState<TeamMemberProgressRow[]>([])
+  const [knowledgePosts, setKnowledgePosts] = useState<TeamKnowledgePost[]>([])
   const [loading, setLoading] = useState(true)
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
   const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [inviteLoading, setInviteLoading] = useState(false)
   const [memberAction, setMemberAction] = useState('')
+  const [knowledgeAction, setKnowledgeAction] = useState('')
   const [invite, setInvite] = useState<TeamInviteCreateResponse | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
@@ -130,13 +171,17 @@ export default function TeamPage() {
   ) => {
     setWorkspaceLoading(true)
     try {
-      const [membersRes, overviewRes] = await Promise.all([
+      const [membersRes, overviewRes, knowledgeRes] = await Promise.all([
         apiFetch<TeamMembersResponse>(`/api/v1/teams/${encodeURIComponent(teamId)}/members`),
         apiFetch<TeamOverviewResponse>(`/api/v1/teams/${encodeURIComponent(teamId)}/overview`),
+        apiFetch<TeamKnowledgePostsResponse>(
+          `/api/v1/teams/${encodeURIComponent(teamId)}/knowledge/posts?limit=10`,
+        ),
       ])
       setTeam(membersRes.team)
       setMembers(membersRes.members)
       setOverview(overviewRes)
+      setKnowledgePosts(knowledgeRes.items)
       if (role === 'owner' || role === 'admin') {
         const progressRes = await apiFetch<TeamMemberProgressResponse>(
           `/api/v1/teams/${encodeURIComponent(teamId)}/member-progress`,
@@ -284,6 +329,7 @@ export default function TeamPage() {
         setMembers([])
         setOverview(null)
         setMemberProgress([])
+        setKnowledgePosts([])
       } else {
         await loadWorkspace(team.id, team.my_role)
       }
@@ -292,6 +338,28 @@ export default function TeamPage() {
       setError(localizeError(e))
     } finally {
       setMemberAction('')
+    }
+  }
+
+  const saveSharedWord = async (post: TeamKnowledgePost) => {
+    if (!team || post.saved_to_my_words) return
+    setKnowledgeAction(post.id)
+    setError('')
+    try {
+      const res = await apiFetch<TeamSaveSharedWordResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(post.id)}/save-word`,
+        { method: 'POST' },
+      )
+      setKnowledgePosts((items) => items.map((item) => (
+        item.id === post.id
+          ? { ...item, saved_to_my_words: true, existing_word_id: res.word.id }
+          : item
+      )))
+      track('team_shared_word_saved', { team_id: team.id, post_id: post.id })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setKnowledgeAction('')
     }
   }
 
@@ -426,6 +494,91 @@ export default function TeamPage() {
                 )}
               </>
             )}
+          </section>
+
+          <section className="rounded-lg border border-border bg-surface-raised p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-fg">{t('knowledge.title')}</h2>
+                <p className="mt-1 max-w-xl text-sm text-muted-fg">{t('knowledge.description')}</p>
+              </div>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                <Icon name="BookOpen" size="sm" variant="primary" />
+                {t('knowledge.badge')}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {knowledgePosts.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border bg-bg px-4 py-5">
+                  <p className="font-medium text-fg">{t('knowledge.emptyTitle')}</p>
+                  <p className="mt-1 text-sm text-muted-fg">{t('knowledge.emptyDescription')}</p>
+                </div>
+              ) : (
+                knowledgePosts.map((post) => {
+                  const word = post.word_snapshot
+                  const saving = knowledgeAction === post.id
+                  return (
+                    <article key={post.id} className="rounded-lg border border-border bg-bg p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              {t(`knowledge.types.${post.type}`)}
+                            </span>
+                            <span className="text-xs text-muted-fg">
+                              {t('knowledge.byline', {
+                                name: post.author.name,
+                                date: formatDate(post.created_at),
+                              })}
+                            </span>
+                          </div>
+                          {word && (
+                            <>
+                              <h3 className="mt-2 text-base font-semibold text-fg">
+                                {word.word}
+                                {word.ipa && (
+                                  <span className="ml-1.5 text-xs font-normal text-muted-fg">
+                                    /{word.ipa}/
+                                  </span>
+                                )}
+                              </h3>
+                              {(word.definition_vi || word.definition_en) && (
+                                <p className="mt-1 text-sm text-muted-fg">
+                                  {word.definition_vi || word.definition_en}
+                                </p>
+                              )}
+                            </>
+                          )}
+                          {post.body && (
+                            <p className="mt-2 text-sm text-fg">{post.body}</p>
+                          )}
+                        </div>
+                        {post.type === 'shared_word' && (
+                          <button
+                            type="button"
+                            onClick={() => void saveSharedWord(post)}
+                            disabled={post.saved_to_my_words || saving}
+                            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+                          >
+                            <Icon
+                              name={post.saved_to_my_words ? 'Check' : 'Plus'}
+                              size="sm"
+                              variant={post.saved_to_my_words ? 'success' : 'muted'}
+                            />
+                            {post.saved_to_my_words
+                              ? t('knowledge.saved')
+                              : saving
+                                ? t('knowledge.saving')
+                                : t('knowledge.save')}
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })
+              )}
+            </div>
           </section>
 
           {canManageMembers && (

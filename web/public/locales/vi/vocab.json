@@ -221,6 +221,11 @@
       "reading": "Reading",
       "public_pool": "Kho công khai"
     },
+    "share": {
+      "cta": "Chia sẻ",
+      "saving": "Đang chia sẻ...",
+      "notePrompt": "Ghi chú tùy chọn cho team về \"{word}\""
+    },
     "statuses": {
       "all": "Tất cả trạng thái"
     }

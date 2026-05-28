@@ -47,6 +47,13 @@ interface WordListResponse {
   next_cursor: string | null
 }
 
+interface TeamMeResponse {
+  team: {
+    id: string
+    name: string
+  } | null
+}
+
 interface WordDraft {
   word: string
   definition: string
@@ -282,54 +289,73 @@ function FavouriteWordRow({ word }: { word: VocabularyWord }) {
 function MyWordRow({
   word,
   t,
+  canShare,
+  sharing,
+  onShare,
 }: {
   word: VocabularyWord
   t: (k: string, o?: Record<string, unknown>) => string
+  canShare?: boolean
+  sharing?: boolean
+  onShare?: (word: VocabularyWord) => void
 }) {
   return (
-    <Link
-      to={`/learn/vocab/${encodeURIComponent(word.word)}`}
-      onClick={() =>
-        track('vocab_my_word_detail_opened', {
-          word: word.word,
-          word_id: word.id,
-          source: word.source,
-        })
-      }
-      className="flex items-center gap-3 rounded-lg border border-transparent bg-surface-raised px-3 py-2.5 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
-      <Icon name="BookOpen" size="sm" variant="primary" />
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold text-fg truncate">
-          {word.word}
-          {word.ipa && (
-            <span className="ml-1.5 text-xs font-normal text-muted-fg">
-              /{word.ipa}/
-            </span>
-          )}
-          {word.part_of_speech && (
-            <span className="ml-1.5 text-xs font-normal text-muted-fg">
-              {word.part_of_speech}
-            </span>
-          )}
-        </p>
-        {(word.definition_vi || word.definition) && (
-          <p className="text-xs text-muted-fg truncate mt-0.5">
-            {word.definition_vi || word.definition}
+    <div className="flex items-center gap-2 rounded-lg border border-transparent bg-surface-raised px-3 py-2.5 hover:border-primary/30">
+      <Link
+        to={`/learn/vocab/${encodeURIComponent(word.word)}`}
+        onClick={() =>
+          track('vocab_my_word_detail_opened', {
+            word: word.word,
+            word_id: word.id,
+            source: word.source,
+          })
+        }
+        className="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <Icon name="BookOpen" size="sm" variant="primary" />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-fg truncate">
+            {word.word}
+            {word.ipa && (
+              <span className="ml-1.5 text-xs font-normal text-muted-fg">
+                /{word.ipa}/
+              </span>
+            )}
+            {word.part_of_speech && (
+              <span className="ml-1.5 text-xs font-normal text-muted-fg">
+                {word.part_of_speech}
+              </span>
+            )}
           </p>
-        )}
-      </div>
-      <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
-        <span className="rounded-md bg-surface px-2 py-1 text-xs text-muted-fg">
-          {t(`myWords.sources.${word.source}`, { defaultValue: word.source })}
-        </span>
-        <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-          {t(`strength.${word.strength}`, { defaultValue: word.strength })}
-        </span>
-      </div>
-      {word.is_favourite && <Icon name="Heart" size="sm" variant="danger" />}
-      <Icon name="ArrowRight" size="sm" variant="muted" />
-    </Link>
+          {(word.definition_vi || word.definition) && (
+            <p className="text-xs text-muted-fg truncate mt-0.5">
+              {word.definition_vi || word.definition}
+            </p>
+          )}
+        </div>
+        <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+          <span className="rounded-md bg-surface px-2 py-1 text-xs text-muted-fg">
+            {t(`myWords.sources.${word.source}`, { defaultValue: word.source })}
+          </span>
+          <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+            {t(`strength.${word.strength}`, { defaultValue: word.strength })}
+          </span>
+        </div>
+        {word.is_favourite && <Icon name="Heart" size="sm" variant="danger" />}
+        <Icon name="ArrowRight" size="sm" variant="muted" />
+      </Link>
+      {canShare && (
+        <button
+          type="button"
+          onClick={() => onShare?.(word)}
+          disabled={sharing}
+          className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+        >
+          <Icon name="Users" size="sm" variant="muted" />
+          {sharing ? t('myWords.share.saving') : t('myWords.share.cta')}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -991,6 +1017,8 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
   const [preferredSlugs, setPreferredSlugs] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState<VocabTab>(initialTab)
   const [myWords, setMyWords] = useState<VocabularyWord[]>([])
+  const [team, setTeam] = useState<TeamMeResponse['team']>(null)
+  const [sharingWordId, setSharingWordId] = useState('')
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [favouriteWords, setFavouriteWords] = useState<VocabularyWord[]>([])
@@ -1017,6 +1045,22 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
       })
       .catch((e) => !cancelled && setError(localizeError(e)))
       .finally(() => !cancelled && setLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadTeam() {
+      try {
+        const res = await apiFetch<TeamMeResponse>('/api/v1/teams/me')
+        if (!cancelled) setTeam(res.team)
+      } catch {
+        if (!cancelled) setTeam(null)
+      }
+    }
+    void loadTeam()
     return () => {
       cancelled = true
     }
@@ -1096,6 +1140,25 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
       setError(localizeError(e))
     } finally {
       setLoadingHistoryDetails((current) => (current === date ? null : current))
+    }
+  }
+
+  const shareWordToTeam = async (word: VocabularyWord) => {
+    if (!team) return
+    const note = window.prompt(t('myWords.share.notePrompt', { word: word.word }))
+    if (note === null) return
+    setSharingWordId(word.id)
+    setError(null)
+    try {
+      await apiFetch(`/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/share-word`, {
+        method: 'POST',
+        body: JSON.stringify({ user_vocab_id: word.id, note }),
+      })
+      track('team_word_shared', { team_id: team.id, word_id: word.id, word: word.word })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setSharingWordId('')
     }
   }
 
@@ -1425,7 +1488,14 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
           ) : (
             <div className="space-y-1.5">
               {visibleMyWords.map((word) => (
-                <MyWordRow key={word.id} word={word} t={t} />
+                <MyWordRow
+                  key={word.id}
+                  word={word}
+                  t={t}
+                  canShare={team !== null}
+                  sharing={sharingWordId === word.id}
+                  onShare={shareWordToTeam}
+                />
               ))}
             </div>
           )}

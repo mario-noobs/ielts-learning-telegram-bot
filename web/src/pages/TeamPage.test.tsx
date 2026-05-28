@@ -107,6 +107,33 @@ describe('<TeamPage>', () => {
       },
     ],
   }
+  const knowledgePosts = {
+    items: [
+      {
+        id: 'post-1',
+        team_id: 'team-1',
+        type: 'shared_word',
+        category: 'vocabulary',
+        title: 'scalability',
+        body: 'Useful for Task 2',
+        author: { user_id: 'u2', name: 'Member User' },
+        word_snapshot: {
+          word: 'scalability',
+          definition_en: 'ability to grow',
+          definition_vi: 'kha nang mo rong',
+          ipa: 'skæləbɪlɪti',
+          part_of_speech: 'noun',
+          example_en: 'The system has scalability.',
+          example_vi: '',
+          topic: 'technology',
+        },
+        saved_to_my_words: false,
+        existing_word_id: null,
+        created_at: '2026-05-28T00:00:00Z',
+      },
+    ],
+    next_cursor: null,
+  }
 
   it('creates a team from the empty state', async () => {
     apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
@@ -121,6 +148,7 @@ describe('<TeamPage>', () => {
       }
       if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
       if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
       throw new Error(`Unexpected API call: ${url}`)
     })
 
@@ -143,6 +171,7 @@ describe('<TeamPage>', () => {
       if (url === '/api/v1/teams/team-1/members') return Promise.resolve({ team, members })
       if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
       if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
       if (url === '/api/v1/teams/team-1/invites') {
         expect(options?.method).toBe('POST')
         return Promise.resolve({
@@ -172,6 +201,7 @@ describe('<TeamPage>', () => {
       if (url === '/api/v1/teams/team-1/members') return Promise.resolve({ team, members })
       if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
       if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
       throw new Error(`Unexpected API call: ${url}`)
     })
 
@@ -183,6 +213,8 @@ describe('<TeamPage>', () => {
     expect(screen.getByText('overview.activeMembers')).toBeInTheDocument()
     expect(screen.getByText('45')).toBeInTheDocument()
     expect(screen.getByText('progress.title')).toBeInTheDocument()
+    expect(screen.getByText('knowledge.title')).toBeInTheDocument()
+    expect(screen.getByText('scalability')).toBeInTheDocument()
     expect(screen.getAllByText('Member User').length).toBeGreaterThan(0)
     expect(trackMock).toHaveBeenCalledWith('team_dashboard_viewed', {
       team_id: 'team-1',
@@ -198,6 +230,7 @@ describe('<TeamPage>', () => {
       if (url === '/api/v1/teams/team-1/members') return Promise.resolve({ team, members })
       if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
       if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
       if (url === '/api/v1/teams/team-1/members/u2' && options?.method === 'PATCH') {
         return Promise.resolve({ member: { ...members[1], role: 'admin' } })
       }
@@ -235,6 +268,7 @@ describe('<TeamPage>', () => {
         return Promise.resolve({ team: memberTeam, members })
       }
       if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
       if (url === '/api/v1/teams/team-1/member-progress') {
         throw new Error('member progress should not load for regular members')
       }

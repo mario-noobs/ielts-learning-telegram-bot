@@ -221,6 +221,11 @@
       "reading": "Reading",
       "public_pool": "Public pool"
     },
+    "share": {
+      "cta": "Share",
+      "saving": "Sharing...",
+      "notePrompt": "Optional note for your team about \"{word}\""
+    },
     "statuses": {
       "all": "All statuses"
     }

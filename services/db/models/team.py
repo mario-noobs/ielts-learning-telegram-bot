@@ -86,3 +86,60 @@ class TeamInvite(Base):
         CheckConstraint("role IN ('member', 'admin')", name="ck_team_invites_role"),
         Index("ix_team_invites_expires_at", "expires_at"),
     )
+
+
+class TeamKnowledgePost(Base):
+    __tablename__ = "team_knowledge_posts"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    team_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    author_uid: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_user_vocab_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    word_snapshot: Mapped[dict] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default="'{}'::jsonb",
+    )
+    status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "type IN ('question', 'shared_word', 'note')",
+            name="ck_team_knowledge_posts_type",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'deleted')",
+            name="ck_team_knowledge_posts_status",
+        ),
+        Index(
+            "ix_team_knowledge_posts_feed",
+            "team_id",
+            "status",
+            text("created_at DESC"),
+            text("id DESC"),
+        ),
+        Index("ix_team_knowledge_posts_author_uid", "author_uid"),
+    )

@@ -41,6 +41,22 @@
     "quizCount": "Bài quiz",
     "empty": "Tuần này team chưa có hoạt động. Lượt ôn, quiz, writing, listening và reading sẽ hiện ở đây."
   },
+  "knowledge": {
+    "title": "Bảng chia sẻ kiến thức",
+    "description": "Từ được thành viên chia sẻ sẽ xuất hiện ở đây để mọi người lưu vào Từ của tôi.",
+    "badge": "Học cùng team",
+    "emptyTitle": "Chưa có chia sẻ nào",
+    "emptyDescription": "Hãy chia sẻ một từ hữu ích từ Từ của tôi để bắt đầu bảng kiến thức của team.",
+    "byline": "Chia sẻ bởi {name} · {date}",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "saved": "Đã lưu",
+    "types": {
+      "question": "Câu hỏi",
+      "shared_word": "Từ được chia sẻ",
+      "note": "Ghi chú"
+    }
+  },
   "progress": {
     "title": "Tiến độ thành viên",
     "description": "Chủ team và admin chỉ thấy trạng thái tổng quan, đủ để biết ai có thể cần hỗ trợ.",
