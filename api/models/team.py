@@ -50,3 +50,36 @@ class TeamInvitePreviewResponse(BaseModel):
 
 class TeamInviteAcceptResponse(BaseModel):
     team: TeamSummary
+
+
+class TeamMemberSummary(BaseModel):
+    user_id: str
+    name: str = ""
+    email: str | None = None
+    role: Literal["owner", "admin", "member"]
+    joined_at: datetime | None = None
+    is_current_user: bool = False
+
+
+class TeamMembersResponse(BaseModel):
+    team: TeamSummary
+    members: list[TeamMemberSummary]
+
+
+class TeamMemberUpdateRequest(BaseModel):
+    role: Literal["admin", "member"]
+
+
+class TeamMemberUpdateResponse(BaseModel):
+    member: TeamMemberSummary
+
+
+class TeamOverviewResponse(BaseModel):
+    week_start: datetime
+    weekly_active_members: int = 0
+    study_minutes: int = 0
+    words_reviewed: int = 0
+    words_mastered: int = 0
+    quiz_count: int = 0
+    member_count: int = 0
+    seat_limit: int = 0
