@@ -31,8 +31,10 @@ def _clean():
         ReadingSession,
         Team,
         TeamInvite,
+        TeamKnowledgePost,
         TeamMember,
         User,
+        UserVocabulary,
         WritingHistory,
     )
 
@@ -44,6 +46,8 @@ def _clean():
             s.execute(delete(ListeningHistory).where(ListeningHistory.user_id.like("team-test-%")))
             s.execute(delete(QuizHistory).where(QuizHistory.user_id.like("team-test-%")))
             s.execute(delete(WritingHistory).where(WritingHistory.user_id.like("team-test-%")))
+            s.execute(delete(TeamKnowledgePost).where(TeamKnowledgePost.author_uid.like("team-test-%")))
+            s.execute(delete(UserVocabulary).where(UserVocabulary.user_id.like("team-test-%")))
             s.execute(delete(TeamInvite))
             s.execute(delete(TeamMember))
             s.execute(delete(Team))
@@ -513,3 +517,129 @@ def test_team_workspace_view_is_audited_without_private_details() -> None:
     assert event.actor_uid == "team-test-owner"
     assert event.after == {"role": "owner", "member_count": 1}
     assert event.before is None
+
+
+def test_member_shares_personal_word_to_team_feed_privacy_safe() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamMember, User, UserVocabulary
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add(
+            UserVocabulary(
+                id="team-test-word-1",
+                user_id="team-test-member",
+                word="scalability",
+                normalized_word="scalability",
+                topic_id=1,
+                definition_en="ability to be enlarged or increased",
+                definition_vi="kha nang mo rong",
+                ipa="skæləbɪlɪti",
+                part_of_speech="noun",
+                example_en="The platform needs scalability.",
+                example_vi="Nen tang can kha nang mo rong.",
+                user_note="private note",
+                source=3,
+                srs_interval=30,
+                srs_ease=2.8,
+                srs_reps=9,
+                srs_next_review=now,
+                is_favourite=True,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        created = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/share-word",
+            json={"user_vocab_id": "team-test-word-1", "note": "Useful for Task 2"},
+        )
+        feed = c.get(f"/api/v1/teams/{team_id}/knowledge/posts")
+
+    assert created.status_code == 201
+    post = created.json()["post"]
+    assert post["type"] == "shared_word"
+    assert post["body"] == "Useful for Task 2"
+    assert post["word_snapshot"]["word"] == "scalability"
+    assert "srs_interval" not in post["word_snapshot"]
+    assert "is_favourite" not in post["word_snapshot"]
+    assert "user_note" not in post["word_snapshot"]
+
+    assert feed.status_code == 200
+    assert feed.json()["items"][0]["id"] == post["id"]
+
+
+def test_member_saves_shared_team_word_idempotently() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamKnowledgePost, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add(
+            TeamKnowledgePost(
+                id="11111111-1111-1111-1111-111111111111",
+                team_id=team_id,
+                author_uid="team-test-owner",
+                type="shared_word",
+                category="vocabulary",
+                title="coherence",
+                body=None,
+                source_user_vocab_id=None,
+                word_snapshot={
+                    "word": "coherence",
+                    "definition_en": "logical connection",
+                    "definition_vi": "su lien ket logic",
+                    "ipa": "",
+                    "part_of_speech": "noun",
+                    "example_en": "The essay has coherence.",
+                    "example_vi": "",
+                    "topic": "writing",
+                },
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        first = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "11111111-1111-1111-1111-111111111111/save-word"
+        )
+        second = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "11111111-1111-1111-1111-111111111111/save-word"
+        )
+
+    assert first.status_code == 200
+    assert first.json()["created"] is True
+    assert second.status_code == 200
+    assert second.json()["already_saved"] is True
+    assert second.json()["word"]["word"] == "coherence"

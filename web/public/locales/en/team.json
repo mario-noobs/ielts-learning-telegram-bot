@@ -41,6 +41,22 @@
     "quizCount": "Quizzes",
     "empty": "No team activity this week yet. Reviews, quizzes, writing, listening, and reading will appear here."
   },
+  "knowledge": {
+    "title": "Knowledge feed",
+    "description": "Shared words from team members appear here so everyone can save useful vocabulary into My Words.",
+    "badge": "Team learning",
+    "emptyTitle": "No shared knowledge yet",
+    "emptyDescription": "Share a useful word from My Words to start the team feed.",
+    "byline": "Shared by {name} · {date}",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "types": {
+      "question": "Question",
+      "shared_word": "Shared word",
+      "note": "Note"
+    }
+  },
   "progress": {
     "title": "Member progress",
     "description": "Owner and admins can see high-level status only, enough to notice who may need support.",

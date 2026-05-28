@@ -32,6 +32,7 @@ beforeEach(() => {
   trackMock.mockReset()
   useProfileMock.mockReset()
   useProfileMock.mockReturnValue(null)
+  vi.spyOn(window, 'prompt').mockReturnValue('Useful for Task 2')
 })
 
 function render_(page: ReactNode = <VocabHomePage />) {
@@ -316,6 +317,58 @@ describe('<VocabHomePage>', () => {
     await userEvent.selectOptions(screen.getByLabelText(/myWords\.filters\.status/), 'Weak')
 
     expect(screen.getByText(/empty\.myWordsFiltered\.title/)).toBeInTheDocument()
+  })
+
+  it('shares a personal word to the team from My Words', async () => {
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/topics') return Promise.resolve({ items: [], total_words: 1 })
+      if (url === '/api/v1/me') return Promise.resolve({ topics: [] })
+      if (url === '/api/v1/teams/me') return Promise.resolve({ team: { id: 'team-1', name: 'Band 7 Crew' } })
+      if (url === '/api/v1/vocabulary?limit=100') {
+        return Promise.resolve({
+          items: [
+            {
+              id: 'w1',
+              word: 'scalability',
+              definition: 'ability to grow',
+              definition_vi: 'kha nang mo rong',
+              ipa: '',
+              part_of_speech: 'noun',
+              topic: 'technology',
+              strength: 'Weak',
+              source: 'manual',
+              is_favourite: false,
+            },
+          ],
+          next_cursor: null,
+        })
+      }
+      if (url === '/api/v1/teams/team-1/knowledge/posts/share-word') {
+        expect(options?.method).toBe('POST')
+        expect(JSON.parse(String(options?.body))).toEqual({
+          user_vocab_id: 'w1',
+          note: 'Useful for Task 2',
+        })
+        return Promise.resolve({ post: { id: 'post-1' } })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    render_()
+
+    await userEvent.click(await screen.findByRole('button', { name: /myWords\.share\.cta/ }))
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        '/api/v1/teams/team-1/knowledge/posts/share-word',
+        expect.anything(),
+      )
+    })
+    expect(trackMock).toHaveBeenCalledWith('team_word_shared', {
+      team_id: 'team-1',
+      word_id: 'w1',
+      word: 'scalability',
+    })
   })
 
   it('renders topic cards sorted by least-mastered first', async () => {

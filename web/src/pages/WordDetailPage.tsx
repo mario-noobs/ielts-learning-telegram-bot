@@ -36,6 +36,13 @@ interface UserProfile {
   target_band: number
 }
 
+interface TeamMeResponse {
+  team: {
+    id: string
+    name: string
+  } | null
+}
+
 function bandTier(band: number): string {
   if (band >= 8) return '8'
   if (band >= 7) return '7'
@@ -178,13 +185,22 @@ export default function WordDetailPage() {
   const navigate = useNavigate()
   const [data, setData] = useState<EnrichedWord | null>(null)
   const [band, setBand] = useState<number>(6.5)
+  const [team, setTeam] = useState<TeamMeResponse['team']>(null)
   const [error, setError] = useState<string | null>(null)
+  const [shareMessage, setShareMessage] = useState('')
+  const [sharing, setSharing] = useState(false)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
     apiFetch<UserProfile>('/api/v1/me')
       .then((p) => setBand(p.target_band))
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    apiFetch<TeamMeResponse>('/api/v1/teams/me')
+      .then((res) => setTeam(res.team))
+      .catch(() => setTeam(null))
   }, [])
 
   useEffect(() => {
@@ -197,6 +213,26 @@ export default function WordDetailPage() {
   }, [id, tick])
 
   const highlighted = bandTier(band)
+
+  const shareWordToTeam = async () => {
+    if (!team || !data || sharing) return
+    const note = window.prompt(`Ghi chú tùy chọn cho team về "${data.word}"`)
+    if (note === null) return
+    setSharing(true)
+    setShareMessage('')
+    setError(null)
+    try {
+      await apiFetch(`/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/share-word`, {
+        method: 'POST',
+        body: JSON.stringify({ word: data.word, note }),
+      })
+      setShareMessage('Đã chia sẻ từ này với team.')
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setSharing(false)
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-5">
@@ -240,6 +276,24 @@ export default function WordDetailPage() {
               )}
               <PlayButton word={data.word} />
             </div>
+            {team && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void shareWordToTeam()}
+                  disabled={sharing}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+                >
+                  <Icon name="Users" size="sm" variant="muted" />
+                  {sharing ? 'Đang chia sẻ...' : 'Chia sẻ với team'}
+                </button>
+              </div>
+            )}
+            {shareMessage && (
+              <p className="mt-3 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+                {shareMessage}
+              </p>
+            )}
             {data.part_of_speech && (
               <span className="inline-block mt-3 px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">
                 {data.part_of_speech}
