@@ -1,0 +1,46 @@
+{
+  "page": {
+    "eyebrow": "Team beta",
+    "heading": "Study with a team",
+    "subtitle": "Create a small workspace, invite classmates, and start tracking shared progress.",
+    "loading": "Loading team workspace..."
+  },
+  "create": {
+    "title": "Create your team",
+    "description": "Free beta teams support up to 5 seats. Billing is not required.",
+    "nameLabel": "Team name",
+    "namePlaceholder": "e.g. Band 7 Study Group",
+    "submit": "Create team",
+    "creating": "Creating...",
+    "limit": "One beta team per account for now."
+  },
+  "workspace": {
+    "title": "Team workspace",
+    "role": "Your role: {role}",
+    "members": "{count}/{limit} seats used",
+    "privacy": "Only high-level progress is shared in this beta. Writing submissions and detailed practice answers stay private."
+  },
+  "invite": {
+    "title": "Invite members",
+    "description": "Share this link with classmates. It expires in 7 days and joins them as members.",
+    "create": "Create invite link",
+    "creating": "Creating...",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "linkLabel": "Invite link"
+  },
+  "join": {
+    "heading": "Join {team}",
+    "subtitle": "{count}/{limit} seats used",
+    "privacy": "By joining, your team can see high-level learning progress such as activity, streak, and review totals. Detailed submissions stay private.",
+    "signIn": "Sign in to join",
+    "accept": "Join team",
+    "accepting": "Joining...",
+    "success": "You're in the team.",
+    "goTeam": "Open team workspace"
+  },
+  "empty": {
+    "title": "No team yet",
+    "description": "Create a team now, then invite members from your workspace."
+  }
+}

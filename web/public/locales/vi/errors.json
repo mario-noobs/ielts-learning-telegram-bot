@@ -70,7 +70,12 @@
   "team": {
     "seat_limit_reached": "Nhóm đã đủ số chỗ tối đa ({seat_limit}).",
     "member_already_exists": "Người dùng đã là thành viên của nhóm này.",
-    "not_member": "Người dùng không thuộc nhóm này."
+    "not_member": "Người dùng không thuộc nhóm này.",
+    "already_joined": "Tài khoản của bạn đã thuộc một team.",
+    "invite": {
+      "not_found": "Link mời này không hợp lệ.",
+      "expired": "Link mời này đã hết hạn. Hãy xin admin team tạo link mới."
+    }
   },
   "admin": {
     "forbidden_role": "Hành động yêu cầu quyền cao hơn.",

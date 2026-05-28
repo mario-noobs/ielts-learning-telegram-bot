@@ -207,6 +207,18 @@ class _Registry:
         "team.not_member", 404,
         "User is not a member of this team.",
     )
+    team_already_joined = ErrorCode(
+        "team.already_joined", 409,
+        "User already belongs to a team.",
+    )
+    team_invite_not_found = ErrorCode(
+        "team.invite.not_found", 404,
+        "Team invite does not exist.",
+    )
+    team_invite_expired = ErrorCode(
+        "team.invite.expired", 410,
+        "Team invite has expired.",
+    )
 
     # ─── Quota (US-M11.2) ─────────────────────────────────────────────
     quota_daily_exceeded = ErrorCode(
