@@ -1,0 +1,46 @@
+{
+  "page": {
+    "eyebrow": "Team beta",
+    "heading": "Học cùng team",
+    "subtitle": "Tạo không gian học nhỏ, mời bạn học và bắt đầu theo dõi tiến độ chung.",
+    "loading": "Đang tải team..."
+  },
+  "create": {
+    "title": "Tạo team của bạn",
+    "description": "Team beta miễn phí hỗ trợ tối đa 5 ghế. Chưa cần thanh toán.",
+    "nameLabel": "Tên team",
+    "namePlaceholder": "VD: Nhóm học Band 7",
+    "submit": "Tạo team",
+    "creating": "Đang tạo...",
+    "limit": "Hiện tại mỗi tài khoản chỉ tạo được một team beta."
+  },
+  "workspace": {
+    "title": "Không gian team",
+    "role": "Vai trò của bạn: {role}",
+    "members": "Đã dùng {count}/{limit} ghế",
+    "privacy": "Beta chỉ chia sẻ tiến độ tổng quan. Bài Writing và câu trả lời luyện tập chi tiết vẫn riêng tư."
+  },
+  "invite": {
+    "title": "Mời thành viên",
+    "description": "Chia sẻ link này với bạn học. Link hết hạn sau 7 ngày và thêm họ với vai trò thành viên.",
+    "create": "Tạo link mời",
+    "creating": "Đang tạo...",
+    "copy": "Sao chép link",
+    "copied": "Đã sao chép",
+    "linkLabel": "Link mời"
+  },
+  "join": {
+    "heading": "Tham gia {team}",
+    "subtitle": "Đã dùng {count}/{limit} ghế",
+    "privacy": "Khi tham gia, team có thể xem tiến độ tổng quan như hoạt động, streak và số lượt ôn. Bài làm chi tiết vẫn riêng tư.",
+    "signIn": "Đăng nhập để tham gia",
+    "accept": "Tham gia team",
+    "accepting": "Đang tham gia...",
+    "success": "Bạn đã vào team.",
+    "goTeam": "Mở không gian team"
+  },
+  "empty": {
+    "title": "Chưa có team",
+    "description": "Tạo team ngay, sau đó mời thành viên từ không gian team."
+  }
+}

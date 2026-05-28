@@ -70,7 +70,12 @@
   "team": {
     "seat_limit_reached": "Team is at its seat limit ({seat_limit}).",
     "member_already_exists": "User is already a member of this team.",
-    "not_member": "User is not a member of this team."
+    "not_member": "User is not a member of this team.",
+    "already_joined": "Your account already belongs to a team.",
+    "invite": {
+      "not_found": "This invite link is invalid.",
+      "expired": "This invite link has expired. Ask the team admin for a new one."
+    }
   },
   "admin": {
     "forbidden_role": "Action requires a higher role.",

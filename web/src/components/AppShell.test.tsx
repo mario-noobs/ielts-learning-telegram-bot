@@ -35,6 +35,7 @@ vi.mock('react-i18next', () => ({
         'nav.tabs.home': 'Home',
         'nav.tabs.learn': 'Learn',
         'nav.tabs.pools': 'Pools',
+        'nav.tabs.team': 'Team',
         'nav.tabs.listening': 'Listening',
         'nav.tabs.reading': 'Reading',
         'nav.tabs.writing': 'Writing',
@@ -88,15 +89,16 @@ beforeEach(() => {
 })
 
 describe('<AppShell> sidebar IA — US-M15.0', () => {
-  it('renders 9 top-level entries on the desktop sidebar', () => {
+  it('renders 10 top-level entries on the desktop sidebar', () => {
     renderAt('/')
     const navs = screen.getAllByRole('navigation', { name: 'Main navigation' })
     // First nav is desktop side rail, second is mobile bottom bar.
     const desktop = navs[0]
     const items = within(desktop).getAllByRole('listitem')
-    expect(items).toHaveLength(9)
+    expect(items).toHaveLength(10)
     // The 4 IELTS skills are present as top-level entries.
     expect(within(desktop).getByText('Pools')).toBeInTheDocument()
+    expect(within(desktop).getByText('Team')).toBeInTheDocument()
     expect(within(desktop).getByText('Listening')).toBeInTheDocument()
     expect(within(desktop).getByText('Reading')).toBeInTheDocument()
     expect(within(desktop).getByText('Writing')).toBeInTheDocument()
@@ -113,13 +115,14 @@ describe('<AppShell> sidebar IA — US-M15.0', () => {
     expect(within(speaking).getByText('Coming soon')).toBeInTheDocument()
   })
 
-  it('renders mobile bottom bar with 6 entries and no Speaking', () => {
+  it('renders mobile bottom bar with 7 entries and no Speaking', () => {
     renderAt('/')
     const navs = screen.getAllByRole('navigation', { name: 'Main navigation' })
     const mobile = navs[1]
     const items = within(mobile).getAllByRole('listitem')
-    expect(items).toHaveLength(6)
+    expect(items).toHaveLength(7)
     expect(within(mobile).getByText('Pools')).toBeInTheDocument()
+    expect(within(mobile).getByText('Team')).toBeInTheDocument()
     expect(within(mobile).queryByText('Speaking')).toBeNull()
   })
 

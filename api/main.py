@@ -21,9 +21,10 @@ from api.routes.me import router as me_router
 from api.routes.plan import router as plan_router
 from api.routes.progress import router as progress_router
 from api.routes.quiz import router as quiz_router
-from api.routes.reading import router as reading_router
 from api.routes.readiness import router as readiness_router
+from api.routes.reading import router as reading_router
 from api.routes.review import router as review_router
+from api.routes.teams import router as teams_router
 from api.routes.topics import router as topics_router
 from api.routes.vocabulary import router as vocabulary_router
 from api.routes.words import router as words_router
@@ -196,6 +197,7 @@ def create_app() -> FastAPI:
     app.include_router(reading_router)
     app.include_router(readiness_router)
     app.include_router(me_router)
+    app.include_router(teams_router)
     app.include_router(groups_router)
     app.include_router(admin_router)
 

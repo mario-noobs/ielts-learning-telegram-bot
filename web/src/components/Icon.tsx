@@ -50,6 +50,7 @@ import {
   TrendingUp,
   Trophy,
   User,
+  Users,
   Volume2,
   X,
   Zap,
@@ -62,7 +63,7 @@ const REGISTRY = {
   Crown, Eye, FileText, Flag, Flame, Globe, Headphones, Heart, Hourglass, Info,
   LayoutDashboard, Lightbulb, Loader2, Lock, LogOut, Mail, Mic, Minus, PartyPopper, Pause,
   PenLine, Play, Plus, RotateCcw, Settings, ShieldCheck, Sparkles, SquarePen,
-  Target, TrendingDown, TrendingUp, Trophy, User, Volume2, X, Zap,
+  Target, TrendingDown, TrendingUp, Trophy, User, Users, Volume2, X, Zap,
 } satisfies Record<string, LucideIcon>
 
 export type IconName = keyof typeof REGISTRY

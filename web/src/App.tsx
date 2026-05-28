@@ -30,6 +30,8 @@ import ReadingHomePage from './pages/ReadingHomePage'
 import ReadingExercisePage from './pages/ReadingExercisePage'
 import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
+import TeamInvitePage from './pages/TeamInvitePage'
+import TeamPage from './pages/TeamPage'
 import LinkRedeemPage from './pages/LinkRedeemPage'
 import LinkTelegramPage from './pages/settings/LinkTelegramPage'
 import GroupsPage from './pages/settings/GroupsPage'
@@ -117,6 +119,7 @@ export default function App() {
           {/* US-M12.3: public so the bot's deep-link works pre-auth;
               the page itself prompts Google sign-in when needed. */}
           <Route path="/link" element={<LinkRedeemPage />} />
+          <Route path="/team/invite/:token" element={<TeamInvitePage />} />
           <Route path="/" element={<RootRoute />}>
             <Route index element={<DashboardPage />} />
           </Route>
@@ -168,6 +171,7 @@ export default function App() {
             <Route path="/reading/:id" element={<LegacyReadingRedirect />} />
 
             <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/team" element={<TeamPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/link-telegram" element={<LinkTelegramPage />} />
             <Route path="/settings/usage" element={<UsagePage />} />

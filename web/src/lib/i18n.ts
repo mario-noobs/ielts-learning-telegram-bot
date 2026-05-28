@@ -24,6 +24,7 @@ export const NAMESPACES = [
   'progress',
   'reading',
   'settings',
+  'team',
   'usage',
   'vocab',
   'writing',
@@ -67,7 +68,6 @@ void i18n
     saveMissing: import.meta.env.DEV,
     missingKeyHandler: (lngs, ns, key) => {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
         console.warn(`[i18n] missing key: ${lngs.join(',')} / ${ns}:${key}`)
       }
     },
