@@ -129,6 +129,9 @@ describe('<TeamPage>', () => {
         },
         saved_to_my_words: false,
         existing_word_id: null,
+        reply_count: 0,
+        helpful_count: 0,
+        helpful_by_me: false,
         created_at: '2026-05-28T00:00:00Z',
       },
     ],
@@ -257,6 +260,116 @@ describe('<TeamPage>', () => {
         method: 'DELETE',
       })
     })
+  })
+
+  it('creates a team knowledge question', async () => {
+    const createdPost = {
+      id: 'post-question',
+      team_id: 'team-1',
+      type: 'question',
+      category: 'writing',
+      title: 'How do I use coherence?',
+      body: 'I want a natural Task 2 example.',
+      author: { user_id: 'u1', name: 'Owner User' },
+      word_snapshot: null,
+      saved_to_my_words: false,
+      existing_word_id: null,
+      reply_count: 0,
+      helpful_count: 0,
+      helpful_by_me: false,
+      created_at: '2026-05-28T00:00:00Z',
+    }
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/teams/me') return Promise.resolve({ team })
+      if (url === '/api/v1/teams/team-1/views') return Promise.resolve({})
+      if (url === '/api/v1/teams/team-1/members') return Promise.resolve({ team, members })
+      if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
+      if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
+      if (url === '/api/v1/teams/team-1/knowledge/posts') {
+        expect(options?.method).toBe('POST')
+        expect(JSON.parse(String(options?.body))).toEqual({
+          type: 'question',
+          category: 'writing',
+          title: 'How do I use coherence?',
+          body: 'I want a natural Task 2 example.',
+        })
+        return Promise.resolve({ post: createdPost })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    renderPage()
+
+    await userEvent.selectOptions(await screen.findByLabelText('knowledge.askCategory'), 'writing')
+    await userEvent.type(screen.getByLabelText('knowledge.askTitle'), 'How do I use coherence?')
+    await userEvent.type(screen.getByLabelText('knowledge.askBody'), 'I want a natural Task 2 example.')
+    await userEvent.click(screen.getByRole('button', { name: 'knowledge.ask' }))
+
+    expect(await screen.findByText('How do I use coherence?')).toBeInTheDocument()
+    expect(trackMock).toHaveBeenCalledWith('team_knowledge_question_created', {
+      team_id: 'team-1',
+      post_id: 'post-question',
+    })
+  })
+
+  it('loads replies on demand and updates helpful counts', async () => {
+    const reply = {
+      id: 'reply-1',
+      post_id: 'post-1',
+      team_id: 'team-1',
+      author: { user_id: 'u1', name: 'Owner User' },
+      body: 'Use it when describing system growth.',
+      helpful_count: 0,
+      helpful_by_me: false,
+      created_at: '2026-05-28T00:00:00Z',
+    }
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/teams/me') return Promise.resolve({ team })
+      if (url === '/api/v1/teams/team-1/views') return Promise.resolve({})
+      if (url === '/api/v1/teams/team-1/members') return Promise.resolve({ team, members })
+      if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
+      if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') return Promise.resolve(knowledgePosts)
+      if (url === '/api/v1/teams/team-1/knowledge/posts/post-1/replies?limit=20') {
+        return Promise.resolve({ items: [reply], next_cursor: null })
+      }
+      if (url === '/api/v1/teams/team-1/knowledge/posts/post-1/helpful') {
+        expect(options?.method).toBe('POST')
+        return Promise.resolve({
+          target_type: 'post',
+          target_id: 'post-1',
+          helpful_count: 1,
+          helpful_by_me: true,
+        })
+      }
+      if (url === '/api/v1/teams/team-1/knowledge/posts/post-1/replies') {
+        expect(options?.method).toBe('POST')
+        return Promise.resolve({
+          reply: {
+            ...reply,
+            id: 'reply-2',
+            body: 'I would use it in technology essays.',
+          },
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: /knowledge\.replies/ }))
+    expect(await screen.findByText('Use it when describing system growth.')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole('button', { name: /knowledge\.helpful/ })[0])
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'knowledge.helpful|{"count":1}' }))
+        .toBeInTheDocument()
+    })
+
+    await userEvent.type(screen.getByPlaceholderText('knowledge.replyPlaceholder'), 'I would use it in technology essays.')
+    await userEvent.click(screen.getByRole('button', { name: 'knowledge.reply' }))
+    expect(await screen.findByText('I would use it in technology essays.')).toBeInTheDocument()
   })
 
   it('hides admin progress and management actions from regular members', async () => {
