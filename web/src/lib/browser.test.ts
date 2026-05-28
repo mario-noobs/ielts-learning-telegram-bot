@@ -17,11 +17,11 @@ describe('browser auth helpers', () => {
     expect(shouldUseRedirectAuth()).toBe(false)
   })
 
-  it('uses redirect auth for in-app browsers', () => {
+  it('avoids redirect auth for in-app browsers', () => {
     stubUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Instagram 300.0')
 
     expect(isInAppBrowser()).toBe(true)
-    expect(shouldUseRedirectAuth()).toBe(true)
+    expect(shouldUseRedirectAuth()).toBe(false)
   })
 
   it('keeps popup auth for desktop browsers', () => {

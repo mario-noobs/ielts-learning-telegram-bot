@@ -16,5 +16,10 @@ export function isInAppBrowser(): boolean {
 }
 
 export function shouldUseRedirectAuth(): boolean {
-  return isInAppBrowser()
+  // Firebase redirect auth depends on browser sessionStorage to restore the
+  // OAuth state. Several mobile in-app browsers partition or clear that
+  // storage, which leaves users on a firebaseapp.com "missing initial state"
+  // error page. Prefer popup and surface the existing in-app-browser warning
+  // when the environment blocks it.
+  return false
 }
