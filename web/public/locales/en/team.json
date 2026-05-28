@@ -16,9 +16,35 @@
   },
   "workspace": {
     "title": "Team workspace",
-    "role": "Your role: {role}",
+    "roleLabel": "Your role",
     "members": "{count}/{limit} seats used",
     "privacy": "Only high-level progress is shared in this beta. Writing submissions and detailed practice answers stay private."
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member"
+  },
+  "overview": {
+    "title": "Team overview",
+    "loading": "Loading overview...",
+    "weekStart": "Week of {date}",
+    "activeMembers": "Active members",
+    "studyMinutes": "Study minutes",
+    "wordsReviewed": "Words reviewed",
+    "wordsMastered": "Words mastered",
+    "quizCount": "Quizzes",
+    "empty": "No team activity this week yet. Reviews, quizzes, writing, listening, and reading will appear here."
+  },
+  "members": {
+    "title": "Members",
+    "description": "Roles are highlighted so everyone can quickly see who owns the workspace and who can manage invites.",
+    "you": "You",
+    "joined": "Joined {date}",
+    "roleActionLabel": "Change role for {name}",
+    "remove": "Remove",
+    "removing": "Removing...",
+    "removeConfirm": "Remove {name} from this team?"
   },
   "invite": {
     "title": "Invite members",

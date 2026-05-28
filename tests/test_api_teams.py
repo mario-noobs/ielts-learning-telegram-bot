@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
 
 from api.auth import get_current_user
 from api.errors import ERR
@@ -23,12 +24,26 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture(autouse=True)
 def _clean():
     from services.db import get_sync_session
-    from services.db.models import AuditLog, Team, TeamInvite, TeamMember, User
+    from services.db.models import (
+        AuditLog,
+        ListeningHistory,
+        QuizHistory,
+        ReadingSession,
+        Team,
+        TeamInvite,
+        TeamMember,
+        User,
+        WritingHistory,
+    )
 
     def _wipe():
         with get_sync_session() as s, s.begin():
             s.execute(update(User).values(team_id=None))
             s.execute(delete(AuditLog))
+            s.execute(delete(ReadingSession).where(ReadingSession.user_id.like("team-test-%")))
+            s.execute(delete(ListeningHistory).where(ListeningHistory.user_id.like("team-test-%")))
+            s.execute(delete(QuizHistory).where(QuizHistory.user_id.like("team-test-%")))
+            s.execute(delete(WritingHistory).where(WritingHistory.user_id.like("team-test-%")))
             s.execute(delete(TeamInvite))
             s.execute(delete(TeamMember))
             s.execute(delete(Team))
@@ -233,3 +248,172 @@ def test_accept_invite_rejects_expired_token() -> None:
 
     assert r.status_code == 410
     assert r.json()["error"]["code"] == ERR.team_invite_expired.code
+
+
+def test_owner_can_update_member_role_and_remove_member() -> None:
+    from services.db import get_sync_session
+    from services.db.models import AuditLog, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member", email="member@example.test")
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=datetime.now(timezone.utc),
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+
+    with _client("team-test-owner", team_id=team_id) as c:
+        members = c.get(f"/api/v1/teams/{team_id}/members")
+        promoted = c.patch(
+            f"/api/v1/teams/{team_id}/members/team-test-member",
+            json={"role": "admin"},
+        )
+        removed = c.delete(f"/api/v1/teams/{team_id}/members/team-test-member")
+
+    assert members.status_code == 200
+    roles = {m["user_id"]: m["role"] for m in members.json()["members"]}
+    assert roles["team-test-owner"] == "owner"
+    assert roles["team-test-member"] == "member"
+    assert promoted.status_code == 200
+    assert promoted.json()["member"]["role"] == "admin"
+    assert removed.status_code == 204
+
+    with get_sync_session() as s:
+        user = s.get(User, "team-test-member")
+        membership = s.get(
+            TeamMember,
+            {"team_id": team_id, "user_uid": "team-test-member"},
+        )
+        events = s.execute(
+            select(AuditLog.event_type).where(AuditLog.target_id == team_id),
+        ).scalars().all()
+    assert user.team_id is None
+    assert membership is None
+    assert "team.member_role_updated" in events
+    assert "team.member_removed" in events
+
+
+def test_admin_cannot_change_roles_or_remove_admin() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-admin")
+    _seed_user("team-test-member")
+    with get_sync_session() as s, s.begin():
+        s.add_all([
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-admin",
+                role="admin",
+                joined_at=datetime.now(timezone.utc),
+            ),
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=datetime.now(timezone.utc),
+            ),
+        ])
+        s.execute(
+            update(User)
+            .where(User.id.in_(["team-test-admin", "team-test-member"]))
+            .values(team_id=team_id),
+        )
+
+    with _client("team-test-admin", team_id=team_id) as c:
+        promote = c.patch(
+            f"/api/v1/teams/{team_id}/members/team-test-member",
+            json={"role": "admin"},
+        )
+        remove_admin = c.delete(f"/api/v1/teams/{team_id}/members/team-test-owner")
+        remove_member = c.delete(f"/api/v1/teams/{team_id}/members/team-test-member")
+
+    assert promote.status_code == 403
+    assert remove_admin.status_code == 403
+    assert remove_member.status_code == 204
+
+
+def test_team_overview_aggregates_weekly_activity() -> None:
+    from services.db import get_sync_session
+    from services.db.models import (
+        ListeningHistory,
+        QuizHistory,
+        ReadingSession,
+        ReviewEvent,
+        TeamMember,
+        User,
+        WritingHistory,
+    )
+
+    owner_id = f"team-test-overview-owner-{uuid.uuid4().hex}"
+    member_id = f"team-test-overview-member-{uuid.uuid4().hex}"
+    team_id = _create_team(owner_id)
+    _seed_user(member_id)
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid=member_id,
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == member_id).values(team_id=team_id),
+        )
+        s.add_all([
+            WritingHistory(id=f"{owner_id}-writing", user_id=owner_id, created_at=now),
+            ListeningHistory(
+                id=f"{owner_id}-listening",
+                user_id=owner_id,
+                submitted=True,
+                created_at=now,
+            ),
+            QuizHistory(
+                id=f"{member_id}-quiz",
+                user_id=member_id,
+                quiz_type="fill_blank",
+                is_correct=True,
+                is_challenge=False,
+                created_at=now,
+            ),
+            ReadingSession(
+                id=f"{member_id}-reading",
+                user_id=member_id,
+                passage_id="p1",
+                status="submitted",
+                questions=[],
+                answer_key=[],
+                submitted_at=now,
+                updated_at=now,
+            ),
+            ReviewEvent(
+                user_id=member_id,
+                user_vocab_id="word-1",
+                result=5,
+                source=1,
+                srs_interval_before=14,
+                srs_interval_after=35,
+                created_at=now,
+            ),
+        ])
+
+    with _client(owner_id, team_id=team_id) as c:
+        r = c.get(f"/api/v1/teams/{team_id}/overview")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["weekly_active_members"] == 2
+    assert body["quiz_count"] == 1
+    assert body["words_reviewed"] == 1
+    assert body["words_mastered"] == 1
+    assert body["study_minutes"] == 45

@@ -4,7 +4,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy import func, select, update
 
 from api.auth import get_current_user
@@ -16,12 +16,28 @@ from api.models.team import (
     TeamInviteCreateRequest,
     TeamInviteCreateResponse,
     TeamInvitePreviewResponse,
+    TeamMembersResponse,
+    TeamMemberSummary,
+    TeamMemberUpdateRequest,
+    TeamMemberUpdateResponse,
     TeamMeResponse,
+    TeamOverviewResponse,
     TeamSummary,
 )
+from services import progress_service
 from services.admin import audit_service
 from services.db import get_sync_session
-from services.db.models import Team, TeamInvite, TeamMember, User
+from services.db.models import (
+    ListeningHistory,
+    QuizHistory,
+    ReadingSession,
+    ReviewEvent,
+    Team,
+    TeamInvite,
+    TeamMember,
+    User,
+    WritingHistory,
+)
 
 router = APIRouter(prefix="/api/v1/teams", tags=["teams"])
 
@@ -85,6 +101,87 @@ def _assert_team_admin(session, team_id: str, user_id: str) -> Team:
     if membership is None or membership.role != "admin":
         raise ApiError(ERR.forbidden)
     return team
+
+
+def _assert_team_member(
+    session, team_id: str, user_id: str,
+) -> tuple[Team, TeamMember | None]:
+    team = session.get(Team, team_id)
+    if team is None:
+        raise ApiError(ERR.admin_target_not_found, target_kind="team", target_id=team_id)
+    membership = session.get(TeamMember, {"team_id": team_id, "user_uid": user_id})
+    if membership is None and team.owner_uid != user_id:
+        raise ApiError(ERR.forbidden)
+    return team, membership
+
+
+def _member_summary(
+    team: Team,
+    membership: TeamMember,
+    profile: User | None,
+    current_user_id: str,
+) -> TeamMemberSummary:
+    role = "owner" if membership.user_uid == team.owner_uid else membership.role
+    return TeamMemberSummary(
+        user_id=membership.user_uid,
+        name=(profile.name if profile else "") or membership.user_uid,
+        email=profile.email if profile else None,
+        role=role,
+        joined_at=membership.joined_at,
+        is_current_user=membership.user_uid == current_user_id,
+    )
+
+
+def _team_members(session, team: Team, current_user_id: str) -> list[TeamMemberSummary]:
+    rows = session.execute(
+        select(TeamMember, User)
+        .outerjoin(User, User.id == TeamMember.user_uid)
+        .where(TeamMember.team_id == team.id)
+        .order_by(TeamMember.joined_at.asc()),
+    ).all()
+    members = [
+        _member_summary(team, membership, profile, current_user_id)
+        for membership, profile in rows
+    ]
+    if not any(member.user_id == team.owner_uid for member in members):
+        owner = session.get(User, team.owner_uid)
+        members.append(
+            TeamMemberSummary(
+                user_id=team.owner_uid,
+                name=(owner.name if owner else "") or team.owner_uid,
+                email=owner.email if owner else None,
+                role="owner",
+                joined_at=team.created_at,
+                is_current_user=team.owner_uid == current_user_id,
+            )
+        )
+    return sorted(members, key=lambda m: (m.role != "owner", m.name.lower()))
+
+
+def _count_rows(session, model, user_ids: list[str], time_field, week_start: datetime) -> int:
+    if not user_ids:
+        return 0
+    return int(
+        session.execute(
+            select(func.count()).select_from(model).where(
+                model.user_id.in_(user_ids),
+                time_field >= week_start,
+            ),
+        ).scalar_one()
+    )
+
+
+def _active_users(session, model, user_ids: list[str], time_field, week_start: datetime) -> set[str]:
+    if not user_ids:
+        return set()
+    return set(
+        session.execute(
+            select(model.user_id).where(
+                model.user_id.in_(user_ids),
+                time_field >= week_start,
+            ),
+        ).scalars()
+    )
 
 
 def _load_active_invite(token: str) -> tuple[TeamInvite, Team]:
@@ -213,6 +310,185 @@ def create_team_invite(
         invite_url=f"/team/invite/{token}",
         expires_at=expires_at,
     )
+
+
+@router.get("/{team_id}/members", response_model=TeamMembersResponse)
+def list_team_members(
+    team_id: str,
+    user: dict = Depends(get_current_user),
+) -> TeamMembersResponse:
+    user_id = str(user["id"])
+    with get_sync_session() as session:
+        team, membership = _assert_team_member(session, team_id, user_id)
+        return TeamMembersResponse(
+            team=_team_summary(session, team, user_id, membership),
+            members=_team_members(session, team, user_id),
+        )
+
+
+@router.patch(
+    "/{team_id}/members/{member_uid}",
+    response_model=TeamMemberUpdateResponse,
+)
+def update_team_member(
+    team_id: str,
+    member_uid: str,
+    body: TeamMemberUpdateRequest,
+    user: dict = Depends(get_current_user),
+) -> TeamMemberUpdateResponse:
+    user_id = str(user["id"])
+    with get_sync_session() as session, session.begin():
+        team = session.get(Team, team_id)
+        if team is None:
+            raise ApiError(ERR.admin_target_not_found, target_kind="team", target_id=team_id)
+        if team.owner_uid != user_id:
+            raise ApiError(ERR.forbidden)
+        if member_uid == team.owner_uid:
+            raise ApiError(ERR.forbidden)
+
+        membership = session.get(TeamMember, {"team_id": team_id, "user_uid": member_uid})
+        if membership is None:
+            raise ApiError(ERR.team_not_member, team_id=team_id, user_uid=member_uid)
+        before_role = membership.role
+        membership.role = body.role
+        profile = session.get(User, member_uid)
+        member = _member_summary(team, membership, profile, user_id)
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.member_role_updated",
+        target_kind="team",
+        target_id=team_id,
+        before={"user_uid": member_uid, "role": before_role},
+        after={"user_uid": member_uid, "role": body.role},
+    )
+    return TeamMemberUpdateResponse(member=member)
+
+
+@router.delete("/{team_id}/members/{member_uid}", status_code=204)
+def remove_team_member(
+    team_id: str,
+    member_uid: str,
+    user: dict = Depends(get_current_user),
+) -> Response:
+    user_id = str(user["id"])
+    with get_sync_session() as session, session.begin():
+        team = _assert_team_admin(session, team_id, user_id)
+        if member_uid == team.owner_uid:
+            raise ApiError(ERR.forbidden)
+
+        actor = session.get(TeamMember, {"team_id": team_id, "user_uid": user_id})
+        target = session.get(TeamMember, {"team_id": team_id, "user_uid": member_uid})
+        if target is None:
+            raise ApiError(ERR.team_not_member, team_id=team_id, user_uid=member_uid)
+        if team.owner_uid != user_id and target.role == "admin":
+            raise ApiError(ERR.forbidden)
+
+        removed_role = target.role
+        session.delete(target)
+        session.execute(update(User).where(User.id == member_uid).values(team_id=None))
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.member_removed",
+        target_kind="team",
+        target_id=team_id,
+        before={"user_uid": member_uid, "role": removed_role},
+        after={"removed_by_role": "owner" if team.owner_uid == user_id else actor.role},
+    )
+    return Response(status_code=204)
+
+
+@router.get("/{team_id}/overview", response_model=TeamOverviewResponse)
+def get_team_overview(
+    team_id: str,
+    user: dict = Depends(get_current_user),
+) -> TeamOverviewResponse:
+    user_id = str(user["id"])
+    week_start = progress_service._week_start_utc()
+    with get_sync_session() as session:
+        team, _membership = _assert_team_member(session, team_id, user_id)
+        user_ids = list(
+            session.execute(
+                select(TeamMember.user_uid).where(TeamMember.team_id == team_id),
+            ).scalars()
+        )
+        if team.owner_uid not in user_ids:
+            user_ids.append(team.owner_uid)
+
+        writing_count = _count_rows(
+            session, WritingHistory, user_ids, WritingHistory.created_at, week_start,
+        )
+        listening_count = _count_rows(
+            session, ListeningHistory, user_ids, ListeningHistory.created_at, week_start,
+        )
+        quiz_count = _count_rows(
+            session, QuizHistory, user_ids, QuizHistory.created_at, week_start,
+        )
+        reading_count = int(
+            session.execute(
+                select(func.count()).select_from(ReadingSession).where(
+                    ReadingSession.user_id.in_(user_ids),
+                    ReadingSession.status == "submitted",
+                    ReadingSession.submitted_at >= week_start,
+                ),
+            ).scalar_one()
+        ) if user_ids else 0
+        words_reviewed = _count_rows(
+            session, ReviewEvent, user_ids, ReviewEvent.created_at, week_start,
+        )
+        words_mastered = int(
+            session.execute(
+                select(func.count(func.distinct(ReviewEvent.user_vocab_id)))
+                .where(
+                    ReviewEvent.user_id.in_(user_ids),
+                    ReviewEvent.created_at >= week_start,
+                    ReviewEvent.srs_interval_after > 30,
+                ),
+            ).scalar_one()
+        ) if user_ids else 0
+
+        active = set()
+        active |= _active_users(
+            session, WritingHistory, user_ids, WritingHistory.created_at, week_start,
+        )
+        active |= _active_users(
+            session, ListeningHistory, user_ids, ListeningHistory.created_at, week_start,
+        )
+        active |= _active_users(
+            session, QuizHistory, user_ids, QuizHistory.created_at, week_start,
+        )
+        active |= _active_users(
+            session, ReviewEvent, user_ids, ReviewEvent.created_at, week_start,
+        )
+        if user_ids:
+            active |= set(
+                session.execute(
+                    select(ReadingSession.user_id).where(
+                        ReadingSession.user_id.in_(user_ids),
+                        ReadingSession.status == "submitted",
+                        ReadingSession.submitted_at >= week_start,
+                    ),
+                ).scalars()
+            )
+
+        study_minutes = (
+            writing_count * progress_service.MINUTES_PER_FEATURE["writing"]
+            + listening_count * progress_service.MINUTES_PER_FEATURE["listening"]
+            + quiz_count * progress_service.MINUTES_PER_FEATURE["quiz"]
+            + reading_count * progress_service.MINUTES_PER_FEATURE["reading"]
+            + words_reviewed * progress_service.MINUTES_PER_FEATURE["vocab_review"]
+        )
+        return TeamOverviewResponse(
+            week_start=week_start,
+            weekly_active_members=len(active),
+            study_minutes=study_minutes,
+            words_reviewed=words_reviewed,
+            words_mastered=words_mastered,
+            quiz_count=quiz_count,
+            member_count=len(user_ids),
+            seat_limit=team.seat_limit,
+        )
 
 
 @router.get("/invites/{token}", response_model=TeamInvitePreviewResponse)

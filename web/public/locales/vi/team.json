@@ -16,9 +16,35 @@
   },
   "workspace": {
     "title": "Không gian team",
-    "role": "Vai trò của bạn: {role}",
+    "roleLabel": "Vai trò của bạn",
     "members": "Đã dùng {count}/{limit} ghế",
     "privacy": "Beta chỉ chia sẻ tiến độ tổng quan. Bài Writing và câu trả lời luyện tập chi tiết vẫn riêng tư."
+  },
+  "roles": {
+    "owner": "Chủ team",
+    "admin": "Quản trị",
+    "member": "Thành viên"
+  },
+  "overview": {
+    "title": "Tổng quan team",
+    "loading": "Đang tải tổng quan...",
+    "weekStart": "Tuần từ {date}",
+    "activeMembers": "Thành viên hoạt động",
+    "studyMinutes": "Phút học",
+    "wordsReviewed": "Từ đã ôn",
+    "wordsMastered": "Từ đã nhớ",
+    "quizCount": "Bài quiz",
+    "empty": "Tuần này team chưa có hoạt động. Lượt ôn, quiz, writing, listening và reading sẽ hiện ở đây."
+  },
+  "members": {
+    "title": "Thành viên",
+    "description": "Vai trò được làm nổi bật để mọi người nhanh chóng biết ai là chủ team và ai có thể quản lý lời mời.",
+    "you": "Bạn",
+    "joined": "Tham gia {date}",
+    "roleActionLabel": "Đổi vai trò cho {name}",
+    "remove": "Xóa",
+    "removing": "Đang xóa...",
+    "removeConfirm": "Xóa {name} khỏi team này?"
   },
   "invite": {
     "title": "Mời thành viên",
