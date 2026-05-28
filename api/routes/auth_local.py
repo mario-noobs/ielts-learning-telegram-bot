@@ -15,13 +15,17 @@ ACCESS_COOKIE = "access_token"
 REFRESH_COOKIE = "refresh_token"
 
 
-def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
+def _cookie_settings() -> tuple[str, bool]:
     import config
     # Cross-origin deployments (e.g. Vercel → Render) require SameSite=None + Secure.
     # Local dev uses Lax + no Secure so plain HTTP works.
     cross_site = config.ENV != "development"
-    samesite = "none" if cross_site else "lax"
-    secure = cross_site
+    return ("none" if cross_site else "lax", cross_site)
+
+
+def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
+    import config
+    samesite, secure = _cookie_settings()
     response.set_cookie(
         ACCESS_COOKIE, access,
         max_age=config.LOCAL_ACCESS_TTL_MINUTES * 60,
@@ -35,8 +39,17 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
 
 
 def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie(ACCESS_COOKIE)
-    response.delete_cookie(REFRESH_COOKIE)
+    samesite, secure = _cookie_settings()
+    response.delete_cookie(ACCESS_COOKIE, samesite=samesite, secure=secure)
+    response.delete_cookie(REFRESH_COOKIE, samesite=samesite, secure=secure)
+
+
+async def _json_body(request: Request) -> dict:
+    try:
+        body = await request.json()
+    except Exception:
+        return {}
+    return body if isinstance(body, dict) else {}
 
 
 @router.post("/register", status_code=201)
@@ -66,6 +79,7 @@ async def register(body: dict, response: Response):
     def _create():
         with get_sync_session() as session:
             from sqlalchemy import select
+
             from services.db.models.user import User
 
             existing_email = session.execute(
@@ -105,7 +119,11 @@ async def register(body: dict, response: Response):
     access = local_auth_service.issue_access_token(email)
     _set_auth_cookies(response, access, raw_refresh)
 
-    return {"user": {"id": user_row.id, "email": email, "username": username, "name": username}}
+    return {
+        "user": {"id": user_row.id, "email": email, "username": username, "name": username},
+        "access_token": access,
+        "refresh_token": raw_refresh,
+    }
 
 
 @router.post("/login")
@@ -125,6 +143,7 @@ async def login(body: dict, request: Request, response: Response):
                 raise ApiError(ERR.auth_local_too_many_attempts)
 
             from sqlalchemy import select
+
             from services.db.models.user import User
 
             user = session.execute(
@@ -153,7 +172,9 @@ async def login(body: dict, request: Request, response: Response):
             "email": email,
             "username": user_row.username,
             "name": user_row.name,
-        }
+        },
+        "access_token": access,
+        "refresh_token": raw_refresh,
     }
 
 
@@ -162,7 +183,8 @@ async def refresh_token(request: Request, response: Response):
     from services import local_auth_service
     from services.db import get_sync_session
 
-    raw = request.cookies.get("refresh_token")
+    body = await _json_body(request)
+    raw = request.cookies.get("refresh_token") or body.get("refresh_token")
     if not raw:
         raise ApiError(ERR.auth_local_token_invalid)
 
@@ -175,7 +197,7 @@ async def refresh_token(request: Request, response: Response):
 
     email, new_access, new_refresh = await asyncio.to_thread(_rotate)
     _set_auth_cookies(response, new_access, new_refresh)
-    return {}
+    return {"access_token": new_access, "refresh_token": new_refresh}
 
 
 @router.post("/logout", status_code=204)
@@ -183,7 +205,8 @@ async def logout(request: Request, response: Response):
     from services import local_auth_service
     from services.db import get_sync_session
 
-    raw = request.cookies.get("refresh_token")
+    body = await _json_body(request)
+    raw = request.cookies.get("refresh_token") or body.get("refresh_token")
     if raw:
         def _revoke():
             with get_sync_session() as session:

@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth'
 import { apiFetch } from '../lib/api'
 import { auth, googleProvider } from '../lib/firebase'
+import { clearLocalTokens, getLocalRefreshToken, setLocalTokens } from '../lib/localAuth'
 
 export interface BackendProfile {
   id: string
@@ -42,6 +43,11 @@ export interface LocalRegisterData {
   confirm_password: string
   phone?: string
   address?: string
+}
+
+interface LocalAuthResponse {
+  access_token?: string | null
+  refresh_token?: string | null
 }
 
 interface AuthContextType {
@@ -108,9 +114,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearLocalSession = useCallback(async () => {
     try {
-      await apiFetch('/api/v1/auth/local/logout', { method: 'POST' })
+      const refreshToken = getLocalRefreshToken()
+      await apiFetch('/api/v1/auth/local/logout', {
+        method: 'POST',
+        body: refreshToken
+          ? JSON.stringify({ refresh_token: refreshToken })
+          : undefined,
+      })
     } catch {
       // Best-effort cleanup. The next API request will still prefer Bearer auth.
+    } finally {
+      clearLocalTokens()
     }
   }, [])
 
@@ -186,10 +200,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (auth.currentUser) await signOut(auth)
       await clearLocalSession()
-      await apiFetch('/api/v1/auth/local/login', {
+      const result = await apiFetch<LocalAuthResponse>('/api/v1/auth/local/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
+      setLocalTokens(result)
       await fetchProfile({ rethrow: true })
     } finally {
       endAuthTransition()
@@ -202,10 +217,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (auth.currentUser) await signOut(auth)
       await clearLocalSession()
-      await apiFetch('/api/v1/auth/local/register', {
+      const result = await apiFetch<LocalAuthResponse>('/api/v1/auth/local/register', {
         method: 'POST',
         body: JSON.stringify(data),
       })
+      setLocalTokens(result)
       await fetchProfile({ rethrow: true })
     } finally {
       endAuthTransition()

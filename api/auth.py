@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 import firebase_admin.auth
+import jwt
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -71,12 +72,23 @@ async def _verify_firebase_token(token: str) -> dict:
     return user
 
 
+def _is_local_access_token(token: str) -> bool:
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False})
+    except jwt.PyJWTError:
+        return False
+    return payload.get("typ") == "local+jwt"
+
+
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict:
     if credentials:
-        return await _verify_firebase_token(credentials.credentials)
+        token = credentials.credentials
+        if _is_local_access_token(token):
+            return await _verify_local_token(token)
+        return await _verify_firebase_token(token)
     access_token = request.cookies.get("access_token")
     if access_token:
         return await _verify_local_token(access_token)

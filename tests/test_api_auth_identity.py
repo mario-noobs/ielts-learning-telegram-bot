@@ -1,6 +1,6 @@
 import pytest
-from starlette.requests import Request
 from fastapi.security import HTTPAuthorizationCredentials
+from starlette.requests import Request
 
 from api import auth as auth_module
 
@@ -32,6 +32,19 @@ async def test_get_current_user_prefers_bearer_over_stale_local_cookie(monkeypat
     )
 
     assert user == {"id": "firebase-new-firebase"}
+
+
+async def test_get_current_user_accepts_local_bearer_token(monkeypatch):
+    monkeypatch.setattr(auth_module, "_is_local_access_token", lambda token: True)
+    monkeypatch.setattr(auth_module, "_verify_local_token", _local_user)
+    monkeypatch.setattr(auth_module, "_verify_firebase_token", _firebase_user)
+
+    user = await auth_module.get_current_user(
+        _request_with_cookie(None),
+        HTTPAuthorizationCredentials(scheme="Bearer", credentials="local-bearer"),
+    )
+
+    assert user == {"id": "local-local-bearer"}
 
 
 async def test_get_current_user_uses_local_cookie_when_no_bearer(monkeypatch):
