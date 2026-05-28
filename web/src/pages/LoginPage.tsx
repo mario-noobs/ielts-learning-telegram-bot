@@ -5,7 +5,7 @@ import LoadingScreen from '../components/LoadingScreen'
 import LogoMark from '../components/brand/LogoMark'
 import { useAuth, type LocalRegisterData } from '../contexts/AuthContext'
 import { localizeError } from '../lib/apiError'
-import { isInAppBrowser, shouldUseRedirectAuth } from '../lib/browser'
+import { externalBrowserUrl, isInAppBrowser, shouldUseRedirectAuth } from '../lib/browser'
 
 type Mode = 'options' | 'login' | 'register'
 
@@ -59,9 +59,12 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const inAppBrowser = isInAppBrowser()
   const redirectGoogleAuth = shouldUseRedirectAuth()
+  const currentHref = typeof window === 'undefined' ? '' : window.location.href
+  const browserHref = currentHref ? externalBrowserUrl(currentHref) : null
   const [showPw, setShowPw] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showOptional, setShowOptional] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const [loginFields, setLoginFields] = useState({ email: '', password: '' })
   const [regFields, setRegFields] = useState<LocalRegisterData & { confirm_password: string }>({
@@ -144,6 +147,21 @@ export default function LoginPage() {
     }
   }
 
+  const handleOpenBrowser = () => {
+    if (!browserHref) return
+    window.location.href = browserHref
+  }
+
+  const handleCopyLink = async () => {
+    if (!currentHref) return
+    try {
+      await navigator.clipboard.writeText(currentHref)
+      setCopied(true)
+    } catch {
+      setFormError(t('auth.copyLinkFailed'))
+    }
+  }
+
   const inputCls =
     'w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:opacity-50'
 
@@ -204,18 +222,51 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {inAppBrowser && (
+            <>
+              <h2 className="mb-2 text-2xl font-bold text-fg">{t('auth.openInBrowserTitle')}</h2>
+              <p className="mb-6 text-sm text-muted-fg">{t('auth.openInBrowserBody')}</p>
+
+              <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                <p className="font-medium">{t('auth.inAppBrowserWarning')}</p>
+                <p className="mt-1 opacity-80">{t('auth.inAppBrowserHint')}</p>
+              </div>
+
+              {browserHref && (
+                <button
+                  type="button"
+                  onClick={handleOpenBrowser}
+                  className="flex w-full items-center justify-center rounded-lg bg-primary px-6 py-3 font-medium text-on-primary transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {t('auth.openInChrome')}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className={`${browserHref ? 'mt-3' : ''} flex w-full items-center justify-center rounded-lg border border-border bg-bg px-6 py-3 font-medium text-fg transition hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              >
+                {copied ? t('auth.linkCopied') : t('auth.copyLoginLink')}
+              </button>
+
+              <p className="mt-4 text-center text-xs text-muted-fg">
+                {t('auth.openBrowserManualHint')}
+              </p>
+
+              {formError && (
+                <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                  {formError}
+                </p>
+              )}
+            </>
+          )}
+
           {/* Options view */}
-          {mode === 'options' && (
+          {!inAppBrowser && mode === 'options' && (
             <>
               <h2 className="mb-2 text-2xl font-bold text-fg">{t('auth.welcomeBack')}</h2>
               <p className="mb-6 text-sm text-muted-fg">{t('auth.tagline')}</p>
-
-              {inAppBrowser && (
-                <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                  <p className="font-medium">{t('auth.inAppBrowserWarning')}</p>
-                  <p className="mt-1 opacity-80">{t('auth.inAppBrowserHint')}</p>
-                </div>
-              )}
 
               <button
                 onClick={handleGoogleSignIn}
@@ -253,7 +304,7 @@ export default function LoginPage() {
           )}
 
           {/* Login view */}
-          {mode === 'login' && (
+          {!inAppBrowser && mode === 'login' && (
             <>
               <h2 className="mb-2 text-2xl font-bold text-fg">{t('auth.signIn')}</h2>
               <p className="mb-6 text-sm text-muted-fg">{t('auth.tagline')}</p>
@@ -350,7 +401,7 @@ export default function LoginPage() {
           )}
 
           {/* Register view */}
-          {mode === 'register' && (
+          {!inAppBrowser && mode === 'register' && (
             <>
               <h2 className="mb-2 text-2xl font-bold text-fg">{t('auth.createAccount')}</h2>
               <p className="mb-6 text-sm text-muted-fg">{t('auth.tagline')}</p>
