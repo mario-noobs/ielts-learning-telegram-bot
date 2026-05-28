@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, Query
 
 from api.auth import get_current_user
 from api.models.team_knowledge import (
+    TeamCreateKnowledgePostRequest,
+    TeamCreateKnowledgePostResponse,
+    TeamCreateKnowledgeReplyRequest,
+    TeamCreateKnowledgeReplyResponse,
+    TeamKnowledgeHelpfulResponse,
     TeamKnowledgePostsResponse,
+    TeamKnowledgeRepliesResponse,
     TeamSaveSharedWordResponse,
     TeamShareWordRequest,
     TeamShareWordResponse,
@@ -69,6 +75,23 @@ def list_team_knowledge_posts(
     return TeamKnowledgePostsResponse(**payload)
 
 
+@router.post("/posts", response_model=TeamCreateKnowledgePostResponse, status_code=201)
+def create_team_knowledge_post(
+    team_id: str,
+    body: TeamCreateKnowledgePostRequest,
+    user: dict = Depends(get_current_user),
+) -> TeamCreateKnowledgePostResponse:
+    post = team_knowledge_service.create_post(
+        team_id=team_id,
+        user_id=str(user["id"]),
+        post_type=body.type,
+        category=body.category,
+        title=body.title,
+        body=body.body,
+    )
+    return TeamCreateKnowledgePostResponse(post=post)
+
+
 @router.post("/posts/share-word", response_model=TeamShareWordResponse, status_code=201)
 def share_word_to_team(
     team_id: str,
@@ -104,3 +127,80 @@ def save_team_shared_word(
         already_saved=result["already_saved"],
         word=_to_vocab_word(result["word"]),
     )
+
+
+@router.get(
+    "/posts/{post_id}/replies",
+    response_model=TeamKnowledgeRepliesResponse,
+)
+def list_team_knowledge_replies(
+    team_id: str,
+    post_id: str,
+    limit: int = Query(20, ge=1, le=50),
+    cursor: str | None = Query(None),
+    user: dict = Depends(get_current_user),
+) -> TeamKnowledgeRepliesResponse:
+    payload = team_knowledge_service.list_replies(
+        team_id=team_id,
+        post_id=post_id,
+        user_id=str(user["id"]),
+        limit=limit,
+        cursor=cursor,
+    )
+    return TeamKnowledgeRepliesResponse(**payload)
+
+
+@router.post(
+    "/posts/{post_id}/replies",
+    response_model=TeamCreateKnowledgeReplyResponse,
+    status_code=201,
+)
+def create_team_knowledge_reply(
+    team_id: str,
+    post_id: str,
+    body: TeamCreateKnowledgeReplyRequest,
+    user: dict = Depends(get_current_user),
+) -> TeamCreateKnowledgeReplyResponse:
+    reply = team_knowledge_service.create_reply(
+        team_id=team_id,
+        post_id=post_id,
+        user_id=str(user["id"]),
+        body=body.body,
+    )
+    return TeamCreateKnowledgeReplyResponse(reply=reply)
+
+
+@router.post(
+    "/posts/{post_id}/helpful",
+    response_model=TeamKnowledgeHelpfulResponse,
+)
+def toggle_team_knowledge_post_helpful(
+    team_id: str,
+    post_id: str,
+    user: dict = Depends(get_current_user),
+) -> TeamKnowledgeHelpfulResponse:
+    payload = team_knowledge_service.toggle_post_helpful(
+        team_id=team_id,
+        post_id=post_id,
+        user_id=str(user["id"]),
+    )
+    return TeamKnowledgeHelpfulResponse(**payload)
+
+
+@router.post(
+    "/posts/{post_id}/replies/{reply_id}/helpful",
+    response_model=TeamKnowledgeHelpfulResponse,
+)
+def toggle_team_knowledge_reply_helpful(
+    team_id: str,
+    post_id: str,
+    reply_id: str,
+    user: dict = Depends(get_current_user),
+) -> TeamKnowledgeHelpfulResponse:
+    payload = team_knowledge_service.toggle_reply_helpful(
+        team_id=team_id,
+        post_id=post_id,
+        reply_id=reply_id,
+        user_id=str(user["id"]),
+    )
+    return TeamKnowledgeHelpfulResponse(**payload)

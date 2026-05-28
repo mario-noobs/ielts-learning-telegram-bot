@@ -35,6 +35,9 @@ class TeamKnowledgePost(BaseModel):
     word_snapshot: TeamWordSnapshot | None = None
     saved_to_my_words: bool = False
     existing_word_id: str | None = None
+    reply_count: int = 0
+    helpful_count: int = 0
+    helpful_by_me: bool = False
     created_at: datetime
 
 
@@ -57,3 +60,45 @@ class TeamSaveSharedWordResponse(BaseModel):
     created: bool
     already_saved: bool
     word: VocabularyWord
+
+
+class TeamCreateKnowledgePostRequest(BaseModel):
+    type: Literal["question", "note"] = "question"
+    category: str = Field(default="general", min_length=1, max_length=40)
+    title: str = Field(min_length=3, max_length=160)
+    body: str = Field(min_length=3, max_length=2000)
+
+
+class TeamCreateKnowledgePostResponse(BaseModel):
+    post: TeamKnowledgePost
+
+
+class TeamKnowledgeReply(BaseModel):
+    id: str
+    post_id: str
+    team_id: str
+    author: TeamKnowledgeAuthor
+    body: str
+    helpful_count: int = 0
+    helpful_by_me: bool = False
+    created_at: datetime
+
+
+class TeamKnowledgeRepliesResponse(BaseModel):
+    items: list[TeamKnowledgeReply]
+    next_cursor: str | None = None
+
+
+class TeamCreateKnowledgeReplyRequest(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
+
+
+class TeamCreateKnowledgeReplyResponse(BaseModel):
+    reply: TeamKnowledgeReply
+
+
+class TeamKnowledgeHelpfulResponse(BaseModel):
+    target_type: Literal["post", "reply"]
+    target_id: str
+    helpful_count: int
+    helpful_by_me: bool

@@ -32,6 +32,8 @@ def _clean():
         Team,
         TeamInvite,
         TeamKnowledgePost,
+        TeamKnowledgeReaction,
+        TeamKnowledgeReply,
         TeamMember,
         User,
         UserVocabulary,
@@ -46,6 +48,8 @@ def _clean():
             s.execute(delete(ListeningHistory).where(ListeningHistory.user_id.like("team-test-%")))
             s.execute(delete(QuizHistory).where(QuizHistory.user_id.like("team-test-%")))
             s.execute(delete(WritingHistory).where(WritingHistory.user_id.like("team-test-%")))
+            s.execute(delete(TeamKnowledgeReaction).where(TeamKnowledgeReaction.user_uid.like("team-test-%")))
+            s.execute(delete(TeamKnowledgeReply).where(TeamKnowledgeReply.author_uid.like("team-test-%")))
             s.execute(delete(TeamKnowledgePost).where(TeamKnowledgePost.author_uid.like("team-test-%")))
             s.execute(delete(UserVocabulary).where(UserVocabulary.user_id.like("team-test-%")))
             s.execute(delete(TeamInvite))
@@ -643,3 +647,192 @@ def test_member_saves_shared_team_word_idempotently() -> None:
     assert second.status_code == 200
     assert second.json()["already_saved"] is True
     assert second.json()["word"]["word"] == "coherence"
+
+
+def test_member_creates_team_question_and_feed_shows_discussion_counts() -> None:
+    from services.db import get_sync_session
+    from services.db.models import AuditLog, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        created = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts",
+            json={
+                "type": "question",
+                "category": "writing",
+                "title": "How can I use coherence naturally?",
+                "body": "I see this word often in Task 2 feedback.",
+            },
+        )
+        feed = c.get(f"/api/v1/teams/{team_id}/knowledge/posts")
+
+    assert created.status_code == 201
+    post = created.json()["post"]
+    assert post["type"] == "question"
+    assert post["category"] == "writing"
+    assert post["reply_count"] == 0
+    assert post["helpful_count"] == 0
+    assert post["helpful_by_me"] is False
+
+    assert feed.status_code == 200
+    assert feed.json()["items"][0]["id"] == post["id"]
+    with get_sync_session() as s:
+        event = s.execute(
+            select(AuditLog).where(
+                AuditLog.target_id == team_id,
+                AuditLog.event_type == "team.knowledge.post_created",
+            )
+        ).scalar_one()
+    assert event.after == {"post_id": post["id"], "type": "question"}
+
+
+def test_team_question_replies_are_loaded_on_demand() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamKnowledgePost, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member", name="Reply Member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add(
+            TeamKnowledgePost(
+                id="22222222-2222-2222-2222-222222222222",
+                team_id=team_id,
+                author_uid="team-test-owner",
+                type="question",
+                category="writing",
+                title="How to use however?",
+                body="Should it start every sentence?",
+                source_user_vocab_id=None,
+                word_snapshot={},
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        created_reply = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "22222222-2222-2222-2222-222222222222/replies",
+            json={"body": "Use it to contrast ideas, but not every sentence."},
+        )
+        replies = c.get(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "22222222-2222-2222-2222-222222222222/replies"
+        )
+        feed = c.get(f"/api/v1/teams/{team_id}/knowledge/posts")
+
+    assert created_reply.status_code == 201
+    reply = created_reply.json()["reply"]
+    assert reply["body"] == "Use it to contrast ideas, but not every sentence."
+    assert reply["helpful_count"] == 0
+
+    assert replies.status_code == 200
+    assert replies.json()["items"][0]["author"]["name"] == "Reply Member"
+    assert replies.json()["items"][0]["id"] == reply["id"]
+    assert feed.json()["items"][0]["reply_count"] == 1
+
+
+def test_helpful_toggle_is_unique_for_posts_and_replies() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamKnowledgePost, TeamKnowledgeReply, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add(
+            TeamKnowledgePost(
+                id="33333333-3333-3333-3333-333333333333",
+                team_id=team_id,
+                author_uid="team-test-owner",
+                type="question",
+                category="general",
+                title="What does concise mean?",
+                body="I want a simple explanation.",
+                source_user_vocab_id=None,
+                word_snapshot={},
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        s.add(
+            TeamKnowledgeReply(
+                id="44444444-4444-4444-4444-444444444444",
+                post_id="33333333-3333-3333-3333-333333333333",
+                team_id=team_id,
+                author_uid="team-test-member",
+                body="It means short and clear.",
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        first_post = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "33333333-3333-3333-3333-333333333333/helpful"
+        )
+        second_post = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "33333333-3333-3333-3333-333333333333/helpful"
+        )
+        reply_helpful = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "33333333-3333-3333-3333-333333333333/replies/"
+            "44444444-4444-4444-4444-444444444444/helpful"
+        )
+        replies = c.get(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "33333333-3333-3333-3333-333333333333/replies"
+        )
+
+    assert first_post.status_code == 200
+    assert first_post.json()["helpful_count"] == 1
+    assert first_post.json()["helpful_by_me"] is True
+    assert second_post.status_code == 200
+    assert second_post.json()["helpful_count"] == 0
+    assert second_post.json()["helpful_by_me"] is False
+    assert reply_helpful.status_code == 200
+    assert reply_helpful.json()["helpful_count"] == 1
+    assert replies.json()["items"][0]["helpful_by_me"] is True

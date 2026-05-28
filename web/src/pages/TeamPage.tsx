@@ -105,6 +105,9 @@ interface TeamKnowledgePost {
   word_snapshot: TeamWordSnapshot | null
   saved_to_my_words: boolean
   existing_word_id: string | null
+  reply_count: number
+  helpful_count: number
+  helpful_by_me: boolean
   created_at: string
 }
 
@@ -113,11 +116,47 @@ interface TeamKnowledgePostsResponse {
   next_cursor: string | null
 }
 
+interface TeamKnowledgeReply {
+  id: string
+  post_id: string
+  team_id: string
+  author: {
+    user_id: string
+    name: string
+  }
+  body: string
+  helpful_count: number
+  helpful_by_me: boolean
+  created_at: string
+}
+
+interface TeamCreateKnowledgePostResponse {
+  post: TeamKnowledgePost
+}
+
+interface TeamKnowledgeRepliesResponse {
+  items: TeamKnowledgeReply[]
+  next_cursor: string | null
+}
+
+interface TeamCreateKnowledgeReplyResponse {
+  reply: TeamKnowledgeReply
+}
+
+interface TeamKnowledgeHelpfulResponse {
+  target_type: 'post' | 'reply'
+  target_id: string
+  helpful_count: number
+  helpful_by_me: boolean
+}
+
 interface TeamSaveSharedWordResponse {
   word: {
     id: string
   }
 }
+
+const KNOWLEDGE_CATEGORIES = ['general', 'vocabulary', 'writing', 'reading', 'listening']
 
 const ROLE_META: Record<TeamRole, { icon: IconName; className: string }> = {
   owner: {
@@ -153,6 +192,7 @@ export default function TeamPage() {
   const [overview, setOverview] = useState<TeamOverviewResponse | null>(null)
   const [memberProgress, setMemberProgress] = useState<TeamMemberProgressRow[]>([])
   const [knowledgePosts, setKnowledgePosts] = useState<TeamKnowledgePost[]>([])
+  const [repliesByPost, setRepliesByPost] = useState<Record<string, TeamKnowledgeReply[]>>({})
   const [loading, setLoading] = useState(true)
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
   const [name, setName] = useState('')
@@ -160,6 +200,15 @@ export default function TeamPage() {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [memberAction, setMemberAction] = useState('')
   const [knowledgeAction, setKnowledgeAction] = useState('')
+  const [helpfulAction, setHelpfulAction] = useState('')
+  const [openPostId, setOpenPostId] = useState('')
+  const [replyLoading, setReplyLoading] = useState('')
+  const [replySubmitting, setReplySubmitting] = useState('')
+  const [questionSubmitting, setQuestionSubmitting] = useState(false)
+  const [questionCategory, setQuestionCategory] = useState('general')
+  const [questionTitle, setQuestionTitle] = useState('')
+  const [questionBody, setQuestionBody] = useState('')
+  const [replyTextByPost, setReplyTextByPost] = useState<Record<string, string>>({})
   const [invite, setInvite] = useState<TeamInviteCreateResponse | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
@@ -182,6 +231,8 @@ export default function TeamPage() {
       setMembers(membersRes.members)
       setOverview(overviewRes)
       setKnowledgePosts(knowledgeRes.items)
+      setRepliesByPost({})
+      setOpenPostId('')
       if (role === 'owner' || role === 'admin') {
         const progressRes = await apiFetch<TeamMemberProgressResponse>(
           `/api/v1/teams/${encodeURIComponent(teamId)}/member-progress`,
@@ -330,6 +381,8 @@ export default function TeamPage() {
         setOverview(null)
         setMemberProgress([])
         setKnowledgePosts([])
+        setRepliesByPost({})
+        setOpenPostId('')
       } else {
         await loadWorkspace(team.id, team.my_role)
       }
@@ -360,6 +413,136 @@ export default function TeamPage() {
       setError(localizeError(e))
     } finally {
       setKnowledgeAction('')
+    }
+  }
+
+  const createQuestion = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!team) return
+    const title = questionTitle.trim()
+    const body = questionBody.trim()
+    if (!title || !body) return
+    setQuestionSubmitting(true)
+    setError('')
+    try {
+      const res = await apiFetch<TeamCreateKnowledgePostResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'question',
+            category: questionCategory,
+            title,
+            body,
+          }),
+        },
+      )
+      setKnowledgePosts((items) => [res.post, ...items])
+      setQuestionTitle('')
+      setQuestionBody('')
+      setQuestionCategory('general')
+      track('team_knowledge_question_created', { team_id: team.id, post_id: res.post.id })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setQuestionSubmitting(false)
+    }
+  }
+
+  const loadReplies = async (post: TeamKnowledgePost) => {
+    if (!team) return
+    if (openPostId === post.id) {
+      setOpenPostId('')
+      return
+    }
+    setOpenPostId(post.id)
+    if (repliesByPost[post.id]) return
+    setReplyLoading(post.id)
+    setError('')
+    try {
+      const res = await apiFetch<TeamKnowledgeRepliesResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(post.id)}/replies?limit=20`,
+      )
+      setRepliesByPost((items) => ({ ...items, [post.id]: res.items }))
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setReplyLoading('')
+    }
+  }
+
+  const createReply = async (post: TeamKnowledgePost) => {
+    if (!team) return
+    const body = (replyTextByPost[post.id] || '').trim()
+    if (!body) return
+    setReplySubmitting(post.id)
+    setError('')
+    try {
+      const res = await apiFetch<TeamCreateKnowledgeReplyResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(post.id)}/replies`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ body }),
+        },
+      )
+      setRepliesByPost((items) => ({
+        ...items,
+        [post.id]: [...(items[post.id] || []), res.reply],
+      }))
+      setReplyTextByPost((items) => ({ ...items, [post.id]: '' }))
+      setKnowledgePosts((items) => items.map((item) => (
+        item.id === post.id ? { ...item, reply_count: item.reply_count + 1 } : item
+      )))
+      track('team_knowledge_reply_created', { team_id: team.id, post_id: post.id })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setReplySubmitting('')
+    }
+  }
+
+  const togglePostHelpful = async (post: TeamKnowledgePost) => {
+    if (!team) return
+    setHelpfulAction(`post:${post.id}`)
+    setError('')
+    try {
+      const res = await apiFetch<TeamKnowledgeHelpfulResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(post.id)}/helpful`,
+        { method: 'POST' },
+      )
+      setKnowledgePosts((items) => items.map((item) => (
+        item.id === post.id
+          ? { ...item, helpful_count: res.helpful_count, helpful_by_me: res.helpful_by_me }
+          : item
+      )))
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setHelpfulAction('')
+    }
+  }
+
+  const toggleReplyHelpful = async (postId: string, reply: TeamKnowledgeReply) => {
+    if (!team) return
+    setHelpfulAction(`reply:${reply.id}`)
+    setError('')
+    try {
+      const res = await apiFetch<TeamKnowledgeHelpfulResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(postId)}/replies/${encodeURIComponent(reply.id)}/helpful`,
+        { method: 'POST' },
+      )
+      setRepliesByPost((items) => ({
+        ...items,
+        [postId]: (items[postId] || []).map((item) => (
+          item.id === reply.id
+            ? { ...item, helpful_count: res.helpful_count, helpful_by_me: res.helpful_by_me }
+            : item
+        )),
+      }))
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setHelpfulAction('')
     }
   }
 
@@ -508,6 +691,59 @@ export default function TeamPage() {
               </span>
             </div>
 
+            <form onSubmit={createQuestion} className="mt-4 rounded-lg border border-border bg-bg p-3">
+              <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+                <label className="block text-sm font-medium text-fg" htmlFor="knowledge-category">
+                  {t('knowledge.askCategory')}
+                  <select
+                    id="knowledge-category"
+                    value={questionCategory}
+                    onChange={(event) => setQuestionCategory(event.target.value)}
+                    className="mt-1 min-h-10 w-full rounded-md border border-border bg-surface px-2 text-sm text-fg"
+                  >
+                    {KNOWLEDGE_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {t(`knowledge.categories.${category}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-medium text-fg" htmlFor="knowledge-title">
+                  {t('knowledge.askTitle')}
+                  <input
+                    id="knowledge-title"
+                    value={questionTitle}
+                    onChange={(event) => setQuestionTitle(event.target.value)}
+                    maxLength={160}
+                    placeholder={t('knowledge.askTitlePlaceholder')}
+                    className="mt-1 min-h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-fg placeholder:text-muted-fg"
+                  />
+                </label>
+              </div>
+              <label className="mt-3 block text-sm font-medium text-fg" htmlFor="knowledge-body">
+                {t('knowledge.askBody')}
+                <textarea
+                  id="knowledge-body"
+                  value={questionBody}
+                  onChange={(event) => setQuestionBody(event.target.value)}
+                  maxLength={2000}
+                  rows={3}
+                  placeholder={t('knowledge.askBodyPlaceholder')}
+                  className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted-fg"
+                />
+              </label>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={questionSubmitting || !questionTitle.trim() || !questionBody.trim()}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {questionSubmitting && <Icon name="Loader2" size="sm" className="animate-spin text-on-primary" />}
+                  {questionSubmitting ? t('knowledge.asking') : t('knowledge.ask')}
+                </button>
+              </div>
+            </form>
+
             <div className="mt-4 space-y-3">
               {knowledgePosts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border bg-bg px-4 py-5">
@@ -518,6 +754,11 @@ export default function TeamPage() {
                 knowledgePosts.map((post) => {
                   const word = post.word_snapshot
                   const saving = knowledgeAction === post.id
+                  const replies = repliesByPost[post.id] || []
+                  const isOpen = openPostId === post.id
+                  const loadingReplies = replyLoading === post.id
+                  const replying = replySubmitting === post.id
+                  const postHelpful = helpfulAction === `post:${post.id}`
                   return (
                     <article key={post.id} className="rounded-lg border border-border bg-bg p-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -526,6 +767,11 @@ export default function TeamPage() {
                             <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                               {t(`knowledge.types.${post.type}`)}
                             </span>
+                            {post.category && (
+                              <span className="rounded-md bg-surface px-2 py-0.5 text-xs font-medium text-muted-fg">
+                                {t(`knowledge.categories.${post.category}`, { defaultValue: post.category })}
+                              </span>
+                            )}
                             <span className="text-xs text-muted-fg">
                               {t('knowledge.byline', {
                                 name: post.author.name,
@@ -550,30 +796,111 @@ export default function TeamPage() {
                               )}
                             </>
                           )}
+                          {!word && post.title && (
+                            <h3 className="mt-2 text-base font-semibold text-fg">{post.title}</h3>
+                          )}
                           {post.body && (
                             <p className="mt-2 text-sm text-fg">{post.body}</p>
                           )}
                         </div>
-                        {post.type === 'shared_word' && (
+                        <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                          {post.type === 'shared_word' && (
+                            <button
+                              type="button"
+                              onClick={() => void saveSharedWord(post)}
+                              disabled={post.saved_to_my_words || saving}
+                              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+                            >
+                              <Icon
+                                name={post.saved_to_my_words ? 'Check' : 'Plus'}
+                                size="sm"
+                                variant={post.saved_to_my_words ? 'success' : 'muted'}
+                              />
+                              {post.saved_to_my_words
+                                ? t('knowledge.saved')
+                                : saving
+                                  ? t('knowledge.saving')
+                                  : t('knowledge.save')}
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() => void saveSharedWord(post)}
-                            disabled={post.saved_to_my_words || saving}
-                            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+                            onClick={() => void togglePostHelpful(post)}
+                            disabled={postHelpful}
+                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40 disabled:opacity-60"
                           >
-                            <Icon
-                              name={post.saved_to_my_words ? 'Check' : 'Plus'}
-                              size="sm"
-                              variant={post.saved_to_my_words ? 'success' : 'muted'}
-                            />
-                            {post.saved_to_my_words
-                              ? t('knowledge.saved')
-                              : saving
-                                ? t('knowledge.saving')
-                                : t('knowledge.save')}
+                            <Icon name="Heart" size="sm" variant={post.helpful_by_me ? 'danger' : 'muted'} />
+                            {t('knowledge.helpful', { count: post.helpful_count })}
                           </button>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => void loadReplies(post)}
+                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
+                          >
+                            <Icon name={isOpen ? 'ChevronDown' : 'ChevronRight'} size="sm" variant="muted" />
+                            {t('knowledge.replies', { count: post.reply_count })}
+                          </button>
+                        </div>
                       </div>
+                      {isOpen && (
+                        <div className="mt-3 border-t border-border pt-3">
+                          {loadingReplies ? (
+                            <p className="inline-flex items-center gap-2 text-sm text-muted-fg">
+                              <Icon name="Loader2" size="sm" className="animate-spin" />
+                              {t('knowledge.loadingReplies')}
+                            </p>
+                          ) : replies.length === 0 ? (
+                            <p className="text-sm text-muted-fg">{t('knowledge.noReplies')}</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {replies.map((reply) => {
+                                const replyHelpful = helpfulAction === `reply:${reply.id}`
+                                return (
+                                  <div key={reply.id} className="rounded-md border border-border bg-surface p-3">
+                                    <p className="text-xs text-muted-fg">
+                                      {t('knowledge.replyByline', {
+                                        name: reply.author.name,
+                                        date: formatDate(reply.created_at),
+                                      })}
+                                    </p>
+                                    <p className="mt-1 text-sm text-fg">{reply.body}</p>
+                                    <button
+                                      type="button"
+                                      onClick={() => void toggleReplyHelpful(post.id, reply)}
+                                      disabled={replyHelpful}
+                                      className="mt-2 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+                                    >
+                                      <Icon name="Heart" size="sm" variant={reply.helpful_by_me ? 'danger' : 'muted'} />
+                                      {t('knowledge.helpful', { count: reply.helpful_count })}
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                            <input
+                              value={replyTextByPost[post.id] || ''}
+                              onChange={(event) => setReplyTextByPost((items) => ({
+                                ...items,
+                                [post.id]: event.target.value,
+                              }))}
+                              maxLength={2000}
+                              placeholder={t('knowledge.replyPlaceholder')}
+                              className="min-h-10 flex-1 rounded-md border border-border bg-surface px-3 text-sm text-fg placeholder:text-muted-fg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void createReply(post)}
+                              disabled={replying || !(replyTextByPost[post.id] || '').trim()}
+                              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-60"
+                            >
+                              {replying && <Icon name="Loader2" size="sm" className="animate-spin text-on-primary" />}
+                              {replying ? t('knowledge.replying') : t('knowledge.reply')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </article>
                   )
                 })

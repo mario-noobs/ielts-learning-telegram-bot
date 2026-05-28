@@ -33,7 +33,14 @@ from services.db.models.progress import (
     ProgressSnapshot,
 )
 from services.db.models.sessions import QuizSession, ReadingSession
-from services.db.models.team import Team, TeamInvite, TeamKnowledgePost, TeamMember
+from services.db.models.team import (
+    Team,
+    TeamInvite,
+    TeamKnowledgePost,
+    TeamKnowledgeReaction,
+    TeamKnowledgeReply,
+    TeamMember,
+)
 from services.db.models.user import User
 from services.db.models.vocabulary import ReviewEvent, Topic, UserVocabulary, VocabularyMaster
 
@@ -69,6 +76,8 @@ __all__ = [
     "Team",
     "TeamInvite",
     "TeamKnowledgePost",
+    "TeamKnowledgeReaction",
+    "TeamKnowledgeReply",
     "TeamMember",
     "Topic",
     "User",

@@ -11,13 +11,22 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 
 from api.errors import ERR, ApiError
 from services import firebase_service, word_service
 from services.admin import audit_service
 from services.db import get_sync_session
-from services.db.models import Team, TeamKnowledgePost, TeamMember, Topic, User, UserVocabulary
+from services.db.models import (
+    Team,
+    TeamKnowledgePost,
+    TeamKnowledgeReaction,
+    TeamKnowledgeReply,
+    TeamMember,
+    Topic,
+    User,
+    UserVocabulary,
+)
 
 SHARED_WORD_SOURCE_ID = 3
 VOCAB_LIMITS_BY_PLAN = {
@@ -106,10 +115,16 @@ def _post_to_dict(
     post: TeamKnowledgePost,
     author_names: dict[str, str],
     saved_by_norm: dict[str, str],
+    reply_counts: dict[str, int] | None = None,
+    helpful_counts: dict[str, int] | None = None,
+    helpful_by_me: set[str] | None = None,
 ) -> dict[str, Any]:
     snapshot = post.word_snapshot or {}
     norm = word_service.normalize_word(str(snapshot.get("word") or ""))
     existing_word_id = saved_by_norm.get(norm)
+    reply_counts = reply_counts or {}
+    helpful_counts = helpful_counts or {}
+    helpful_by_me = helpful_by_me or set()
     return {
         "id": post.id,
         "team_id": post.team_id,
@@ -124,16 +139,101 @@ def _post_to_dict(
         "word_snapshot": snapshot if post.type == "shared_word" else None,
         "saved_to_my_words": existing_word_id is not None,
         "existing_word_id": existing_word_id,
+        "reply_count": reply_counts.get(post.id, 0),
+        "helpful_count": helpful_counts.get(post.id, 0),
+        "helpful_by_me": post.id in helpful_by_me,
         "created_at": post.created_at,
     }
 
 
 def _author_names(session, posts: list[TeamKnowledgePost]) -> dict[str, str]:
-    author_ids = {post.author_uid for post in posts}
-    if not author_ids:
+    return _author_names_for_user_ids(session, {post.author_uid for post in posts})
+
+
+def _author_names_for_user_ids(session, user_ids: set[str]) -> dict[str, str]:
+    if not user_ids:
         return {}
-    rows = session.execute(select(User.id, User.name).where(User.id.in_(author_ids))).all()
+    rows = session.execute(select(User.id, User.name).where(User.id.in_(user_ids))).all()
     return {str(user_id): str(name or "") for user_id, name in rows}
+
+
+def _post_reply_counts(session, post_ids: list[str]) -> dict[str, int]:
+    if not post_ids:
+        return {}
+    rows = session.execute(
+        select(TeamKnowledgeReply.post_id, func.count())
+        .where(
+            TeamKnowledgeReply.post_id.in_(post_ids),
+            TeamKnowledgeReply.status == "active",
+        )
+        .group_by(TeamKnowledgeReply.post_id)
+    ).all()
+    return {str(post_id): int(count) for post_id, count in rows}
+
+
+def _helpful_counts(session, target_type: str, target_ids: list[str]) -> dict[str, int]:
+    if not target_ids:
+        return {}
+    rows = session.execute(
+        select(TeamKnowledgeReaction.target_id, func.count())
+        .where(
+            TeamKnowledgeReaction.target_type == target_type,
+            TeamKnowledgeReaction.reaction == "helpful",
+            TeamKnowledgeReaction.target_id.in_(target_ids),
+        )
+        .group_by(TeamKnowledgeReaction.target_id)
+    ).all()
+    return {str(target_id): int(count) for target_id, count in rows}
+
+
+def _helpful_by_user(session, target_type: str, target_ids: list[str], user_id: str) -> set[str]:
+    if not target_ids:
+        return set()
+    rows = session.execute(
+        select(TeamKnowledgeReaction.target_id).where(
+            TeamKnowledgeReaction.target_type == target_type,
+            TeamKnowledgeReaction.reaction == "helpful",
+            TeamKnowledgeReaction.user_uid == user_id,
+            TeamKnowledgeReaction.target_id.in_(target_ids),
+        )
+    ).scalars().all()
+    return {str(target_id) for target_id in rows}
+
+
+def _reply_to_dict(
+    reply: TeamKnowledgeReply,
+    author_names: dict[str, str],
+    helpful_counts: dict[str, int] | None = None,
+    helpful_by_me: set[str] | None = None,
+) -> dict[str, Any]:
+    helpful_counts = helpful_counts or {}
+    helpful_by_me = helpful_by_me or set()
+    return {
+        "id": reply.id,
+        "post_id": reply.post_id,
+        "team_id": reply.team_id,
+        "author": {
+            "user_id": reply.author_uid,
+            "name": author_names.get(reply.author_uid) or reply.author_uid,
+        },
+        "body": reply.body,
+        "helpful_count": helpful_counts.get(reply.id, 0),
+        "helpful_by_me": reply.id in helpful_by_me,
+        "created_at": reply.created_at,
+    }
+
+
+def _active_post(session, team_id: str, post_id: str) -> TeamKnowledgePost:
+    post = session.execute(
+        select(TeamKnowledgePost).where(
+            TeamKnowledgePost.id == post_id,
+            TeamKnowledgePost.team_id == team_id,
+            TeamKnowledgePost.status == "active",
+        )
+    ).scalar_one_or_none()
+    if post is None:
+        raise ApiError(ERR.not_found)
+    return post
 
 
 def list_posts(
@@ -172,11 +272,76 @@ def list_posts(
             .all()
         )
         visible = posts[:limit]
+        post_ids = [post.id for post in visible]
         saved_by_norm = _saved_word_lookup(session, user_id, visible)
         authors = _author_names(session, visible)
-        items = [_post_to_dict(post, authors, saved_by_norm) for post in visible]
+        reply_counts = _post_reply_counts(session, post_ids)
+        helpful_counts = _helpful_counts(session, "post", post_ids)
+        my_helpful = _helpful_by_user(session, "post", post_ids, user_id)
+        items = [
+            _post_to_dict(
+                post,
+                authors,
+                saved_by_norm,
+                reply_counts,
+                helpful_counts,
+                my_helpful,
+            )
+            for post in visible
+        ]
         next_cursor = _make_cursor(visible[-1]) if len(posts) > limit and visible else None
         return {"items": items, "next_cursor": next_cursor}
+
+
+def create_post(
+    *,
+    team_id: str,
+    user_id: str,
+    post_type: str,
+    category: str,
+    title: str,
+    body: str,
+) -> dict[str, Any]:
+    post_type = post_type.strip()
+    category = category.strip() or "general"
+    title = title.strip()
+    body = body.strip()
+    if post_type not in {"question", "note"}:
+        raise ApiError(ERR.validation, field="type")
+    if not title:
+        raise ApiError(ERR.validation, field="title")
+    if not body:
+        raise ApiError(ERR.validation, field="body")
+    now = _now()
+    with get_sync_session() as session, session.begin():
+        _assert_team_member(session, team_id, user_id)
+        post = TeamKnowledgePost(
+            team_id=team_id,
+            author_uid=user_id,
+            type=post_type,
+            category=category,
+            title=title,
+            body=body,
+            source_user_vocab_id=None,
+            word_snapshot={},
+            status="active",
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(post)
+        session.flush()
+        authors = _author_names(session, [post])
+        payload = _post_to_dict(post, authors, {})
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.knowledge.post_created",
+        target_kind="team",
+        target_id=team_id,
+        before=None,
+        after={"post_id": payload["id"], "type": post_type},
+    )
+    return payload
 
 
 def share_word(
@@ -296,3 +461,193 @@ def save_shared_word(
         after={"post_id": post_id, "word_id": word_id, "created": created},
     )
     return {"created": created, "already_saved": not created, "word": saved}
+
+
+def list_replies(
+    *,
+    team_id: str,
+    post_id: str,
+    user_id: str,
+    limit: int,
+    cursor: str | None = None,
+) -> dict[str, Any]:
+    parsed_cursor = _parse_cursor(cursor)
+    with get_sync_session() as session:
+        _assert_team_member(session, team_id, user_id)
+        _active_post(session, team_id, post_id)
+        filters = [
+            TeamKnowledgeReply.team_id == team_id,
+            TeamKnowledgeReply.post_id == post_id,
+            TeamKnowledgeReply.status == "active",
+        ]
+        if parsed_cursor is not None:
+            created_at, reply_id = parsed_cursor
+            filters.append(
+                or_(
+                    TeamKnowledgeReply.created_at > created_at,
+                    and_(
+                        TeamKnowledgeReply.created_at == created_at,
+                        TeamKnowledgeReply.id > reply_id,
+                    ),
+                )
+            )
+        replies = (
+            session.execute(
+                select(TeamKnowledgeReply)
+                .where(*filters)
+                .order_by(TeamKnowledgeReply.created_at.asc(), TeamKnowledgeReply.id.asc())
+                .limit(limit + 1)
+            )
+            .scalars()
+            .all()
+        )
+        visible = replies[:limit]
+        reply_ids = [reply.id for reply in visible]
+        authors = _author_names_for_user_ids(session, {reply.author_uid for reply in visible})
+        helpful_counts = _helpful_counts(session, "reply", reply_ids)
+        my_helpful = _helpful_by_user(session, "reply", reply_ids, user_id)
+        items = [
+            _reply_to_dict(reply, authors, helpful_counts, my_helpful)
+            for reply in visible
+        ]
+        next_cursor = (
+            f"{visible[-1].created_at.isoformat()}|{visible[-1].id}"
+            if len(replies) > limit and visible
+            else None
+        )
+        return {"items": items, "next_cursor": next_cursor}
+
+
+def create_reply(
+    *,
+    team_id: str,
+    post_id: str,
+    user_id: str,
+    body: str,
+) -> dict[str, Any]:
+    body = body.strip()
+    if not body:
+        raise ApiError(ERR.validation, field="body")
+    now = _now()
+    with get_sync_session() as session, session.begin():
+        _assert_team_member(session, team_id, user_id)
+        post = _active_post(session, team_id, post_id)
+        post.updated_at = now
+        reply = TeamKnowledgeReply(
+            post_id=post_id,
+            team_id=team_id,
+            author_uid=user_id,
+            body=body,
+            status="active",
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(reply)
+        session.flush()
+        authors = _author_names_for_user_ids(session, {user_id})
+        payload = _reply_to_dict(reply, authors)
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.knowledge.reply_created",
+        target_kind="team",
+        target_id=team_id,
+        before=None,
+        after={"post_id": post_id, "reply_id": payload["id"]},
+    )
+    return payload
+
+
+def _toggle_helpful(
+    *,
+    session,
+    team_id: str,
+    user_id: str,
+    target_type: str,
+    target_id: str,
+) -> dict[str, Any]:
+    existing = session.execute(
+        select(TeamKnowledgeReaction).where(
+            TeamKnowledgeReaction.team_id == team_id,
+            TeamKnowledgeReaction.target_type == target_type,
+            TeamKnowledgeReaction.target_id == target_id,
+            TeamKnowledgeReaction.user_uid == user_id,
+            TeamKnowledgeReaction.reaction == "helpful",
+        )
+    ).scalar_one_or_none()
+    helpful_by_me = existing is None
+    if existing is None:
+        session.add(
+            TeamKnowledgeReaction(
+                team_id=team_id,
+                target_type=target_type,
+                target_id=target_id,
+                user_uid=user_id,
+                reaction="helpful",
+                created_at=_now(),
+            )
+        )
+    else:
+        session.execute(delete(TeamKnowledgeReaction).where(TeamKnowledgeReaction.id == existing.id))
+    session.flush()
+    helpful_count = session.execute(
+        select(func.count()).where(
+            TeamKnowledgeReaction.team_id == team_id,
+            TeamKnowledgeReaction.target_type == target_type,
+            TeamKnowledgeReaction.target_id == target_id,
+            TeamKnowledgeReaction.reaction == "helpful",
+        )
+    ).scalar_one()
+    return {
+        "target_type": target_type,
+        "target_id": target_id,
+        "helpful_count": int(helpful_count),
+        "helpful_by_me": helpful_by_me,
+    }
+
+
+def toggle_post_helpful(
+    *,
+    team_id: str,
+    post_id: str,
+    user_id: str,
+) -> dict[str, Any]:
+    with get_sync_session() as session, session.begin():
+        _assert_team_member(session, team_id, user_id)
+        _active_post(session, team_id, post_id)
+        return _toggle_helpful(
+            session=session,
+            team_id=team_id,
+            user_id=user_id,
+            target_type="post",
+            target_id=post_id,
+        )
+
+
+def toggle_reply_helpful(
+    *,
+    team_id: str,
+    post_id: str,
+    reply_id: str,
+    user_id: str,
+) -> dict[str, Any]:
+    with get_sync_session() as session, session.begin():
+        _assert_team_member(session, team_id, user_id)
+        _active_post(session, team_id, post_id)
+        reply = session.execute(
+            select(TeamKnowledgeReply).where(
+                TeamKnowledgeReply.id == reply_id,
+                TeamKnowledgeReply.post_id == post_id,
+                TeamKnowledgeReply.team_id == team_id,
+                TeamKnowledgeReply.status == "active",
+            )
+        ).scalar_one_or_none()
+        if reply is None:
+            raise ApiError(ERR.not_found)
+        return _toggle_helpful(
+            session=session,
+            team_id=team_id,
+            user_id=user_id,
+            target_type="reply",
+            target_id=reply_id,
+        )
