@@ -96,6 +96,7 @@
     "import_count_exceeded": "Your plan can preview up to {max_candidates} words at a time.",
     "private_word_limit_exceeded": "You've saved {used}/{limit} private words on the {plan} plan. Upgrade or remove words to add more.",
     "daily_not_found": "Generate today's vocabulary before adding extra words.",
-    "extra_limit_exceeded": "You've used all {limit} extra words for today. Resets at {next_reset_at}."
+    "extra_limit_exceeded": "You've used all {limit} extra words for today. Resets at {next_reset_at}.",
+    "consult_failed": "The AI roadmap consult returned invalid data. Please try again."
   }
 }

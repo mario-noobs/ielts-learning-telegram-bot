@@ -74,6 +74,44 @@ interface PublicPoolSaveResponse {
   }
 }
 
+interface VocabConsultDataPoint {
+  label: string
+  value: string
+}
+
+interface VocabConsultMissingRequirement {
+  code: string
+  current: number
+  required: number
+  route: string
+}
+
+interface VocabConsultItem {
+  title: string
+  detail: string
+  evidence: string
+}
+
+interface VocabConsultAction {
+  title: string
+  detail: string
+  route: string | null
+  priority: 'high' | 'medium' | 'low'
+}
+
+interface VocabRoadmapConsultResponse {
+  status: 'ready' | 'insufficient_data'
+  disclaimer: string
+  confidence: 'low' | 'medium' | 'high'
+  readiness_range: string
+  summary: string
+  data_used: VocabConsultDataPoint[]
+  missing_requirements: VocabConsultMissingRequirement[]
+  strengths: VocabConsultItem[]
+  gaps: VocabConsultItem[]
+  next_actions: VocabConsultAction[]
+}
+
 const DIFFICULTIES = [1, 2, 3, 4, 5]
 
 function difficultyLabel(value: number | null, t: (key: string, opts?: Record<string, unknown>) => string) {
@@ -92,6 +130,9 @@ export default function PublicVocabPoolsPage() {
   const [savingWordIds, setSavingWordIds] = useState<Set<string>>(() => new Set())
   const [enabled, setEnabled] = useState(true)
   const [error, setError] = useState('')
+  const [consult, setConsult] = useState<VocabRoadmapConsultResponse | null>(null)
+  const [consultLoading, setConsultLoading] = useState(false)
+  const [consultError, setConsultError] = useState('')
 
   const query = useMemo(() => {
     const params = new URLSearchParams()
@@ -192,6 +233,29 @@ export default function PublicVocabPoolsPage() {
     }
   }
 
+  const requestConsult = async () => {
+    setConsultLoading(true)
+    setConsultError('')
+    track('vocab_roadmap_consult_requested')
+    try {
+      const res = await apiFetch<VocabRoadmapConsultResponse>('/api/v1/vocabulary/roadmap/consult', {
+        method: 'POST',
+      })
+      setConsult(res)
+      track('vocab_roadmap_consult_completed', {
+        status: res.status,
+        confidence: res.confidence,
+        action_count: res.next_actions.length,
+      })
+    } catch (e) {
+      const message = localizeError(e)
+      setConsultError(message)
+      track('vocab_roadmap_consult_failed')
+    } finally {
+      setConsultLoading(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="mx-auto max-w-3xl p-4">
@@ -236,6 +300,16 @@ export default function PublicVocabPoolsPage() {
 
       {!detail && recommendations.length > 0 && (
         <RecommendationStrip recommendations={recommendations} t={t} />
+      )}
+
+      {!detail && (
+        <RoadmapConsultPanel
+          consult={consult}
+          error={consultError}
+          loading={consultLoading}
+          onRequest={requestConsult}
+          t={t}
+        />
       )}
 
       <div className="mb-5 flex flex-col gap-3 rounded-xl border border-border bg-surface-raised p-4 sm:flex-row sm:items-end">
@@ -352,6 +426,169 @@ function RecommendationStrip({
         ))}
       </div>
     </section>
+  )
+}
+
+function RoadmapConsultPanel({
+  consult,
+  error,
+  loading,
+  onRequest,
+  t,
+}: {
+  consult: VocabRoadmapConsultResponse | null
+  error: string
+  loading: boolean
+  onRequest: () => void
+  t: (key: string, opts?: Record<string, unknown>) => string
+}) {
+  return (
+    <section className="mb-5 rounded-xl border border-border bg-surface-raised p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-fg">
+            {t('publicPools.consult.heading')}
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-fg">
+            {t('publicPools.consult.subtitle')}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRequest}
+          disabled={loading}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-wait disabled:opacity-70"
+        >
+          {loading && <Icon name="Loader2" size="sm" className="animate-spin text-on-primary" />}
+          {loading ? t('publicPools.consult.loading') : t('publicPools.consult.cta')}
+        </button>
+      </div>
+
+      {error && (
+        <p className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {consult && (
+        <div className="mt-4 space-y-4">
+          <div className="rounded-lg border border-border bg-bg p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                {t(`publicPools.consult.confidence.${consult.confidence}`)}
+              </span>
+              {consult.readiness_range && (
+                <span className="rounded-md bg-surface px-2 py-1 text-xs text-muted-fg">
+                  {t('publicPools.consult.readiness', { range: consult.readiness_range })}
+                </span>
+              )}
+            </div>
+            <p className="mt-3 text-sm text-fg">{consult.summary}</p>
+            <p className="mt-2 text-xs text-muted-fg">{consult.disclaimer}</p>
+          </div>
+
+          {consult.missing_requirements.length > 0 && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {consult.missing_requirements.map((item) => (
+                <Link
+                  key={item.code}
+                  to={item.route}
+                  className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm transition-colors hover:border-warning/60"
+                >
+                  <p className="font-medium text-fg">
+                    {t(`publicPools.consult.requirements.${item.code}.title`)}
+                  </p>
+                  <p className="mt-1 text-muted-fg">
+                    {t(`publicPools.consult.requirements.${item.code}.detail`, {
+                      current: item.current,
+                      required: item.required,
+                    })}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {(consult.strengths.length > 0 || consult.gaps.length > 0) && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <ConsultList title={t('publicPools.consult.strengths')} items={consult.strengths} />
+              <ConsultList title={t('publicPools.consult.gaps')} items={consult.gaps} />
+            </div>
+          )}
+
+          {consult.next_actions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-fg">{t('publicPools.consult.nextActions')}</h3>
+              <div className="mt-2 grid gap-2">
+                {consult.next_actions.map((action) => {
+                  const body = (
+                    <>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-medium text-fg">{action.title}</p>
+                        <span className="rounded-md bg-surface px-2 py-1 text-xs text-muted-fg">
+                          {t(`publicPools.consult.priority.${action.priority}`)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-fg">{action.detail}</p>
+                    </>
+                  )
+                  return action.route ? (
+                    <Link
+                      key={`${action.title}-${action.route}`}
+                      to={action.route}
+                      className="rounded-lg border border-border bg-bg p-3 transition-colors hover:border-primary/40"
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div key={action.title} className="rounded-lg border border-border bg-bg p-3">
+                      {body}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <h3 className="text-sm font-semibold text-fg">{t('publicPools.consult.dataUsed')}</h3>
+            <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {consult.data_used.map((item) => (
+                <div key={item.label} className="rounded-lg bg-bg p-3">
+                  <dt className="text-xs text-muted-fg">{item.label}</dt>
+                  <dd className="mt-1 font-medium text-fg">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ConsultList({
+  title,
+  items,
+}: {
+  title: string
+  items: VocabConsultItem[]
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-bg p-3">
+      <h3 className="text-sm font-semibold text-fg">{title}</h3>
+      <div className="mt-2 space-y-3">
+        {items.map((item) => (
+          <div key={item.title}>
+            <p className="text-sm font-medium text-fg">{item.title}</p>
+            <p className="mt-1 text-sm text-muted-fg">{item.detail}</p>
+            {item.evidence && (
+              <p className="mt-1 text-xs text-muted-fg">{item.evidence}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

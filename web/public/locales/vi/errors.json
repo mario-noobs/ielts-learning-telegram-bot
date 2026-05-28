@@ -96,6 +96,7 @@
     "import_count_exceeded": "Gói của bạn có thể xem trước tối đa {max_candidates} từ mỗi lần.",
     "private_word_limit_exceeded": "Bạn đã lưu {used}/{limit} từ riêng trên gói {plan}. Nâng cấp hoặc xoá bớt từ để thêm tiếp.",
     "daily_not_found": "Hãy tạo từ vựng hôm nay trước khi thêm từ học thêm.",
-    "extra_limit_exceeded": "Bạn đã dùng hết {limit} từ học thêm hôm nay. Làm mới lúc {next_reset_at}."
+    "extra_limit_exceeded": "Bạn đã dùng hết {limit} từ học thêm hôm nay. Làm mới lúc {next_reset_at}.",
+    "consult_failed": "AI trả về dữ liệu lộ trình không hợp lệ. Vui lòng thử lại."
   }
 }

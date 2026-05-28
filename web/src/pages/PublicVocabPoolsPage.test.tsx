@@ -124,6 +124,57 @@ describe('<PublicVocabPoolsPage>', () => {
     })
   })
 
+  it('requests an AI roadmap consult only when the user asks', async () => {
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/vocabulary/public-pools/recommendations') {
+        return Promise.resolve({ enabled: true, target_difficulty: 3, items: [] })
+      }
+      if (url === '/api/v1/vocabulary/public-pools') {
+        return Promise.resolve({ enabled: true, items: [] })
+      }
+      if (url === '/api/v1/vocabulary/roadmap/consult') {
+        expect(options?.method).toBe('POST')
+        return Promise.resolve({
+          status: 'ready',
+          disclaimer: 'Not official.',
+          confidence: 'medium',
+          readiness_range: '6.0-6.5',
+          summary: 'Review consistency is the next gap.',
+          data_used: [{ label: 'My Words', value: '40 saved, 12 reviewed' }],
+          missing_requirements: [],
+          strengths: [{ title: 'Coverage', detail: 'Education is covered.', evidence: '12 words' }],
+          gaps: [{ title: 'Reviews', detail: 'Weak words remain.', evidence: '4 due' }],
+          next_actions: [
+            {
+              title: 'Review due words',
+              detail: "Clear today's due cards.",
+              route: '/learn/review',
+              priority: 'high',
+            },
+          ],
+        })
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    renderAt('/learn/pools')
+
+    await screen.findByText('publicPools.empty.title')
+    expect(apiFetchMock).not.toHaveBeenCalledWith('/api/v1/vocabulary/roadmap/consult', expect.anything())
+
+    await userEvent.click(screen.getByRole('button', { name: 'publicPools.consult.cta' }))
+
+    expect(await screen.findByText('Review consistency is the next gap.')).toBeInTheDocument()
+    expect(screen.getByText('Not official.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Review due words/ })).toHaveAttribute('href', '/learn/review')
+    expect(trackMock).toHaveBeenCalledWith('vocab_roadmap_consult_requested')
+    expect(trackMock).toHaveBeenCalledWith('vocab_roadmap_consult_completed', {
+      status: 'ready',
+      confidence: 'medium',
+      action_count: 1,
+    })
+  })
+
   it('opens pool detail with save state', async () => {
     apiFetchMock.mockResolvedValue({
       enabled: true,

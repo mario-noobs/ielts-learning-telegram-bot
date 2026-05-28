@@ -227,3 +227,41 @@ class PublicVocabPoolSaveResponse(BaseModel):
     created: bool
     already_saved: bool
     word: VocabularyWord
+
+
+class VocabConsultDataPoint(BaseModel):
+    label: str
+    value: str
+
+
+class VocabConsultMissingRequirement(BaseModel):
+    code: str
+    current: int
+    required: int
+    route: str
+
+
+class VocabConsultItem(BaseModel):
+    title: str
+    detail: str
+    evidence: str = ""
+
+
+class VocabConsultAction(BaseModel):
+    title: str
+    detail: str
+    route: str | None = None
+    priority: Literal["high", "medium", "low"] = "medium"
+
+
+class VocabRoadmapConsultResponse(BaseModel):
+    status: Literal["ready", "insufficient_data"]
+    disclaimer: str
+    confidence: Literal["low", "medium", "high"]
+    readiness_range: str = ""
+    summary: str
+    data_used: list[VocabConsultDataPoint] = []
+    missing_requirements: list[VocabConsultMissingRequirement] = []
+    strengths: list[VocabConsultItem] = []
+    gaps: list[VocabConsultItem] = []
+    next_actions: list[VocabConsultAction] = []
