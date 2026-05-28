@@ -1,28 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import EmptyState from '../components/EmptyState'
 import Icon, { type IconName } from '../components/Icon'
-import LoadingScreen from '../components/LoadingScreen'
-import { apiFetch } from '../lib/api'
-import { localizeError } from '../lib/apiError'
 import { track } from '../lib/analytics'
-
-interface TopicSummary {
-  id: string
-  name: string
-  word_count: number
-  mastered_count: number
-}
-
-interface TopicsResponse {
-  items: TopicSummary[]
-  total_words: number
-}
-
-interface DueResponse {
-  items: unknown[]
-}
 
 function HubAction({
   title,
@@ -68,68 +47,6 @@ function HubAction({
 
 export default function VocabHubPage() {
   const { t } = useTranslation('vocab')
-  const [topics, setTopics] = useState<TopicSummary[]>([])
-  const [dueCount, setDueCount] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      setError('')
-      try {
-        const [topicRes, dueRes] = await Promise.all([
-          apiFetch<TopicsResponse>('/api/v1/topics'),
-          apiFetch<DueResponse>('/api/v1/review/due', {
-            method: 'POST',
-            body: JSON.stringify({ limit: 10 }),
-          }),
-        ])
-        if (cancelled) return
-        setTopics(topicRes.items)
-        setDueCount(dueRes.items.length)
-      } catch (e) {
-        if (!cancelled) setError(localizeError(e))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const stats = useMemo(() => {
-    const total = topics.reduce((sum, topic) => sum + topic.word_count, 0)
-    const mastered = topics.reduce((sum, topic) => sum + topic.mastered_count, 0)
-    const weakTopic = [...topics]
-      .filter((topic) => topic.word_count > 0)
-      .sort((a, b) => {
-        const aPct = a.mastered_count / a.word_count
-        const bPct = b.mastered_count / b.word_count
-        return aPct - bPct
-      })[0]
-    return { total, mastered, weakTopic }
-  }, [topics])
-
-  if (loading) {
-    return <LoadingScreen className="mx-auto max-w-5xl p-4" />
-  }
-
-  if (error) {
-    return (
-      <div className="mx-auto max-w-3xl p-4">
-        <EmptyState
-          illustration="empty-vocab"
-          title={t('hub.error.title')}
-          description={error}
-          primaryAction={{ label: t('hub.error.cta'), onClick: () => window.location.reload() }}
-        />
-      </div>
-    )
-  }
 
   return (
     <div className="mx-auto max-w-5xl p-4">
@@ -154,51 +71,20 @@ export default function VocabHubPage() {
           description={t('hub.today.description')}
         />
         <HubAction
-          icon="RotateCcw"
-          to="/learn/review"
-          eventName="vocab_hub_review_opened"
-          meta={
-            dueCount === null
-              ? t('hub.review.metaUnknown')
-              : t('hub.review.meta', { count: dueCount })
-          }
-          title={t('hub.review.title')}
-          description={t('hub.review.description')}
-        />
-        <HubAction
           icon="BookOpen"
           to="/learn/vocab/my-words"
           eventName="vocab_hub_my_words_opened"
-          meta={t('hub.myWords.meta', {
-            total: stats.total,
-            mastered: stats.mastered,
-          })}
+          meta={t('hub.myWords.meta')}
           title={t('hub.myWords.title')}
           description={t('hub.myWords.description')}
         />
         <HubAction
-          icon="Target"
-          to="/learn/vocab/explore"
-          eventName="vocab_hub_explore_opened"
-          meta={
-            stats.weakTopic
-              ? t('hub.explore.metaTopic', {
-                  topic: t(`topicNames.${stats.weakTopic.id}`, {
-                    defaultValue: stats.weakTopic.name,
-                  }),
-                })
-              : t('hub.explore.meta')
-          }
-          title={t('hub.explore.title')}
-          description={t('hub.explore.description')}
-        />
-        <HubAction
-          icon="Plus"
-          to="/learn/vocab/add"
-          eventName="vocab_hub_add_opened"
-          meta={t('hub.add.meta')}
-          title={t('hub.add.title')}
-          description={t('hub.add.description')}
+          icon="RotateCcw"
+          to="/learn/review"
+          eventName="vocab_hub_review_opened"
+          meta={t('hub.review.meta')}
+          title={t('hub.review.title')}
+          description={t('hub.review.description')}
         />
       </div>
     </div>

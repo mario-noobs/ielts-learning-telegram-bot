@@ -41,6 +41,22 @@
     "quizCount": "Quizzes",
     "empty": "No team activity this week yet. Reviews, quizzes, writing, listening, and reading will appear here."
   },
+  "hub": {
+    "title": "Team hub",
+    "description": "Open one area at a time. Details load only when you choose them.",
+    "knowledge": {
+      "title": "Knowledge",
+      "description": "Ask questions, share words, reply, and save useful team vocabulary."
+    },
+    "progress": {
+      "title": "Progress",
+      "description": "Owner/admin overview of member activity and review status."
+    },
+    "members": {
+      "title": "Members",
+      "description": "Invite classmates and manage roles for this team."
+    }
+  },
   "knowledge": {
     "title": "Knowledge feed",
     "description": "Shared words from team members appear here so everyone can save useful vocabulary into My Words.",

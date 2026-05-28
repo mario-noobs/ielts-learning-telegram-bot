@@ -34,26 +34,14 @@
       "description": "Learn the current daily set and add more only when you want."
     },
     "review": {
-      "meta": "{count, plural, one {# word due} other {# words due}}",
-      "metaUnknown": "SRS review",
+      "meta": "SRS practice",
       "title": "Review",
       "description": "Practice due cards without browsing the full collection."
     },
     "myWords": {
-      "meta": "{mastered}/{total} mastered",
+      "meta": "Collection hub",
       "title": "My Words",
-      "description": "Search, filter, favourite, and open saved vocabulary."
-    },
-    "explore": {
-      "meta": "Roadmap",
-      "metaTopic": "Focus: {topic}",
-      "title": "Explore",
-      "description": "Browse topics and study paths one area at a time."
-    },
-    "add": {
-      "meta": "AI or manual",
-      "title": "Add words",
-      "description": "Create a single card or import a small candidate set."
+      "description": "Search, browse, add, favourite, and revisit saved vocabulary."
     },
     "error": {
       "title": "Vocabulary is unavailable",
@@ -168,7 +156,8 @@
     "clearFilter": "Clear filter",
     "tabs": {
       "myWords": "My Words",
-      "topics": "Topics",
+      "topics": "Browse",
+      "add": "Add words",
       "favourites": "Favourites",
       "history": "History"
     },
