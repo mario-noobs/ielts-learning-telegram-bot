@@ -27,6 +27,7 @@ export default defineConfig({
       'src/pages/FlashcardReviewPage.test.tsx',
       'src/pages/VocabHubPage.test.tsx',
       'src/pages/VocabHomePage.test.tsx',
+      'src/pages/WordDetailPage.test.tsx',
       'src/pages/PublicVocabPoolsPage.test.tsx',
       'src/pages/TeamPage.test.tsx',
       'src/pages/TeamInvitePage.test.tsx',

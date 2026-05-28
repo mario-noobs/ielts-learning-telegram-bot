@@ -51,6 +51,19 @@ def _assert_team_member(session, team_id: str, user_id: str) -> Team:
     return team
 
 
+def _is_team_admin(session, team: Team, user_id: str) -> bool:
+    if team.owner_uid == user_id:
+        return True
+    membership = session.get(TeamMember, {"team_id": team.id, "user_uid": user_id})
+    return membership is not None and membership.role == "admin"
+
+
+def _assert_can_delete_content(session, team: Team, user_id: str, author_uid: str) -> None:
+    if author_uid == user_id or _is_team_admin(session, team, user_id):
+        return
+    raise ApiError(ERR.forbidden)
+
+
 def _parse_cursor(cursor: str | None) -> tuple[datetime, str] | None:
     if not cursor:
         return None
@@ -136,7 +149,7 @@ def _post_to_dict(
             "user_id": post.author_uid,
             "name": author_names.get(post.author_uid) or post.author_uid,
         },
-        "word_snapshot": snapshot if post.type == "shared_word" else None,
+        "word_snapshot": snapshot if snapshot else None,
         "saved_to_my_words": existing_word_id is not None,
         "existing_word_id": existing_word_id,
         "reply_count": reply_counts.get(post.id, 0),
@@ -301,6 +314,7 @@ def create_post(
     category: str,
     title: str,
     body: str,
+    word_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     post_type = post_type.strip()
     category = category.strip() or "general"
@@ -323,7 +337,7 @@ def create_post(
             title=title,
             body=body,
             source_user_vocab_id=None,
-            word_snapshot={},
+            word_snapshot=_word_snapshot_from_context(word_context),
             status="active",
             created_at=now,
             updated_at=now,
@@ -342,6 +356,24 @@ def create_post(
         after={"post_id": payload["id"], "type": post_type},
     )
     return payload
+
+
+def _word_snapshot_from_context(word_context: dict[str, Any] | None) -> dict[str, str]:
+    if not word_context:
+        return {}
+    word = str(word_context.get("word") or "").strip()
+    if not word:
+        return {}
+    return {
+        "word": word[:120],
+        "definition_en": str(word_context.get("definition_en") or "")[:500],
+        "definition_vi": str(word_context.get("definition_vi") or "")[:500],
+        "ipa": str(word_context.get("ipa") or "")[:120],
+        "part_of_speech": str(word_context.get("part_of_speech") or "")[:80],
+        "example_en": str(word_context.get("example_en") or "")[:500],
+        "example_vi": str(word_context.get("example_vi") or "")[:500],
+        "topic": str(word_context.get("topic") or "")[:120],
+    }
 
 
 def share_word(
@@ -651,3 +683,62 @@ def toggle_reply_helpful(
             target_type="reply",
             target_id=reply_id,
         )
+
+
+def delete_post(
+    *,
+    team_id: str,
+    post_id: str,
+    user_id: str,
+) -> None:
+    now = _now()
+    with get_sync_session() as session, session.begin():
+        team = _assert_team_member(session, team_id, user_id)
+        post = _active_post(session, team_id, post_id)
+        _assert_can_delete_content(session, team, user_id, post.author_uid)
+        post.status = "deleted"
+        post.updated_at = now
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.knowledge.post_deleted",
+        target_kind="team",
+        target_id=team_id,
+        before={"post_id": post_id, "author_uid": post.author_uid},
+        after={"post_id": post_id, "status": "deleted"},
+    )
+
+
+def delete_reply(
+    *,
+    team_id: str,
+    post_id: str,
+    reply_id: str,
+    user_id: str,
+) -> None:
+    now = _now()
+    with get_sync_session() as session, session.begin():
+        team = _assert_team_member(session, team_id, user_id)
+        _active_post(session, team_id, post_id)
+        reply = session.execute(
+            select(TeamKnowledgeReply).where(
+                TeamKnowledgeReply.id == reply_id,
+                TeamKnowledgeReply.post_id == post_id,
+                TeamKnowledgeReply.team_id == team_id,
+                TeamKnowledgeReply.status == "active",
+            )
+        ).scalar_one_or_none()
+        if reply is None:
+            raise ApiError(ERR.not_found)
+        _assert_can_delete_content(session, team, user_id, reply.author_uid)
+        reply.status = "deleted"
+        reply.updated_at = now
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.knowledge.reply_deleted",
+        target_kind="team",
+        target_id=team_id,
+        before={"post_id": post_id, "reply_id": reply_id, "author_uid": reply.author_uid},
+        after={"post_id": post_id, "reply_id": reply_id, "status": "deleted"},
+    )

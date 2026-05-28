@@ -836,3 +836,234 @@ def test_helpful_toggle_is_unique_for_posts_and_replies() -> None:
     assert reply_helpful.status_code == 200
     assert reply_helpful.json()["helpful_count"] == 1
     assert replies.json()["items"][0]["helpful_by_me"] is True
+
+
+def test_team_knowledge_question_can_include_word_context() -> None:
+    team_id = _create_team()
+
+    with _client("team-test-owner", team_id=team_id) as c:
+        created = c.post(
+            f"/api/v1/teams/{team_id}/knowledge/posts",
+            json={
+                "type": "question",
+                "category": "vocabulary",
+                "title": "How can I use scalability?",
+                "body": "Please share a Band 7 example.",
+                "word_context": {
+                    "word": "scalability",
+                    "definition_en": "ability to grow",
+                    "definition_vi": "kha nang mo rong",
+                    "ipa": "skæləbɪlɪti",
+                    "part_of_speech": "noun",
+                    "example_en": "The platform needs scalability.",
+                    "example_vi": "",
+                    "topic": "technology",
+                },
+            },
+        )
+
+    assert created.status_code == 201
+    post = created.json()["post"]
+    assert post["word_snapshot"]["word"] == "scalability"
+    assert post["word_snapshot"]["definition_en"] == "ability to grow"
+    assert post["type"] == "question"
+
+
+def test_team_owner_deletes_member_post_and_reply_from_reads() -> None:
+    from services.db import get_sync_session
+    from services.db.models import AuditLog, TeamKnowledgePost, TeamKnowledgeReply, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add_all([
+            TeamKnowledgePost(
+                id="55555555-5555-5555-5555-555555555555",
+                team_id=team_id,
+                author_uid="team-test-member",
+                type="question",
+                category="general",
+                title="Delete me",
+                body="This should be hidden.",
+                source_user_vocab_id=None,
+                word_snapshot={},
+                status="active",
+                created_at=now,
+                updated_at=now,
+            ),
+            TeamKnowledgePost(
+                id="66666666-6666-6666-6666-666666666666",
+                team_id=team_id,
+                author_uid="team-test-member",
+                type="question",
+                category="general",
+                title="Reply parent",
+                body="This post stays.",
+                source_user_vocab_id=None,
+                word_snapshot={},
+                status="active",
+                created_at=now,
+                updated_at=now,
+            ),
+            TeamKnowledgeReply(
+                id="77777777-7777-7777-7777-777777777777",
+                post_id="66666666-6666-6666-6666-666666666666",
+                team_id=team_id,
+                author_uid="team-test-member",
+                body="This reply should be hidden.",
+                status="active",
+                created_at=now,
+                updated_at=now,
+            ),
+        ])
+
+    with _client("team-test-owner", team_id=team_id) as c:
+        deleted_post = c.delete(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "55555555-5555-5555-5555-555555555555"
+        )
+        deleted_reply = c.delete(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "66666666-6666-6666-6666-666666666666/replies/"
+            "77777777-7777-7777-7777-777777777777"
+        )
+        feed = c.get(f"/api/v1/teams/{team_id}/knowledge/posts")
+        replies = c.get(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "66666666-6666-6666-6666-666666666666/replies"
+        )
+
+    assert deleted_post.status_code == 204
+    assert deleted_reply.status_code == 204
+    assert "55555555-5555-5555-5555-555555555555" not in [
+        item["id"] for item in feed.json()["items"]
+    ]
+    assert replies.json()["items"] == []
+    with get_sync_session() as s:
+        events = s.execute(
+            select(AuditLog.event_type).where(AuditLog.target_id == team_id)
+        ).scalars().all()
+    assert "team.knowledge.post_deleted" in events
+    assert "team.knowledge.reply_deleted" in events
+
+
+def test_member_cannot_delete_other_members_team_knowledge_content() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamKnowledgePost, TeamKnowledgeReply, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add(
+            TeamKnowledgePost(
+                id="88888888-8888-8888-8888-888888888888",
+                team_id=team_id,
+                author_uid="team-test-owner",
+                type="question",
+                category="general",
+                title="Owner post",
+                body="Member cannot delete this.",
+                source_user_vocab_id=None,
+                word_snapshot={},
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        s.add(
+            TeamKnowledgeReply(
+                id="99999999-9999-9999-9999-999999999999",
+                post_id="88888888-8888-8888-8888-888888888888",
+                team_id=team_id,
+                author_uid="team-test-owner",
+                body="Member cannot delete this reply.",
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        post_delete = c.delete(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "88888888-8888-8888-8888-888888888888"
+        )
+        reply_delete = c.delete(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "88888888-8888-8888-8888-888888888888/replies/"
+            "99999999-9999-9999-9999-999999999999"
+        )
+
+    assert post_delete.status_code == 403
+    assert reply_delete.status_code == 403
+
+
+def test_member_deletes_own_team_knowledge_post() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamKnowledgePost, TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+        s.add(
+            TeamKnowledgePost(
+                id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                team_id=team_id,
+                author_uid="team-test-member",
+                type="question",
+                category="general",
+                title="My own post",
+                body="I can delete this.",
+                source_user_vocab_id=None,
+                word_snapshot={},
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        deleted = c.delete(
+            f"/api/v1/teams/{team_id}/knowledge/posts/"
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        )
+        feed = c.get(f"/api/v1/teams/{team_id}/knowledge/posts")
+
+    assert deleted.status_code == 204
+    assert feed.json()["items"] == []

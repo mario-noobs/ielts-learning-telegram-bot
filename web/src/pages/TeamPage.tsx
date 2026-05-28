@@ -186,7 +186,7 @@ function formatDate(value: string | null) {
 
 export default function TeamPage() {
   const { t } = useTranslation(['team', 'common'])
-  const { refreshProfile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const [team, setTeam] = useState<TeamSummary | null>(null)
   const [members, setMembers] = useState<TeamMemberSummary[]>([])
   const [overview, setOverview] = useState<TeamOverviewResponse | null>(null)
@@ -201,6 +201,7 @@ export default function TeamPage() {
   const [memberAction, setMemberAction] = useState('')
   const [knowledgeAction, setKnowledgeAction] = useState('')
   const [helpfulAction, setHelpfulAction] = useState('')
+  const [deleteAction, setDeleteAction] = useState('')
   const [openPostId, setOpenPostId] = useState('')
   const [replyLoading, setReplyLoading] = useState('')
   const [replySubmitting, setReplySubmitting] = useState('')
@@ -287,6 +288,10 @@ export default function TeamPage() {
 
   const canManageMembers = team?.my_role === 'owner' || team?.my_role === 'admin'
   const canChangeRoles = team?.my_role === 'owner'
+  const canDeletePost = (post: TeamKnowledgePost) =>
+    canManageMembers || post.author.user_id === profile?.id
+  const canDeleteReply = (reply: TeamKnowledgeReply) =>
+    canManageMembers || reply.author.user_id === profile?.id
 
   const createTeam = async (event: FormEvent) => {
     event.preventDefault()
@@ -546,6 +551,64 @@ export default function TeamPage() {
     }
   }
 
+  const deletePost = async (post: TeamKnowledgePost) => {
+    if (!team || !canDeletePost(post)) return
+    const confirmed = window.confirm(t('knowledge.deletePostConfirm'))
+    if (!confirmed) return
+    setDeleteAction(`post:${post.id}`)
+    setError('')
+    try {
+      await apiFetch(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(post.id)}`,
+        { method: 'DELETE' },
+      )
+      setKnowledgePosts((items) => items.filter((item) => item.id !== post.id))
+      setRepliesByPost((items) => {
+        const next = { ...items }
+        delete next[post.id]
+        return next
+      })
+      if (openPostId === post.id) setOpenPostId('')
+      track('team_knowledge_post_deleted', { team_id: team.id, post_id: post.id })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setDeleteAction('')
+    }
+  }
+
+  const deleteReply = async (post: TeamKnowledgePost, reply: TeamKnowledgeReply) => {
+    if (!team || !canDeleteReply(reply)) return
+    const confirmed = window.confirm(t('knowledge.deleteReplyConfirm'))
+    if (!confirmed) return
+    setDeleteAction(`reply:${reply.id}`)
+    setError('')
+    try {
+      await apiFetch(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts/${encodeURIComponent(post.id)}/replies/${encodeURIComponent(reply.id)}`,
+        { method: 'DELETE' },
+      )
+      setRepliesByPost((items) => ({
+        ...items,
+        [post.id]: (items[post.id] || []).filter((item) => item.id !== reply.id),
+      }))
+      setKnowledgePosts((items) => items.map((item) => (
+        item.id === post.id
+          ? { ...item, reply_count: Math.max(0, item.reply_count - 1) }
+          : item
+      )))
+      track('team_knowledge_reply_deleted', {
+        team_id: team.id,
+        post_id: post.id,
+        reply_id: reply.id,
+      })
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setDeleteAction('')
+    }
+  }
+
   const RoleBadge = ({ role }: { role: TeamRole }) => {
     const meta = ROLE_META[role]
     return (
@@ -759,6 +822,7 @@ export default function TeamPage() {
                   const loadingReplies = replyLoading === post.id
                   const replying = replySubmitting === post.id
                   const postHelpful = helpfulAction === `post:${post.id}`
+                  const deletingPost = deleteAction === `post:${post.id}`
                   return (
                     <article key={post.id} className="rounded-lg border border-border bg-bg p-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -781,14 +845,20 @@ export default function TeamPage() {
                           </div>
                           {word && (
                             <>
-                              <h3 className="mt-2 text-base font-semibold text-fg">
-                                {word.word}
-                                {word.ipa && (
-                                  <span className="ml-1.5 text-xs font-normal text-muted-fg">
-                                    /{word.ipa}/
-                                  </span>
-                                )}
-                              </h3>
+                              {post.type === 'shared_word' ? (
+                                <h3 className="mt-2 text-base font-semibold text-fg">
+                                  {word.word}
+                                  {word.ipa && (
+                                    <span className="ml-1.5 text-xs font-normal text-muted-fg">
+                                      /{word.ipa}/
+                                    </span>
+                                  )}
+                                </h3>
+                              ) : (
+                                <p className="mt-2 inline-flex rounded-md bg-surface px-2 py-1 text-xs font-medium text-muted-fg">
+                                  {t('knowledge.wordContext', { word: word.word })}
+                                </p>
+                              )}
                               {(word.definition_vi || word.definition_en) && (
                                 <p className="mt-1 text-sm text-muted-fg">
                                   {word.definition_vi || word.definition_en}
@@ -796,7 +866,7 @@ export default function TeamPage() {
                               )}
                             </>
                           )}
-                          {!word && post.title && (
+                          {post.title && (!word || post.type !== 'shared_word') && (
                             <h3 className="mt-2 text-base font-semibold text-fg">{post.title}</h3>
                           )}
                           {post.body && (
@@ -840,6 +910,21 @@ export default function TeamPage() {
                             <Icon name={isOpen ? 'ChevronDown' : 'ChevronRight'} size="sm" variant="muted" />
                             {t('knowledge.replies', { count: post.reply_count })}
                           </button>
+                          {canDeletePost(post) && (
+                            <button
+                              type="button"
+                              onClick={() => void deletePost(post)}
+                              disabled={deletingPost}
+                              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border border-danger/30 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
+                            >
+                              {deletingPost ? (
+                                <Icon name="Loader2" size="sm" className="animate-spin text-danger" />
+                              ) : (
+                                <Icon name="X" size="sm" variant="danger" />
+                              )}
+                              {deletingPost ? t('knowledge.deleting') : t('knowledge.delete')}
+                            </button>
+                          )}
                         </div>
                       </div>
                       {isOpen && (
@@ -855,6 +940,7 @@ export default function TeamPage() {
                             <div className="space-y-3">
                               {replies.map((reply) => {
                                 const replyHelpful = helpfulAction === `reply:${reply.id}`
+                                const deletingReply = deleteAction === `reply:${reply.id}`
                                 return (
                                   <div key={reply.id} className="rounded-md border border-border bg-surface p-3">
                                     <p className="text-xs text-muted-fg">
@@ -864,15 +950,32 @@ export default function TeamPage() {
                                       })}
                                     </p>
                                     <p className="mt-1 text-sm text-fg">{reply.body}</p>
-                                    <button
-                                      type="button"
-                                      onClick={() => void toggleReplyHelpful(post.id, reply)}
-                                      disabled={replyHelpful}
-                                      className="mt-2 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-fg hover:border-primary/40 disabled:opacity-60"
-                                    >
-                                      <Icon name="Heart" size="sm" variant={reply.helpful_by_me ? 'danger' : 'muted'} />
-                                      {t('knowledge.helpful', { count: reply.helpful_count })}
-                                    </button>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => void toggleReplyHelpful(post.id, reply)}
+                                        disabled={replyHelpful}
+                                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-fg hover:border-primary/40 disabled:opacity-60"
+                                      >
+                                        <Icon name="Heart" size="sm" variant={reply.helpful_by_me ? 'danger' : 'muted'} />
+                                        {t('knowledge.helpful', { count: reply.helpful_count })}
+                                      </button>
+                                      {canDeleteReply(reply) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => void deleteReply(post, reply)}
+                                          disabled={deletingReply}
+                                          className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-danger/30 px-2.5 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
+                                        >
+                                          {deletingReply ? (
+                                            <Icon name="Loader2" size="sm" className="animate-spin text-danger" />
+                                          ) : (
+                                            <Icon name="X" size="sm" variant="danger" />
+                                          )}
+                                          {deletingReply ? t('knowledge.deleting') : t('knowledge.delete')}
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 )
                               })}
