@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -83,3 +83,20 @@ class TeamOverviewResponse(BaseModel):
     quiz_count: int = 0
     member_count: int = 0
     seat_limit: int = 0
+
+
+class TeamMemberProgressRow(BaseModel):
+    user_id: str
+    name: str = ""
+    email: str | None = None
+    role: Literal["owner", "admin", "member"]
+    last_active_date: date | None = None
+    weekly_minutes: int = 0
+    words_reviewed: int = 0
+    due_words: int = 0
+    current_streak: int = 0
+
+
+class TeamMemberProgressResponse(BaseModel):
+    week_start: datetime
+    members: list[TeamMemberProgressRow]

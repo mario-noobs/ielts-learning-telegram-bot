@@ -40,6 +40,18 @@ interface TeamOverviewResponse {
   seat_limit: number
 }
 
+interface TeamMemberProgressRow {
+  user_id: string
+  name: string
+  email: string | null
+  role: TeamRole
+  last_active_date: string | null
+  weekly_minutes: number
+  words_reviewed: number
+  due_words: number
+  current_streak: number
+}
+
 interface TeamMeResponse {
   team: TeamSummary | null
 }
@@ -61,6 +73,11 @@ interface TeamMembersResponse {
 
 interface TeamMemberUpdateResponse {
   member: TeamMemberSummary
+}
+
+interface TeamMemberProgressResponse {
+  week_start: string
+  members: TeamMemberProgressRow[]
 }
 
 const ROLE_META: Record<TeamRole, { icon: IconName; className: string }> = {
@@ -95,6 +112,7 @@ export default function TeamPage() {
   const [team, setTeam] = useState<TeamSummary | null>(null)
   const [members, setMembers] = useState<TeamMemberSummary[]>([])
   const [overview, setOverview] = useState<TeamOverviewResponse | null>(null)
+  const [memberProgress, setMemberProgress] = useState<TeamMemberProgressRow[]>([])
   const [loading, setLoading] = useState(true)
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
   const [name, setName] = useState('')
@@ -105,7 +123,11 @@ export default function TeamPage() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
-  const loadWorkspace = useCallback(async (teamId: string) => {
+  const loadWorkspace = useCallback(async (
+    teamId: string,
+    role: TeamRole | null,
+    trackView = false,
+  ) => {
     setWorkspaceLoading(true)
     try {
       const [membersRes, overviewRes] = await Promise.all([
@@ -115,6 +137,24 @@ export default function TeamPage() {
       setTeam(membersRes.team)
       setMembers(membersRes.members)
       setOverview(overviewRes)
+      if (role === 'owner' || role === 'admin') {
+        const progressRes = await apiFetch<TeamMemberProgressResponse>(
+          `/api/v1/teams/${encodeURIComponent(teamId)}/member-progress`,
+        )
+        setMemberProgress(progressRes.members)
+      } else {
+        setMemberProgress([])
+      }
+      if (trackView) {
+        void apiFetch(`/api/v1/teams/${encodeURIComponent(teamId)}/views`, {
+          method: 'POST',
+        }).catch(() => undefined)
+        track('team_dashboard_viewed', {
+          team_id: teamId,
+          role: role ?? 'member',
+          member_count: overviewRes.member_count,
+        })
+      }
     } catch (e) {
       setError(localizeError(e))
     } finally {
@@ -131,7 +171,7 @@ export default function TeamPage() {
         const res = await apiFetch<TeamMeResponse>('/api/v1/teams/me')
         if (cancelled) return
         setTeam(res.team)
-        if (res.team) await loadWorkspace(res.team.id)
+        if (res.team) await loadWorkspace(res.team.id, res.team.my_role, true)
       } catch (e) {
         if (!cancelled) setError(localizeError(e))
       } finally {
@@ -164,7 +204,10 @@ export default function TeamPage() {
         body: JSON.stringify({ name: trimmed }),
       })
       setTeam(res.team)
-      await Promise.all([refreshProfile(), loadWorkspace(res.team.id)])
+      await Promise.all([
+        refreshProfile(),
+        loadWorkspace(res.team.id, res.team.my_role, true),
+      ])
       track('team_created', { team_id: res.team.id })
     } catch (e) {
       setError(localizeError(e))
@@ -240,8 +283,9 @@ export default function TeamPage() {
         setTeam(null)
         setMembers([])
         setOverview(null)
+        setMemberProgress([])
       } else {
-        await loadWorkspace(team.id)
+        await loadWorkspace(team.id, team.my_role)
       }
       track('team_member_removed', { team_id: team.id })
     } catch (e) {
@@ -296,6 +340,7 @@ export default function TeamPage() {
     },
   ] : []
   const hasActivity = overviewStats.some((item) => Number(item.value) > 0)
+  const seatsRemaining = team ? Math.max(0, team.seat_limit - team.member_count) : 0
 
   if (loading) {
     return <LoadingScreen className="mx-auto max-w-5xl p-4" />
@@ -338,6 +383,11 @@ export default function TeamPage() {
               </div>
             </div>
             <p className="mt-4 text-sm text-muted-fg">{t('workspace.privacy')}</p>
+            <p className="mt-2 text-xs text-muted-fg">
+              {seatsRemaining > 0
+                ? t('beta.seatsRemaining', { count: seatsRemaining })
+                : t('beta.full')}
+            </p>
           </section>
 
           <section className="rounded-lg border border-border bg-surface-raised p-4">
@@ -377,6 +427,53 @@ export default function TeamPage() {
               </>
             )}
           </section>
+
+          {canManageMembers && (
+            <section className="rounded-lg border border-border bg-surface-raised p-4">
+              <div>
+                <h2 className="text-lg font-semibold text-fg">{t('progress.title')}</h2>
+                <p className="mt-1 text-sm text-muted-fg">{t('progress.description')}</p>
+              </div>
+              <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-bg">
+                <table className="min-w-full divide-y divide-border text-sm">
+                  <thead className="bg-surface">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-fg">
+                      <th className="px-3 py-2">{t('progress.member')}</th>
+                      <th className="px-3 py-2">{t('progress.lastActive')}</th>
+                      <th className="px-3 py-2">{t('progress.weeklyMinutes')}</th>
+                      <th className="px-3 py-2">{t('progress.wordsReviewed')}</th>
+                      <th className="px-3 py-2">{t('progress.dueWords')}</th>
+                      <th className="px-3 py-2">{t('progress.streak')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {memberProgress.map((member) => (
+                      <tr key={member.user_id}>
+                        <td className="px-3 py-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-fg">{member.name}</span>
+                            <RoleBadge role={member.role} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-muted-fg">
+                          {member.last_active_date
+                            ? formatDate(member.last_active_date)
+                            : t('progress.noActivity')}
+                        </td>
+                        <td className="px-3 py-3 font-medium text-fg">{member.weekly_minutes}</td>
+                        <td className="px-3 py-3 text-fg">{member.words_reviewed}</td>
+                        <td className="px-3 py-3 text-fg">{member.due_words}</td>
+                        <td className="px-3 py-3 text-fg">
+                          {t('progress.streakDays', { count: member.current_streak })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-muted-fg">{t('progress.privacy')}</p>
+            </section>
+          )}
 
           <section className="rounded-lg border border-border bg-surface-raised p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -480,6 +577,9 @@ export default function TeamPage() {
             <h2 className="text-lg font-semibold text-fg">{t('create.title')}</h2>
             <p className="mt-1 text-sm text-muted-fg">{t('create.description')}</p>
           </div>
+          <div className="mb-4 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-fg">
+            {t('empty.joinHint')}
+          </div>
           <form onSubmit={createTeam} className="space-y-3">
             <label className="block text-sm font-medium text-fg" htmlFor="team-name">
               {t('create.nameLabel')}
@@ -493,6 +593,7 @@ export default function TeamPage() {
               className="min-h-11 w-full rounded-md border border-border bg-bg px-3 text-sm text-fg placeholder:text-muted-fg"
             />
             <p className="text-xs text-muted-fg">{t('create.limit')}</p>
+            <p className="text-xs text-muted-fg">{t('beta.createLimit')}</p>
             <button
               type="submit"
               disabled={submitting || !name.trim()}

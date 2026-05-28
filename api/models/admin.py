@@ -205,6 +205,17 @@ class AdminCohortRow(BaseModel):
     retained_d30: int
 
 
+class AdminTeamActivityPoint(BaseModel):
+    week_start: str
+    active_teams: int
+    active_members: int
+    study_actions: int
+    teams_created: int
+    invites_created: int
+    invites_accepted: int
+    dashboard_views: int
+
+
 class AdminPlanDistribution(BaseModel):
     plan_id: str
     count: int

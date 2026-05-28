@@ -16,6 +16,8 @@ from api.models.team import (
     TeamInviteCreateRequest,
     TeamInviteCreateResponse,
     TeamInvitePreviewResponse,
+    TeamMemberProgressResponse,
+    TeamMemberProgressRow,
     TeamMembersResponse,
     TeamMemberSummary,
     TeamMemberUpdateRequest,
@@ -36,6 +38,7 @@ from services.db.models import (
     TeamInvite,
     TeamMember,
     User,
+    UserVocabulary,
     WritingHistory,
 )
 
@@ -182,6 +185,34 @@ def _active_users(session, model, user_ids: list[str], time_field, week_start: d
             ),
         ).scalars()
     )
+
+
+def _counts_by_user(
+    session,
+    model,
+    user_ids: list[str],
+    time_field,
+    week_start: datetime,
+) -> dict[str, int]:
+    if not user_ids:
+        return {}
+    rows = session.execute(
+        select(model.user_id, func.count())
+        .where(model.user_id.in_(user_ids), time_field >= week_start)
+        .group_by(model.user_id),
+    ).all()
+    return {str(user_id): int(count) for user_id, count in rows}
+
+
+def _team_user_ids(session, team: Team) -> list[str]:
+    user_ids = list(
+        session.execute(
+            select(TeamMember.user_uid).where(TeamMember.team_id == team.id),
+        ).scalars()
+    )
+    if team.owner_uid not in user_ids:
+        user_ids.append(team.owner_uid)
+    return user_ids
 
 
 def _load_active_invite(token: str) -> tuple[TeamInvite, Team]:
@@ -408,13 +439,7 @@ def get_team_overview(
     week_start = progress_service._week_start_utc()
     with get_sync_session() as session:
         team, _membership = _assert_team_member(session, team_id, user_id)
-        user_ids = list(
-            session.execute(
-                select(TeamMember.user_uid).where(TeamMember.team_id == team_id),
-            ).scalars()
-        )
-        if team.owner_uid not in user_ids:
-            user_ids.append(team.owner_uid)
+        user_ids = _team_user_ids(session, team)
 
         writing_count = _count_rows(
             session, WritingHistory, user_ids, WritingHistory.created_at, week_start,
@@ -489,6 +514,117 @@ def get_team_overview(
             member_count=len(user_ids),
             seat_limit=team.seat_limit,
         )
+
+
+@router.post("/{team_id}/views", status_code=204)
+def track_team_workspace_view(
+    team_id: str,
+    user: dict = Depends(get_current_user),
+) -> Response:
+    user_id = str(user["id"])
+    with get_sync_session() as session:
+        team, membership = _assert_team_member(session, team_id, user_id)
+        role = "owner" if team.owner_uid == user_id or membership is None else membership.role
+        member_count = _member_count(session, team.id)
+
+    audit_service.log_event(
+        actor_uid=user_id,
+        event_type="team.dashboard_viewed",
+        target_kind="team",
+        target_id=team_id,
+        before=None,
+        after={"role": role, "member_count": member_count},
+    )
+    return Response(status_code=204)
+
+
+@router.get("/{team_id}/member-progress", response_model=TeamMemberProgressResponse)
+def get_team_member_progress(
+    team_id: str,
+    user: dict = Depends(get_current_user),
+) -> TeamMemberProgressResponse:
+    user_id = str(user["id"])
+    week_start = progress_service._week_start_utc()
+    now = _now()
+    with get_sync_session() as session:
+        team = _assert_team_admin(session, team_id, user_id)
+        members = _team_members(session, team, user_id)
+        user_ids = [member.user_id for member in members]
+
+        writing_counts = _counts_by_user(
+            session, WritingHistory, user_ids, WritingHistory.created_at, week_start,
+        )
+        listening_counts = _counts_by_user(
+            session, ListeningHistory, user_ids, ListeningHistory.created_at, week_start,
+        )
+        quiz_counts = _counts_by_user(
+            session, QuizHistory, user_ids, QuizHistory.created_at, week_start,
+        )
+        review_counts = _counts_by_user(
+            session, ReviewEvent, user_ids, ReviewEvent.created_at, week_start,
+        )
+        reading_counts = {
+            str(member_id): int(count)
+            for member_id, count in session.execute(
+                select(ReadingSession.user_id, func.count())
+                .where(
+                    ReadingSession.user_id.in_(user_ids),
+                    ReadingSession.status == "submitted",
+                    ReadingSession.submitted_at >= week_start,
+                )
+                .group_by(ReadingSession.user_id),
+            ).all()
+        } if user_ids else {}
+        due_counts = {
+            str(member_id): int(count)
+            for member_id, count in session.execute(
+                select(UserVocabulary.user_id, func.count())
+                .where(
+                    UserVocabulary.user_id.in_(user_ids),
+                    UserVocabulary.archived_at.is_(None),
+                    UserVocabulary.srs_next_review.is_not(None),
+                    UserVocabulary.srs_next_review <= now,
+                )
+                .group_by(UserVocabulary.user_id),
+            ).all()
+        } if user_ids else {}
+        profiles = {
+            profile.id: profile
+            for profile in session.execute(
+                select(User).where(User.id.in_(user_ids)),
+            ).scalars()
+        } if user_ids else {}
+
+        rows: list[TeamMemberProgressRow] = []
+        for member in members:
+            profile = profiles.get(member.user_id)
+            weekly_minutes = (
+                writing_counts.get(member.user_id, 0)
+                * progress_service.MINUTES_PER_FEATURE["writing"]
+                + listening_counts.get(member.user_id, 0)
+                * progress_service.MINUTES_PER_FEATURE["listening"]
+                + quiz_counts.get(member.user_id, 0)
+                * progress_service.MINUTES_PER_FEATURE["quiz"]
+                + reading_counts.get(member.user_id, 0)
+                * progress_service.MINUTES_PER_FEATURE["reading"]
+                + review_counts.get(member.user_id, 0)
+                * progress_service.MINUTES_PER_FEATURE["vocab_review"]
+            )
+            rows.append(
+                TeamMemberProgressRow(
+                    user_id=member.user_id,
+                    name=member.name,
+                    email=member.email,
+                    role=member.role,
+                    last_active_date=profile.last_active_date if profile else None,
+                    weekly_minutes=weekly_minutes,
+                    words_reviewed=review_counts.get(member.user_id, 0),
+                    due_words=due_counts.get(member.user_id, 0),
+                    current_streak=int((profile.streak if profile else 0) or 0),
+                )
+            )
+
+    return TeamMemberProgressResponse(week_start=week_start, members=rows)
 
 
 @router.get("/invites/{token}", response_model=TeamInvitePreviewResponse)

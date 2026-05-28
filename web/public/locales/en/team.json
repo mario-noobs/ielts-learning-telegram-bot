@@ -14,6 +14,11 @@
     "creating": "Creating...",
     "limit": "One beta team per account for now."
   },
+  "beta": {
+    "createLimit": "Beta limit: one team per account and up to 5 seats. Upgrade options will be added later.",
+    "seatsRemaining": "{count} seats left in this beta team.",
+    "full": "This beta team is full. Future upgrade options will raise the seat limit."
+  },
   "workspace": {
     "title": "Team workspace",
     "roleLabel": "Your role",
@@ -35,6 +40,19 @@
     "wordsMastered": "Words mastered",
     "quizCount": "Quizzes",
     "empty": "No team activity this week yet. Reviews, quizzes, writing, listening, and reading will appear here."
+  },
+  "progress": {
+    "title": "Member progress",
+    "description": "Owner and admins can see high-level status only, enough to notice who may need support.",
+    "member": "Member",
+    "lastActive": "Last active",
+    "weeklyMinutes": "Weekly minutes",
+    "wordsReviewed": "Words reviewed",
+    "dueWords": "Due words",
+    "streak": "Streak",
+    "streakDays": "{count} days",
+    "noActivity": "No activity",
+    "privacy": "Private submissions, answers, and detailed practice history are not shared."
   },
   "members": {
     "title": "Members",
@@ -58,7 +76,8 @@
   "join": {
     "heading": "Join {team}",
     "subtitle": "{count}/{limit} seats used",
-    "privacy": "By joining, your team can see high-level learning progress such as activity, streak, and review totals. Detailed submissions stay private.",
+    "privacy": "By joining, your team can see high-level learning progress such as activity, streak, review totals, due word counts, and weekly minutes. Writing, listening, reading answers, and detailed submissions stay private.",
+    "beta": "Beta teams are limited to 5 seats. If the team is full, ask the owner to wait for upgrade options.",
     "signIn": "Sign in to join",
     "accept": "Join team",
     "accepting": "Joining...",
@@ -67,6 +86,7 @@
   },
   "empty": {
     "title": "No team yet",
-    "description": "Create a team now, then invite members from your workspace."
+    "description": "Create a team now, then invite members from your workspace.",
+    "joinHint": "Have an invite link? Open it to preview the team and sign in. Without an invite, create your own beta team here."
   }
 }

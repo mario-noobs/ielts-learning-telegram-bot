@@ -417,3 +417,99 @@ def test_team_overview_aggregates_weekly_activity() -> None:
     assert body["words_reviewed"] == 1
     assert body["words_mastered"] == 1
     assert body["study_minutes"] == 45
+
+
+def test_owner_sees_privacy_safe_member_progress() -> None:
+    from services.db import get_sync_session
+    from services.db.models import ReviewEvent, TeamMember, User
+
+    owner_id = f"team-test-progress-owner-{uuid.uuid4().hex}"
+    member_id = f"team-test-progress-member-{uuid.uuid4().hex}"
+    team_id = _create_team(owner_id)
+    _seed_user(
+        member_id,
+        last_active_date=datetime.now(timezone.utc).date(),
+        streak=4,
+    )
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid=member_id,
+                role="member",
+                joined_at=now,
+            )
+        )
+        s.execute(update(User).where(User.id == member_id).values(team_id=team_id))
+        s.add(
+            ReviewEvent(
+                user_id=member_id,
+                user_vocab_id=f"{member_id}-word",
+                result=5,
+                source=1,
+                srs_interval_before=7,
+                srs_interval_after=14,
+                created_at=now,
+            )
+        )
+
+    with _client(owner_id, team_id=team_id) as c:
+        r = c.get(f"/api/v1/teams/{team_id}/member-progress")
+
+    assert r.status_code == 200
+    member = next(row for row in r.json()["members"] if row["user_id"] == member_id)
+    assert member["words_reviewed"] == 1
+    assert member["weekly_minutes"] == 3
+    assert member["current_streak"] == 4
+    assert "writing_submissions" not in member
+    assert "answers" not in member
+    assert "practice_history" not in member
+
+
+def test_regular_member_cannot_view_member_progress_rows() -> None:
+    from services.db import get_sync_session
+    from services.db.models import TeamMember, User
+
+    team_id = _create_team()
+    _seed_user("team-test-member")
+    with get_sync_session() as s, s.begin():
+        s.add(
+            TeamMember(
+                team_id=team_id,
+                user_uid="team-test-member",
+                role="member",
+                joined_at=datetime.now(timezone.utc),
+            )
+        )
+        s.execute(
+            update(User).where(User.id == "team-test-member").values(team_id=team_id),
+        )
+
+    with _client("team-test-member", team_id=team_id) as c:
+        r = c.get(f"/api/v1/teams/{team_id}/member-progress")
+
+    assert r.status_code == 403
+
+
+def test_team_workspace_view_is_audited_without_private_details() -> None:
+    from services.db import get_sync_session
+    from services.db.models import AuditLog
+
+    team_id = _create_team()
+
+    with _client("team-test-owner", team_id=team_id) as c:
+        r = c.post(f"/api/v1/teams/{team_id}/views")
+
+    assert r.status_code == 204
+    with get_sync_session() as s:
+        event = s.execute(
+            select(AuditLog).where(
+                AuditLog.target_id == team_id,
+                AuditLog.event_type == "team.dashboard_viewed",
+            ),
+        ).scalar_one()
+
+    assert event.actor_uid == "team-test-owner"
+    assert event.after == {"role": "owner", "member_count": 1}
+    assert event.before is None

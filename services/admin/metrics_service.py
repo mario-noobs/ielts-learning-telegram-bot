@@ -27,7 +27,17 @@ from sqlalchemy import and_, func, select
 
 from services import firebase_service
 from services.db import get_sync_session
-from services.db.models import AiUsage, AuditLog
+from services.db.models import (
+    AiUsage,
+    AuditLog,
+    ListeningHistory,
+    QuizHistory,
+    ReadingSession,
+    ReviewEvent,
+    Team,
+    TeamMember,
+    WritingHistory,
+)
 from services.repositories import get_metrics_repo
 
 # ─── Daily aggregation ─────────────────────────────────────────────
@@ -123,6 +133,140 @@ def ai_usage_series(days: int) -> list[dict[str, Any]]:
         {"date": d.isoformat(), "feature": f, "count": int(c)}
         for (d, f, c) in rows
     ]
+
+
+# ─── Team activity ─────────────────────────────────────────────────
+
+
+def team_activity_series(weeks: int) -> list[dict[str, Any]]:
+    """Weekly team activity counts without exposing private content."""
+    weeks = max(1, min(52, weeks))
+    today = datetime.now(timezone.utc).date()
+    current_week = today - timedelta(days=today.weekday())
+    start_week = current_week - timedelta(weeks=weeks - 1)
+    start_dt = datetime.combine(start_week, time.min, tzinfo=timezone.utc)
+
+    out = {
+        (start_week + timedelta(weeks=offset)): {
+            "week_start": (start_week + timedelta(weeks=offset)).isoformat(),
+            "active_teams": 0,
+            "active_members": 0,
+            "study_actions": 0,
+            "teams_created": 0,
+            "invites_created": 0,
+            "invites_accepted": 0,
+            "dashboard_views": 0,
+        }
+        for offset in range(weeks)
+    }
+    active_teams: dict[_date, set[str]] = defaultdict(set)
+    active_members: dict[_date, set[str]] = defaultdict(set)
+
+    with get_sync_session() as s:
+        member_team = {
+            str(user_uid): str(team_id)
+            for user_uid, team_id in s.execute(
+                select(TeamMember.user_uid, TeamMember.team_id),
+            ).all()
+        }
+        for owner_uid, team_id in s.execute(select(Team.owner_uid, Team.id)).all():
+            member_team.setdefault(str(owner_uid), str(team_id))
+        if member_team:
+            _fold_team_activity(
+                s, WritingHistory, WritingHistory.created_at, member_team,
+                start_dt, out, active_teams, active_members,
+            )
+            _fold_team_activity(
+                s, ListeningHistory, ListeningHistory.created_at, member_team,
+                start_dt, out, active_teams, active_members,
+            )
+            _fold_team_activity(
+                s, QuizHistory, QuizHistory.created_at, member_team,
+                start_dt, out, active_teams, active_members,
+            )
+            _fold_team_activity(
+                s, ReviewEvent, ReviewEvent.created_at, member_team,
+                start_dt, out, active_teams, active_members,
+            )
+            _fold_team_activity(
+                s,
+                ReadingSession,
+                ReadingSession.submitted_at,
+                member_team,
+                start_dt,
+                out,
+                active_teams,
+                active_members,
+                extra_filters=(ReadingSession.status == "submitted",),
+            )
+
+        audit_rows = s.execute(
+            select(AuditLog.event_type, AuditLog.created_at)
+            .where(
+                AuditLog.target_kind == "team",
+                AuditLog.created_at >= start_dt,
+                AuditLog.event_type.in_([
+                    "team.created",
+                    "team.invite_created",
+                    "team.invite_accepted",
+                    "team.dashboard_viewed",
+                ]),
+            ),
+        ).all()
+
+    for event_type, created_at in audit_rows:
+        week = _week_start_date(created_at)
+        if week not in out:
+            continue
+        if event_type == "team.created":
+            out[week]["teams_created"] += 1
+        elif event_type == "team.invite_created":
+            out[week]["invites_created"] += 1
+        elif event_type == "team.invite_accepted":
+            out[week]["invites_accepted"] += 1
+        elif event_type == "team.dashboard_viewed":
+            out[week]["dashboard_views"] += 1
+
+    for week, row in out.items():
+        row["active_teams"] = len(active_teams.get(week, set()))
+        row["active_members"] = len(active_members.get(week, set()))
+
+    return [out[week] for week in sorted(out)]
+
+
+def _fold_team_activity(
+    session,
+    model,
+    time_field,
+    member_team: dict[str, str],
+    start_dt: datetime,
+    out: dict[_date, dict[str, Any]],
+    active_teams: dict[_date, set[str]],
+    active_members: dict[_date, set[str]],
+    extra_filters: tuple[Any, ...] = (),
+) -> None:
+    stmt = select(model.user_id, time_field).where(
+        model.user_id.in_(list(member_team)),
+        time_field >= start_dt,
+        *extra_filters,
+    )
+    for user_id, happened_at in session.execute(stmt).all():
+        if happened_at is None:
+            continue
+        week = _week_start_date(happened_at)
+        if week not in out:
+            continue
+        team_id = member_team.get(str(user_id))
+        if not team_id:
+            continue
+        out[week]["study_actions"] += 1
+        active_teams[week].add(team_id)
+        active_members[week].add(str(user_id))
+
+
+def _week_start_date(value: datetime) -> _date:
+    stamped = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return stamped.date() - timedelta(days=stamped.weekday())
 
 
 # ─── Plan distribution ─────────────────────────────────────────────
@@ -315,4 +459,5 @@ __all__ = [
     "dau_series",
     "plan_distribution",
     "signup_cohorts",
+    "team_activity_series",
 ]
