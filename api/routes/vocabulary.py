@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 import config
 from api.auth import get_current_user
-from api.errors import ApiError, ERR
+from api.errors import ERR, ApiError
 from api.models.vocabulary import (
     AddWordRequest,
     DailyExtraRequest,
@@ -25,6 +25,7 @@ from api.models.vocabulary import (
     PublicVocabPoolRecommendationsResponse,
     PublicVocabPoolSaveResponse,
     PublicVocabPoolsResponse,
+    VocabRoadmapConsultResponse,
     VocabularyDraftResponse,
     VocabularyWord,
     WordListResponse,
@@ -318,6 +319,20 @@ async def recommend_public_vocab_pools(
         user,
     )
     return PublicVocabPoolRecommendationsResponse(enabled=True, **result)
+
+
+@router.post(
+    "/roadmap/consult",
+    response_model=VocabRoadmapConsultResponse,
+)
+async def consult_vocab_roadmap(
+    user: dict = Depends(get_current_user),
+) -> VocabRoadmapConsultResponse:
+    try:
+        result = await vocab_roadmap_service.generate_vocab_consult(user)
+    except vocab_roadmap_service.VocabConsultGenerationError:
+        raise ApiError(ERR.vocab_consult_failed)
+    return VocabRoadmapConsultResponse(**result)
 
 
 @router.get("/public-pools/{pool_id}", response_model=PublicVocabPoolDetailResponse)

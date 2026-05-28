@@ -96,6 +96,37 @@
         "target_band_fallback": "Good next pool for your band"
       }
     },
+    "consult": {
+      "heading": "AI gap consult",
+      "subtitle": "Ask AI to turn your saved words, review history, and roadmap into focused next steps.",
+      "cta": "Get consult",
+      "loading": "Checking gaps...",
+      "readiness": "Study-readiness estimate {range}",
+      "strengths": "Strengths",
+      "gaps": "Gaps",
+      "nextActions": "Next actions",
+      "dataUsed": "Data used",
+      "confidence": {
+        "low": "Low confidence",
+        "medium": "Medium confidence",
+        "high": "High confidence"
+      },
+      "priority": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "requirements": {
+        "save_more_words": {
+          "title": "Add more words",
+          "detail": "{current}/{required} words saved"
+        },
+        "review_more_words": {
+          "title": "Review more words",
+          "detail": "{current}/{required} reviewed words"
+        }
+      }
+    },
     "word": {
       "save": "Save to My Words",
       "saving": "Saving...",

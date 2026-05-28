@@ -30,6 +30,7 @@ import {
   Info,
   LayoutDashboard,
   Lightbulb,
+  Loader2,
   LogOut,
   Mail,
   Mic,
@@ -59,7 +60,7 @@ const REGISTRY = {
   AlertCircle, ArrowLeft, ArrowRight, BookOpen, Calendar, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Clock,
   Crown, Eye, FileText, Flag, Flame, Globe, Headphones, Heart, Hourglass, Info,
-  LayoutDashboard, Lightbulb, Lock, LogOut, Mail, Mic, Minus, PartyPopper, Pause,
+  LayoutDashboard, Lightbulb, Loader2, Lock, LogOut, Mail, Mic, Minus, PartyPopper, Pause,
   PenLine, Play, Plus, RotateCcw, Settings, ShieldCheck, Sparkles, SquarePen,
   Target, TrendingDown, TrendingUp, Trophy, User, Volume2, X, Zap,
 } satisfies Record<string, LucideIcon>

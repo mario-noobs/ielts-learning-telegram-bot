@@ -96,6 +96,37 @@
         "target_band_fallback": "Bộ từ tiếp theo phù hợp với band của bạn"
       }
     },
+    "consult": {
+      "heading": "AI phân tích khoảng trống",
+      "subtitle": "Nhờ AI biến từ đã lưu, lịch sử ôn và lộ trình thành các bước học tập trung.",
+      "cta": "Nhận tư vấn",
+      "loading": "Đang phân tích...",
+      "readiness": "Ước tính mức sẵn sàng học {range}",
+      "strengths": "Điểm mạnh",
+      "gaps": "Khoảng trống",
+      "nextActions": "Bước tiếp theo",
+      "dataUsed": "Dữ liệu đã dùng",
+      "confidence": {
+        "low": "Độ tin cậy thấp",
+        "medium": "Độ tin cậy vừa",
+        "high": "Độ tin cậy cao"
+      },
+      "priority": {
+        "high": "Cao",
+        "medium": "Vừa",
+        "low": "Thấp"
+      },
+      "requirements": {
+        "save_more_words": {
+          "title": "Thêm từ vào kho",
+          "detail": "Đã lưu {current}/{required} từ"
+        },
+        "review_more_words": {
+          "title": "Ôn thêm từ",
+          "detail": "Đã ôn {current}/{required} từ"
+        }
+      }
+    },
     "word": {
       "save": "Lưu vào Từ của tôi",
       "saving": "Đang lưu...",

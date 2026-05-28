@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from api.auth import get_current_user
 from api.errors import ERR, ApiError
 from api.main import create_app
+from services import vocab_roadmap_service
 
 FAKE_USER = {
     "id": "test-user-1",
@@ -243,6 +244,53 @@ class TestPublicVocabPools:
         assert response.status_code == 200
         assert response.json() == {"enabled": False, "target_difficulty": None, "items": []}
         service.assert_not_called()
+
+    def test_roadmap_consult_returns_schema_response(self, client):
+        consult = {
+            "status": "ready",
+            "disclaimer": "This is not official.",
+            "confidence": "medium",
+            "readiness_range": "6.0-6.5",
+            "summary": "Focus on review consistency.",
+            "data_used": [{"label": "My Words", "value": "40 saved, 12 reviewed"}],
+            "missing_requirements": [],
+            "strengths": [
+                {"title": "Coverage", "detail": "Good education coverage.", "evidence": "12 words"}
+            ],
+            "gaps": [
+                {"title": "Reviews", "detail": "Some weak words remain.", "evidence": "4 due"}
+            ],
+            "next_actions": [
+                {
+                    "title": "Review",
+                    "detail": "Clear due cards.",
+                    "route": "/learn/review",
+                    "priority": "high",
+                }
+            ],
+        }
+        with patch("api.routes.vocabulary.vocab_roadmap_service.generate_vocab_consult",
+                   new=AsyncMock(return_value=consult)) as service:
+            response = client.post("/api/v1/vocabulary/roadmap/consult")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "ready"
+        assert body["confidence"] == "medium"
+        assert body["next_actions"][0]["route"] == "/learn/review"
+        service.assert_awaited_once()
+
+    def test_roadmap_consult_returns_502_for_malformed_ai(self, client):
+        with patch(
+            "api.routes.vocabulary.vocab_roadmap_service.generate_vocab_consult",
+            new=AsyncMock(
+                side_effect=vocab_roadmap_service.VocabConsultGenerationError("bad")
+            ),
+        ):
+            response = client.post("/api/v1/vocabulary/roadmap/consult")
+
+        assert response.status_code == 502
+        assert response.json()["error"]["code"] == ERR.vocab_consult_failed.code
 
     def test_detail_returns_words_without_mutating_user_collection(self, client):
         detail = {

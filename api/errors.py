@@ -275,6 +275,10 @@ class _Registry:
         "vocab.extra_limit_exceeded", 429,
         "Daily extra vocabulary allowance has been used.",
     )
+    vocab_consult_failed = ErrorCode(
+        "vocab.consult_failed", 502,
+        "Vocabulary roadmap consult returned invalid data.",
+    )
 
 
 ERR = _Registry()
