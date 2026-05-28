@@ -188,6 +188,7 @@ describe('<TeamPage>', () => {
 
     renderPage()
 
+    await userEvent.click(await screen.findByRole('button', { name: /hub\.members\.title/ }))
     await userEvent.click(await screen.findByRole('button', { name: 'invite.create' }))
 
     await waitFor(() => {
@@ -212,12 +213,14 @@ describe('<TeamPage>', () => {
 
     expect(await screen.findByText('Band 7 Crew')).toBeInTheDocument()
     expect(screen.getAllByText('roles.owner').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('roles.member').length).toBeGreaterThan(0)
     expect(screen.getByText('overview.activeMembers')).toBeInTheDocument()
     expect(screen.getByText('45')).toBeInTheDocument()
-    expect(screen.getByText('progress.title')).toBeInTheDocument()
-    expect(screen.getByText('knowledge.title')).toBeInTheDocument()
-    expect(screen.getByText('scalability')).toBeInTheDocument()
+    expect(screen.getByText('hub.title')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /hub\.knowledge\.title/ })).toBeInTheDocument()
+    expect(screen.queryByText('scalability')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /hub\.members\.title/ }))
+    expect(await screen.findByText('Member User')).toBeInTheDocument()
+    expect(screen.getAllByText('roles.member').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Member User').length).toBeGreaterThan(0)
     expect(trackMock).toHaveBeenCalledWith('team_dashboard_viewed', {
       team_id: 'team-1',
@@ -245,6 +248,7 @@ describe('<TeamPage>', () => {
 
     renderPage()
 
+    await userEvent.click(await screen.findByRole('button', { name: /hub\.members\.title/ }))
     const roleSelect = await screen.findByLabelText('members.roleActionLabel|{"name":"Member User"}')
     await userEvent.selectOptions(roleSelect, 'admin')
     await waitFor(() => {
@@ -301,6 +305,7 @@ describe('<TeamPage>', () => {
 
     renderPage()
 
+    await userEvent.click(await screen.findByRole('button', { name: /hub\.knowledge\.title/ }))
     await userEvent.selectOptions(await screen.findByLabelText('knowledge.askCategory'), 'writing')
     await userEvent.type(screen.getByLabelText('knowledge.askTitle'), 'How do I use coherence?')
     await userEvent.type(screen.getByLabelText('knowledge.askBody'), 'I want a natural Task 2 example.')
@@ -358,6 +363,7 @@ describe('<TeamPage>', () => {
 
     renderPage()
 
+    await userEvent.click(await screen.findByRole('button', { name: /hub\.knowledge\.title/ }))
     await userEvent.click(await screen.findByRole('button', { name: /knowledge\.replies/ }))
     expect(await screen.findByText('Use it when describing system growth.')).toBeInTheDocument()
 
@@ -411,6 +417,7 @@ describe('<TeamPage>', () => {
 
     renderPage()
 
+    await userEvent.click(await screen.findByRole('button', { name: /hub\.knowledge\.title/ }))
     await userEvent.click(await screen.findByRole('button', { name: 'knowledge.replies|{"count":1}' }))
     expect(await screen.findByText('This should be moderated.')).toBeInTheDocument()
 

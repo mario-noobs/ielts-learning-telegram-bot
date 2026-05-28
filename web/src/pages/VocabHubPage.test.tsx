@@ -36,57 +36,28 @@ function render_() {
 
 describe('<VocabHubPage>', () => {
   it('shows focused vocabulary entry points', async () => {
-    apiFetchMock.mockImplementation((url: string) => {
-      if (url === '/api/v1/topics') {
-        return Promise.resolve({
-          total_words: 12,
-          items: [
-            { id: 'technology', name: 'Technology', word_count: 10, mastered_count: 4 },
-            { id: 'education', name: 'Education', word_count: 2, mastered_count: 2 },
-          ],
-        })
-      }
-      if (url === '/api/v1/review/due') {
-        return Promise.resolve({ items: [{ word_id: 'w1' }, { word_id: 'w2' }] })
-      }
-      throw new Error(`Unexpected API call: ${url}`)
-    })
-
     render_()
 
-    expect(await screen.findByRole('link', { name: /hub\.today\.title/ }))
+    expect(screen.getByRole('link', { name: /hub\.today\.title/ }))
       .toHaveAttribute('href', '/learn/daily')
     expect(screen.getByRole('link', { name: /hub\.review\.title/ }))
       .toHaveAttribute('href', '/learn/review')
     expect(screen.getByRole('link', { name: /hub\.myWords\.title/ }))
       .toHaveAttribute('href', '/learn/vocab/my-words')
-    expect(screen.getByRole('link', { name: /hub\.explore\.title/ }))
-      .toHaveAttribute('href', '/learn/vocab/explore')
-    expect(screen.getByRole('link', { name: /hub\.add\.title/ }))
-      .toHaveAttribute('href', '/learn/vocab/add')
     expect(screen.getByText(/hub\.review\.meta/)).toBeInTheDocument()
     expect(screen.getByText(/hub\.myWords\.meta/)).toBeInTheDocument()
+    expect(apiFetchMock).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('link', { name: /hub\.add\.title/ }))
-    expect(trackMock).toHaveBeenCalledWith('vocab_hub_add_opened')
+    await userEvent.click(screen.getByRole('link', { name: /hub\.myWords\.title/ }))
+    expect(trackMock).toHaveBeenCalledWith('vocab_hub_my_words_opened')
   })
 
   it('does not load public pools inside the personalized vocab hub', async () => {
-    apiFetchMock.mockImplementation((url: string) => {
-      if (url === '/api/v1/topics') {
-        return Promise.resolve({ total_words: 0, items: [] })
-      }
-      if (url === '/api/v1/review/due') {
-        return Promise.resolve({ items: [] })
-      }
-      throw new Error(`Unexpected API call: ${url}`)
-    })
-
     render_()
 
-    expect(await screen.findByRole('link', { name: /hub\.today\.title/ }))
+    expect(screen.getByRole('link', { name: /hub\.today\.title/ }))
       .toHaveAttribute('href', '/learn/daily')
-    expect(apiFetchMock).not.toHaveBeenCalledWith('/api/v1/vocabulary/public-pools')
+    expect(apiFetchMock).not.toHaveBeenCalled()
     expect(screen.queryByRole('link', { name: /hub\.publicPools\.title/ }))
       .not.toBeInTheDocument()
   })

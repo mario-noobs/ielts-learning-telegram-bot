@@ -41,6 +41,22 @@
     "quizCount": "Bài quiz",
     "empty": "Tuần này team chưa có hoạt động. Lượt ôn, quiz, writing, listening và reading sẽ hiện ở đây."
   },
+  "hub": {
+    "title": "Team hub",
+    "description": "Mở từng khu vực khi cần. Dữ liệu chi tiết chỉ tải khi bạn chọn.",
+    "knowledge": {
+      "title": "Kiến thức",
+      "description": "Hỏi đáp, chia sẻ từ, trả lời và lưu từ hữu ích từ team."
+    },
+    "progress": {
+      "title": "Tiến độ",
+      "description": "Tổng quan hoạt động và trạng thái ôn tập cho chủ team/admin."
+    },
+    "members": {
+      "title": "Thành viên",
+      "description": "Mời bạn học và quản lý vai trò trong team."
+    }
+  },
   "knowledge": {
     "title": "Bảng chia sẻ kiến thức",
     "description": "Từ được thành viên chia sẻ sẽ xuất hiện ở đây để mọi người lưu vào Từ của tôi.",

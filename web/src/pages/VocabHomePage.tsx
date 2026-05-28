@@ -123,7 +123,7 @@ interface DailyWordsResponse {
   total_count: number
 }
 
-type VocabTab = 'myWords' | 'topics' | 'favourites' | 'history'
+type VocabTab = 'myWords' | 'topics' | 'add' | 'favourites' | 'history'
 type SourceFilter = 'all' | 'daily' | 'manual' | 'quiz' | 'reading' | 'public_pool'
 type StatusFilter = 'all' | 'New' | 'Weak' | 'Learning' | 'Good' | 'Mastered'
 
@@ -925,7 +925,7 @@ function DailyHistoryCard({
   )
 }
 
-export function VocabAddPage() {
+function AddWordsWorkspace({ standalone = false }: { standalone?: boolean }) {
   const { t } = useTranslation('vocab')
   const [aiUsage, setAiUsage] = useState<AiUsage | null>(null)
   const [savedWords, setSavedWords] = useState<VocabularyWord[]>([])
@@ -951,25 +951,29 @@ export function VocabAddPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-4">
-      <header className="mb-6">
-        <Link
-          to="/learn/vocab"
-          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-fg hover:text-fg"
-        >
-          <Icon name="ArrowLeft" size="sm" variant="muted" />
-          {t('addFlow.backToHub', { defaultValue: 'Vocabulary hub' })}
-        </Link>
-        <h1 className="text-2xl font-bold text-fg">
-          {t('addFlow.heading', { defaultValue: 'Add words' })}
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-muted-fg">
-          {t('addFlow.subtitle', {
-            defaultValue: 'Create one strong card or import a small set. Saved words go into My Words.',
-          })}
-        </p>
+    <div className={standalone ? 'mx-auto max-w-3xl p-4' : 'space-y-4'}>
+      {standalone ? (
+        <header className="mb-6">
+          <Link
+            to="/learn/vocab/my-words"
+            className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-fg hover:text-fg"
+          >
+            <Icon name="ArrowLeft" size="sm" variant="muted" />
+            {t('addFlow.backToHub', { defaultValue: 'My Words' })}
+          </Link>
+          <h1 className="text-2xl font-bold text-fg">
+            {t('addFlow.heading', { defaultValue: 'Add words' })}
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-muted-fg">
+            {t('addFlow.subtitle', {
+              defaultValue: 'Create one strong card or import a small set. Saved words go into My Words.',
+            })}
+          </p>
+          <AiUsageNote usage={aiUsage} t={t} />
+        </header>
+      ) : (
         <AiUsageNote usage={aiUsage} t={t} />
-      </header>
+      )}
 
       <div className="space-y-4">
         <AddWordWithAi t={t} onSaved={onSaved} />
@@ -1007,6 +1011,10 @@ export function VocabAddPage() {
       )}
     </div>
   )
+}
+
+export function VocabAddPage() {
+  return <AddWordsWorkspace standalone />
 }
 
 export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageProps) {
@@ -1299,6 +1307,23 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
         <button
           type="button"
           onClick={() => {
+            if (activeTab !== 'add') {
+              track('vocab_add_tab_viewed')
+            }
+            setActiveTab('add')
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
+            activeTab === 'add'
+              ? 'bg-primary text-primary-fg'
+              : 'text-muted-fg hover:text-fg'
+          }`}
+        >
+          <Icon name="Plus" size="sm" variant={activeTab === 'add' ? 'fg' : 'muted'} />
+          {t('byTopic.tabs.add', { defaultValue: 'Add words' })}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             if (activeTab !== 'favourites') {
               track('vocab_favourites_tab_viewed')
             }
@@ -1359,7 +1384,9 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
         </div>
       )}
 
-      {activeTab === 'history' ? (
+      {activeTab === 'add' ? (
+        <AddWordsWorkspace />
+      ) : activeTab === 'history' ? (
         loadingHistory || dailyHistory === null ? (
           <LoadingScreen compact title={t('byTopic.tabs.history', { defaultValue: 'History' })} />
         ) : dailyHistory.length === 0 ? (
@@ -1419,13 +1446,17 @@ export default function VocabHomePage({ initialTab = 'myWords' }: VocabHomePageP
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Link
-                to="/learn/vocab/add"
+              <button
+                type="button"
+                onClick={() => {
+                  track('vocab_add_tab_viewed')
+                  setActiveTab('add')
+                }}
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90"
               >
                 <Icon name="Plus" size="sm" variant="fg" />
                 {t('myWords.addCta', { defaultValue: 'Add words' })}
-              </Link>
+              </button>
               <label className="flex flex-col gap-1 text-xs font-medium text-muted-fg">
                 {t('myWords.filters.source', { defaultValue: 'Source' })}
                 <select

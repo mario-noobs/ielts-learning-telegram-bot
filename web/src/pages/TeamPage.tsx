@@ -8,6 +8,7 @@ import { localizeError } from '../lib/apiError'
 import { track } from '../lib/analytics'
 
 type TeamRole = 'owner' | 'admin' | 'member'
+type TeamSection = 'overview' | 'knowledge' | 'progress' | 'members'
 
 interface TeamSummary {
   id: string
@@ -193,6 +194,7 @@ export default function TeamPage() {
   const [memberProgress, setMemberProgress] = useState<TeamMemberProgressRow[]>([])
   const [knowledgePosts, setKnowledgePosts] = useState<TeamKnowledgePost[]>([])
   const [repliesByPost, setRepliesByPost] = useState<Record<string, TeamKnowledgeReply[]>>({})
+  const [activeSection, setActiveSection] = useState<TeamSection>('overview')
   const [loading, setLoading] = useState(true)
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
   const [name, setName] = useState('')
@@ -214,34 +216,17 @@ export default function TeamPage() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
-  const loadWorkspace = useCallback(async (
+  const loadOverview = useCallback(async (
     teamId: string,
     role: TeamRole | null,
     trackView = false,
   ) => {
     setWorkspaceLoading(true)
     try {
-      const [membersRes, overviewRes, knowledgeRes] = await Promise.all([
-        apiFetch<TeamMembersResponse>(`/api/v1/teams/${encodeURIComponent(teamId)}/members`),
-        apiFetch<TeamOverviewResponse>(`/api/v1/teams/${encodeURIComponent(teamId)}/overview`),
-        apiFetch<TeamKnowledgePostsResponse>(
-          `/api/v1/teams/${encodeURIComponent(teamId)}/knowledge/posts?limit=10`,
-        ),
-      ])
-      setTeam(membersRes.team)
-      setMembers(membersRes.members)
+      const overviewRes = await apiFetch<TeamOverviewResponse>(
+        `/api/v1/teams/${encodeURIComponent(teamId)}/overview`,
+      )
       setOverview(overviewRes)
-      setKnowledgePosts(knowledgeRes.items)
-      setRepliesByPost({})
-      setOpenPostId('')
-      if (role === 'owner' || role === 'admin') {
-        const progressRes = await apiFetch<TeamMemberProgressResponse>(
-          `/api/v1/teams/${encodeURIComponent(teamId)}/member-progress`,
-        )
-        setMemberProgress(progressRes.members)
-      } else {
-        setMemberProgress([])
-      }
       if (trackView) {
         void apiFetch(`/api/v1/teams/${encodeURIComponent(teamId)}/views`, {
           method: 'POST',
@@ -259,6 +244,58 @@ export default function TeamPage() {
     }
   }, [])
 
+  const loadMembers = useCallback(async (teamId: string, force = false) => {
+    if (!force && members.length > 0) return
+    setWorkspaceLoading(true)
+    try {
+      const res = await apiFetch<TeamMembersResponse>(
+        `/api/v1/teams/${encodeURIComponent(teamId)}/members`,
+      )
+      setTeam(res.team)
+      setMembers(res.members)
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setWorkspaceLoading(false)
+    }
+  }, [members.length])
+
+  const loadKnowledge = useCallback(async (teamId: string, force = false) => {
+    if (!force && knowledgePosts.length > 0) return
+    setWorkspaceLoading(true)
+    try {
+      const res = await apiFetch<TeamKnowledgePostsResponse>(
+        `/api/v1/teams/${encodeURIComponent(teamId)}/knowledge/posts?limit=10`,
+      )
+      setKnowledgePosts(res.items)
+      setRepliesByPost({})
+      setOpenPostId('')
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setWorkspaceLoading(false)
+    }
+  }, [knowledgePosts.length])
+
+  const loadProgress = useCallback(async (teamId: string, role: TeamRole | null, force = false) => {
+    if (role !== 'owner' && role !== 'admin') {
+      setMemberProgress([])
+      return
+    }
+    if (!force && memberProgress.length > 0) return
+    setWorkspaceLoading(true)
+    try {
+      const res = await apiFetch<TeamMemberProgressResponse>(
+        `/api/v1/teams/${encodeURIComponent(teamId)}/member-progress`,
+      )
+      setMemberProgress(res.members)
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setWorkspaceLoading(false)
+    }
+  }, [memberProgress.length])
+
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -268,7 +305,7 @@ export default function TeamPage() {
         const res = await apiFetch<TeamMeResponse>('/api/v1/teams/me')
         if (cancelled) return
         setTeam(res.team)
-        if (res.team) await loadWorkspace(res.team.id, res.team.my_role, true)
+        if (res.team) await loadOverview(res.team.id, res.team.my_role, true)
       } catch (e) {
         if (!cancelled) setError(localizeError(e))
       } finally {
@@ -279,7 +316,7 @@ export default function TeamPage() {
     return () => {
       cancelled = true
     }
-  }, [loadWorkspace])
+  }, [loadOverview])
 
   const fullInviteUrl = useMemo(
     () => (invite ? absoluteInviteUrl(invite.invite_url) : ''),
@@ -292,6 +329,19 @@ export default function TeamPage() {
     canManageMembers || post.author.user_id === profile?.id
   const canDeleteReply = (reply: TeamKnowledgeReply) =>
     canManageMembers || reply.author.user_id === profile?.id
+
+  const openTeamSection = (section: TeamSection) => {
+    if (!team) return
+    setActiveSection(section)
+    if (section === 'knowledge') {
+      void loadKnowledge(team.id)
+    } else if (section === 'members') {
+      void loadMembers(team.id)
+    } else if (section === 'progress') {
+      void loadProgress(team.id, team.my_role)
+    }
+    track('team_hub_section_opened', { team_id: team.id, section })
+  }
 
   const createTeam = async (event: FormEvent) => {
     event.preventDefault()
@@ -307,7 +357,7 @@ export default function TeamPage() {
       setTeam(res.team)
       await Promise.all([
         refreshProfile(),
-        loadWorkspace(res.team.id, res.team.my_role, true),
+        loadOverview(res.team.id, res.team.my_role, true),
       ])
       track('team_created', { team_id: res.team.id })
     } catch (e) {
@@ -388,8 +438,12 @@ export default function TeamPage() {
         setKnowledgePosts([])
         setRepliesByPost({})
         setOpenPostId('')
+        setActiveSection('overview')
       } else {
-        await loadWorkspace(team.id, team.my_role)
+        await Promise.all([
+          loadMembers(team.id, true),
+          loadOverview(team.id, team.my_role),
+        ])
       }
       track('team_member_removed', { team_id: team.id })
     } catch (e) {
@@ -743,6 +797,57 @@ export default function TeamPage() {
           </section>
 
           <section className="rounded-lg border border-border bg-surface-raised p-4">
+            <div>
+              <h2 className="text-lg font-semibold text-fg">{t('hub.title')}</h2>
+              <p className="mt-1 text-sm text-muted-fg">{t('hub.description')}</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => openTeamSection('knowledge')}
+                className={`flex min-h-28 flex-col items-start justify-between rounded-lg border p-3 text-left hover:border-primary/40 ${
+                  activeSection === 'knowledge' ? 'border-primary/40 bg-primary/10' : 'border-border bg-bg'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
+                  <Icon name="BookOpen" size="sm" variant="primary" />
+                  {t('hub.knowledge.title')}
+                </span>
+                <span className="mt-2 text-sm text-muted-fg">{t('hub.knowledge.description')}</span>
+              </button>
+              {canManageMembers && (
+                <button
+                  type="button"
+                  onClick={() => openTeamSection('progress')}
+                  className={`flex min-h-28 flex-col items-start justify-between rounded-lg border p-3 text-left hover:border-primary/40 ${
+                    activeSection === 'progress' ? 'border-primary/40 bg-primary/10' : 'border-border bg-bg'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
+                    <Icon name="TrendingUp" size="sm" variant="primary" />
+                    {t('hub.progress.title')}
+                  </span>
+                  <span className="mt-2 text-sm text-muted-fg">{t('hub.progress.description')}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => openTeamSection('members')}
+                className={`flex min-h-28 flex-col items-start justify-between rounded-lg border p-3 text-left hover:border-primary/40 ${
+                  activeSection === 'members' ? 'border-primary/40 bg-primary/10' : 'border-border bg-bg'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
+                  <Icon name="Users" size="sm" variant="primary" />
+                  {t('hub.members.title')}
+                </span>
+                <span className="mt-2 text-sm text-muted-fg">{t('hub.members.description')}</span>
+              </button>
+            </div>
+          </section>
+
+          {activeSection === 'knowledge' && (
+          <section className="rounded-lg border border-border bg-surface-raised p-4">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-fg">{t('knowledge.title')}</h2>
@@ -808,7 +913,9 @@ export default function TeamPage() {
             </form>
 
             <div className="mt-4 space-y-3">
-              {knowledgePosts.length === 0 ? (
+              {workspaceLoading && knowledgePosts.length === 0 ? (
+                <LoadingScreen compact title={t('knowledge.title')} />
+              ) : knowledgePosts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border bg-bg px-4 py-5">
                   <p className="font-medium text-fg">{t('knowledge.emptyTitle')}</p>
                   <p className="mt-1 text-sm text-muted-fg">{t('knowledge.emptyDescription')}</p>
@@ -1010,13 +1117,17 @@ export default function TeamPage() {
               )}
             </div>
           </section>
+          )}
 
-          {canManageMembers && (
+          {canManageMembers && activeSection === 'progress' && (
             <section className="rounded-lg border border-border bg-surface-raised p-4">
               <div>
                 <h2 className="text-lg font-semibold text-fg">{t('progress.title')}</h2>
                 <p className="mt-1 text-sm text-muted-fg">{t('progress.description')}</p>
               </div>
+              {workspaceLoading && memberProgress.length === 0 ? (
+                <LoadingScreen compact title={t('progress.title')} className="mt-4" />
+              ) : (
               <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-bg">
                 <table className="min-w-full divide-y divide-border text-sm">
                   <thead className="bg-surface">
@@ -1054,10 +1165,12 @@ export default function TeamPage() {
                   </tbody>
                 </table>
               </div>
+              )}
               <p className="mt-3 text-xs text-muted-fg">{t('progress.privacy')}</p>
             </section>
           )}
 
+          {activeSection === 'members' && (
           <section className="rounded-lg border border-border bg-surface-raised p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -1100,6 +1213,9 @@ export default function TeamPage() {
               </div>
             )}
 
+            {workspaceLoading && members.length === 0 ? (
+              <LoadingScreen compact title={t('members.title')} className="mt-4" />
+            ) : (
             <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-bg">
               {members.map((member) => {
                 const canRemove = canManageMembers
@@ -1152,7 +1268,9 @@ export default function TeamPage() {
                 )
               })}
             </div>
+            )}
           </section>
+          )}
         </div>
       ) : (
         <section className="rounded-lg border border-border bg-surface-raised p-4">

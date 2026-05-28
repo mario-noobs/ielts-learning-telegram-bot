@@ -34,26 +34,14 @@
       "description": "Học bộ từ hiện tại và thêm từ mới khi bạn muốn."
     },
     "review": {
-      "meta": "{count, plural, one {# từ cần ôn} other {# từ cần ôn}}",
-      "metaUnknown": "Ôn SRS",
+      "meta": "Ôn SRS",
       "title": "Ôn tập",
       "description": "Luyện các thẻ đến hạn mà không cần mở toàn bộ kho từ."
     },
     "myWords": {
-      "meta": "{mastered}/{total} đã nhớ",
+      "meta": "Kho từ cá nhân",
       "title": "Từ của tôi",
-      "description": "Tìm kiếm, lọc, yêu thích và mở từ đã lưu."
-    },
-    "explore": {
-      "meta": "Lộ trình",
-      "metaTopic": "Tập trung: {topic}",
-      "title": "Khám phá",
-      "description": "Xem chủ đề và lộ trình học từng phần."
-    },
-    "add": {
-      "meta": "AI hoặc tự thêm",
-      "title": "Thêm từ",
-      "description": "Tạo một thẻ từ hoặc nhập một nhóm gợi ý nhỏ."
+      "description": "Tìm kiếm, duyệt, thêm, yêu thích và xem lại từ đã lưu."
     },
     "error": {
       "title": "Chưa tải được từ vựng",
@@ -168,7 +156,8 @@
     "clearFilter": "Bỏ lọc",
     "tabs": {
       "myWords": "Từ của tôi",
-      "topics": "Chủ đề",
+      "topics": "Duyệt",
+      "add": "Thêm từ",
       "favourites": "Yêu thích",
       "history": "Lịch sử"
     },

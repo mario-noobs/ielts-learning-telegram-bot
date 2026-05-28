@@ -12,7 +12,7 @@ import LoginPage from './pages/LoginPage'
 import PricingPage from './pages/PricingPage'
 import DashboardPage from './pages/DashboardPage'
 import VocabHubPage from './pages/VocabHubPage'
-import VocabHomePage, { VocabAddPage } from './pages/VocabHomePage'
+import VocabHomePage from './pages/VocabHomePage'
 import PublicVocabPoolsPage from './pages/PublicVocabPoolsPage'
 import VocabTopicPage from './pages/VocabTopicPage'
 import WordDetailPage from './pages/WordDetailPage'
@@ -131,7 +131,7 @@ export default function App() {
             <Route path="/learn/vocab/explore" element={<VocabHomePage initialTab="topics" />} />
             <Route path="/learn/vocab/favourites" element={<VocabHomePage initialTab="favourites" />} />
             <Route path="/learn/vocab/history" element={<VocabHomePage initialTab="history" />} />
-            <Route path="/learn/vocab/add" element={<VocabAddPage />} />
+            <Route path="/learn/vocab/add" element={<VocabHomePage initialTab="add" />} />
             <Route path="/learn/pools" element={<PublicVocabPoolsPage />} />
             <Route path="/learn/pools/:poolId" element={<PublicVocabPoolsPage />} />
             <Route path="/learn/vocab/pools" element={<LegacyPublicPoolRedirect />} />
