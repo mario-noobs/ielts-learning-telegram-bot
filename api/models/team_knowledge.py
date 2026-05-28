@@ -67,6 +67,7 @@ class TeamCreateKnowledgePostRequest(BaseModel):
     category: str = Field(default="general", min_length=1, max_length=40)
     title: str = Field(min_length=3, max_length=160)
     body: str = Field(min_length=3, max_length=2000)
+    word_context: TeamWordSnapshot | None = None
 
 
 class TeamCreateKnowledgePostResponse(BaseModel):

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Icon from '../components/Icon'
 import LoadingScreen from '../components/LoadingScreen'
@@ -41,6 +41,12 @@ interface TeamMeResponse {
     id: string
     name: string
   } | null
+}
+
+interface TeamCreateKnowledgePostResponse {
+  post: {
+    id: string
+  }
 }
 
 function bandTier(band: number): string {
@@ -189,6 +195,10 @@ export default function WordDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [shareMessage, setShareMessage] = useState('')
   const [sharing, setSharing] = useState(false)
+  const [askTeamOpen, setAskTeamOpen] = useState(false)
+  const [askTitle, setAskTitle] = useState('')
+  const [askBody, setAskBody] = useState('')
+  const [askingTeam, setAskingTeam] = useState(false)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
@@ -214,6 +224,21 @@ export default function WordDetailPage() {
 
   const highlighted = bandTier(band)
 
+  const buildAskTeamDraft = (word: EnrichedWord) => {
+    const example = word.examples_by_band[highlighted] || Object.values(word.examples_by_band)[0]
+    const detailPath = `/learn/vocab/${encodeURIComponent(word.word)}`
+    return {
+      title: `How can I use "${word.word}" naturally?`,
+      body: [
+        `I'm reviewing "${word.word}" and want help using it in IELTS answers.`,
+        word.definition_en ? `English meaning: ${word.definition_en}` : '',
+        word.definition_vi ? `Vietnamese meaning: ${word.definition_vi}` : '',
+        example?.en ? `Example: ${example.en}` : '',
+        `Word detail: ${detailPath}`,
+      ].filter(Boolean).join('\n'),
+    }
+  }
+
   const shareWordToTeam = async () => {
     if (!team || !data || sharing) return
     const note = window.prompt(`Ghi chú tùy chọn cho team về "${data.word}"`)
@@ -231,6 +256,56 @@ export default function WordDetailPage() {
       setError(localizeError(e))
     } finally {
       setSharing(false)
+    }
+  }
+
+  const openAskTeam = () => {
+    if (!data) return
+    const draft = buildAskTeamDraft(data)
+    setAskTitle(draft.title)
+    setAskBody(draft.body)
+    setAskTeamOpen(true)
+    setShareMessage('')
+  }
+
+  const submitAskTeam = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!team || !data || askingTeam) return
+    const title = askTitle.trim()
+    const body = askBody.trim()
+    if (!title || !body) return
+    setAskingTeam(true)
+    setShareMessage('')
+    setError(null)
+    try {
+      const res = await apiFetch<TeamCreateKnowledgePostResponse>(
+        `/api/v1/teams/${encodeURIComponent(team.id)}/knowledge/posts`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'question',
+            category: 'vocabulary',
+            title,
+            body,
+            word_context: {
+              word: data.word,
+              definition_en: data.definition_en,
+              definition_vi: data.definition_vi,
+              ipa: data.ipa,
+              part_of_speech: data.part_of_speech,
+              example_en: data.examples_by_band[highlighted]?.en || '',
+              example_vi: data.examples_by_band[highlighted]?.vi || '',
+              topic: '',
+            },
+          }),
+        },
+      )
+      setAskTeamOpen(false)
+      setShareMessage(`Đã đăng câu hỏi cho team. Post: ${res.post.id}`)
+    } catch (e) {
+      setError(localizeError(e))
+    } finally {
+      setAskingTeam(false)
     }
   }
 
@@ -287,7 +362,60 @@ export default function WordDetailPage() {
                   <Icon name="Users" size="sm" variant="muted" />
                   {sharing ? 'Đang chia sẻ...' : 'Chia sẻ với team'}
                 </button>
+                <button
+                  type="button"
+                  onClick={openAskTeam}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg hover:border-primary/40"
+                >
+                  <Icon name="Lightbulb" size="sm" variant="muted" />
+                  Hỏi team
+                </button>
               </div>
+            )}
+            {askTeamOpen && (
+              <form
+                onSubmit={submitAskTeam}
+                className="mt-4 rounded-lg border border-border bg-bg p-3"
+              >
+                <label className="block text-sm font-medium text-fg" htmlFor="ask-team-title">
+                  Câu hỏi
+                  <input
+                    id="ask-team-title"
+                    value={askTitle}
+                    onChange={(event) => setAskTitle(event.target.value)}
+                    maxLength={160}
+                    className="mt-1 min-h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-fg"
+                  />
+                </label>
+                <label className="mt-3 block text-sm font-medium text-fg" htmlFor="ask-team-body">
+                  Ngữ cảnh
+                  <textarea
+                    id="ask-team-body"
+                    value={askBody}
+                    onChange={(event) => setAskBody(event.target.value)}
+                    maxLength={2000}
+                    rows={6}
+                    className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg"
+                  />
+                </label>
+                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAskTeamOpen(false)}
+                    className="inline-flex min-h-10 items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={askingTeam || !askTitle.trim() || !askBody.trim()}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-60"
+                  >
+                    {askingTeam && <Icon name="Loader2" size="sm" className="animate-spin text-on-primary" />}
+                    {askingTeam ? 'Đang đăng...' : 'Đăng câu hỏi'}
+                  </button>
+                </div>
+              </form>
             )}
             {shareMessage && (
               <p className="mt-3 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">

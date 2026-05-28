@@ -11,7 +11,7 @@ vi.mock('../lib/api', () => ({
 
 const refreshProfileMock = vi.fn()
 vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({ refreshProfile: refreshProfileMock }),
+  useAuth: () => ({ profile: { id: 'u1' }, refreshProfile: refreshProfileMock }),
 }))
 
 const trackMock = vi.fn()
@@ -370,6 +370,59 @@ describe('<TeamPage>', () => {
     await userEvent.type(screen.getByPlaceholderText('knowledge.replyPlaceholder'), 'I would use it in technology essays.')
     await userEvent.click(screen.getByRole('button', { name: 'knowledge.reply' }))
     expect(await screen.findByText('I would use it in technology essays.')).toBeInTheDocument()
+  })
+
+  it('lets admins delete team knowledge posts and replies', async () => {
+    const reply = {
+      id: 'reply-1',
+      post_id: 'post-1',
+      team_id: 'team-1',
+      author: { user_id: 'u2', name: 'Member User' },
+      body: 'This should be moderated.',
+      helpful_count: 0,
+      helpful_by_me: false,
+      created_at: '2026-05-28T00:00:00Z',
+    }
+    apiFetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url === '/api/v1/teams/me') return Promise.resolve({ team })
+      if (url === '/api/v1/teams/team-1/views') return Promise.resolve({})
+      if (url === '/api/v1/teams/team-1/members') return Promise.resolve({ team, members })
+      if (url === '/api/v1/teams/team-1/overview') return Promise.resolve(overview)
+      if (url === '/api/v1/teams/team-1/member-progress') return Promise.resolve(memberProgress)
+      if (url === '/api/v1/teams/team-1/knowledge/posts?limit=10') {
+        return Promise.resolve({
+          ...knowledgePosts,
+          items: [{ ...knowledgePosts.items[0], reply_count: 1 }],
+        })
+      }
+      if (url === '/api/v1/teams/team-1/knowledge/posts/post-1/replies?limit=20') {
+        return Promise.resolve({ items: [reply], next_cursor: null })
+      }
+      if (url === '/api/v1/teams/team-1/knowledge/posts/post-1/replies/reply-1') {
+        expect(options?.method).toBe('DELETE')
+        return Promise.resolve(undefined)
+      }
+      if (url === '/api/v1/teams/team-1/knowledge/posts/post-1') {
+        expect(options?.method).toBe('DELETE')
+        return Promise.resolve(undefined)
+      }
+      throw new Error(`Unexpected API call: ${url}`)
+    })
+
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'knowledge.replies|{"count":1}' }))
+    expect(await screen.findByText('This should be moderated.')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'knowledge.delete' })[1])
+    await waitFor(() => {
+      expect(screen.queryByText('This should be moderated.')).not.toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'knowledge.delete' }))
+    await waitFor(() => {
+      expect(screen.queryByText('scalability')).not.toBeInTheDocument()
+    })
   })
 
   it('hides admin progress and management actions from regular members', async () => {

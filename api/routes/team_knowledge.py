@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
+from starlette.status import HTTP_204_NO_CONTENT
 
 from api.auth import get_current_user
 from api.models.team_knowledge import (
@@ -88,6 +89,7 @@ def create_team_knowledge_post(
         category=body.category,
         title=body.title,
         body=body.body,
+        word_context=body.word_context.model_dump() if body.word_context else None,
     )
     return TeamCreateKnowledgePostResponse(post=post)
 
@@ -204,3 +206,36 @@ def toggle_team_knowledge_reply_helpful(
         user_id=str(user["id"]),
     )
     return TeamKnowledgeHelpfulResponse(**payload)
+
+
+@router.delete("/posts/{post_id}", status_code=HTTP_204_NO_CONTENT)
+def delete_team_knowledge_post(
+    team_id: str,
+    post_id: str,
+    user: dict = Depends(get_current_user),
+) -> Response:
+    team_knowledge_service.delete_post(
+        team_id=team_id,
+        post_id=post_id,
+        user_id=str(user["id"]),
+    )
+    return Response(status_code=HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/posts/{post_id}/replies/{reply_id}",
+    status_code=HTTP_204_NO_CONTENT,
+)
+def delete_team_knowledge_reply(
+    team_id: str,
+    post_id: str,
+    reply_id: str,
+    user: dict = Depends(get_current_user),
+) -> Response:
+    team_knowledge_service.delete_reply(
+        team_id=team_id,
+        post_id=post_id,
+        reply_id=reply_id,
+        user_id=str(user["id"]),
+    )
+    return Response(status_code=HTTP_204_NO_CONTENT)
