@@ -5,7 +5,7 @@
 export function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent
-  if (/FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|BytedanceWebview|musical_ly|LinkedInApp|Snapchat|Pinterest/.test(ua)) {
+  if (/FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|Twitter|MicroMessenger|BytedanceWebview|musical_ly|LinkedInApp|Snapchat|Pinterest|Zalo/i.test(ua)) {
     return true
   }
   // iOS WebView: has AppleWebKit but no Safari token
@@ -22,4 +22,17 @@ export function shouldUseRedirectAuth(): boolean {
   // error page. Prefer popup and surface the existing in-app-browser warning
   // when the environment blocks it.
   return false
+}
+
+export function externalBrowserUrl(href: string): string | null {
+  if (typeof navigator === 'undefined') return null
+  if (!/Android/i.test(navigator.userAgent)) return null
+
+  const url = new URL(href)
+  const scheme = url.protocol.replace(':', '')
+  if (scheme !== 'http' && scheme !== 'https') return null
+
+  const target = `${url.host}${url.pathname}${url.search}${url.hash}`
+  const fallback = encodeURIComponent(url.toString())
+  return `intent://${target}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${fallback};end`
 }
