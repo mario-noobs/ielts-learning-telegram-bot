@@ -897,6 +897,22 @@ export default function SettingsPage() {
               role="tabpanel"
               className="rounded-xl border border-border bg-surface-raised p-4 space-y-2"
             >
+              <div className="rounded-lg border border-border bg-surface p-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name="Users" size="md" variant="primary" />
+                  </span>
+                  <div>
+                    <p className="font-medium text-fg">{t('privacy.team.heading')}</p>
+                    <p className="mt-1 text-xs text-muted-fg">
+                      {t('privacy.team.description')}
+                    </p>
+                    <p className="mt-2 text-xs text-muted-fg">
+                      {t('privacy.team.privateDetails')}
+                    </p>
+                  </div>
+                </div>
+              </div>
               <Link
                 to="/settings/link-telegram"
                 className="block rounded-lg border border-border bg-surface p-3 hover:bg-surface-raised"

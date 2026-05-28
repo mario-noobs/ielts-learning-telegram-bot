@@ -22,12 +22,24 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture(autouse=True)
 def _clean():
     from services.db import get_sync_session
-    from services.db.models import AiUsage, AuditLog, PlatformMetric
+    from services.db.models import (
+        AiUsage,
+        AuditLog,
+        PlatformMetric,
+        QuizHistory,
+        Team,
+        TeamMember,
+        User,
+    )
 
     def _wipe():
         with get_sync_session() as s, s.begin():
             s.execute(delete(AiUsage))
             s.execute(delete(AuditLog))
+            s.execute(delete(QuizHistory).where(QuizHistory.user_id.like("team-metric-%")))
+            s.execute(delete(TeamMember).where(TeamMember.user_uid.like("team-metric-%")))
+            s.execute(delete(Team).where(Team.owner_uid.like("team-metric-%")))
+            s.execute(delete(User).where(User.id.like("team-metric-%")))
             s.execute(delete(PlatformMetric))
 
     _wipe()
@@ -166,3 +178,65 @@ def test_metrics_ai_usage_groups_by_date_feature() -> None:
     assert r.status_code == 200
     items = [(row["date"], row["feature"], row["count"]) for row in r.json()]
     assert (today.isoformat(), "vocab", 3) in items
+
+
+def test_metrics_team_activity_reports_weekly_team_counts() -> None:
+    from services.db import get_sync_session
+    from services.db.models import QuizHistory, Team, TeamMember, User
+
+    now = datetime.now(timezone.utc)
+    with get_sync_session() as s, s.begin():
+        s.add_all([
+            User(id="team-metric-owner", name="Owner"),
+            User(id="team-metric-member", name="Member"),
+        ])
+        team = Team(
+            name="Metric Team",
+            owner_uid="team-metric-owner",
+            plan_id="free",
+            seat_limit=5,
+            created_by="team-metric-owner",
+            created_at=now,
+        )
+        s.add(team)
+        s.flush()
+        s.add_all([
+            TeamMember(
+                team_id=team.id,
+                user_uid="team-metric-owner",
+                role="admin",
+                joined_at=now,
+            ),
+            TeamMember(
+                team_id=team.id,
+                user_uid="team-metric-member",
+                role="member",
+                joined_at=now,
+            ),
+            QuizHistory(
+                id="team-metric-quiz",
+                user_id="team-metric-member",
+                quiz_type="fill_blank",
+                is_correct=True,
+                is_challenge=False,
+                created_at=now,
+            ),
+        ])
+
+    _seed_audit("team.created", target_kind="team", target_id="metric-team", when=now)
+    _seed_audit("team.invite_created", target_kind="team", target_id="metric-team", when=now)
+    _seed_audit("team.invite_accepted", target_kind="team", target_id="metric-team", when=now)
+    _seed_audit("team.dashboard_viewed", target_kind="team", target_id="metric-team", when=now)
+
+    with _client() as c:
+        r = c.get("/api/v1/admin/metrics/team-activity?weeks=1")
+
+    assert r.status_code == 200
+    row = r.json()[0]
+    assert row["active_teams"] == 1
+    assert row["active_members"] == 1
+    assert row["study_actions"] == 1
+    assert row["teams_created"] == 1
+    assert row["invites_created"] == 1
+    assert row["invites_accepted"] == 1
+    assert row["dashboard_views"] == 1

@@ -112,6 +112,9 @@ export default function TeamInvitePage() {
         <p className="mt-4 rounded-md border border-border bg-bg p-3 text-sm text-muted-fg">
           {t('join.privacy')}
         </p>
+        <p className="mt-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-fg">
+          {t('join.beta')}
+        </p>
 
         {error && (
           <p className="mt-4 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

@@ -141,6 +141,11 @@
     "upgrade": "Upgrade to Pro"
   },
   "privacy": {
+    "team": {
+      "heading": "Team sharing",
+      "description": "Teams share high-level progress only: role, activity dates, streak, weekly minutes, reviewed words, and due word counts.",
+      "privateDetails": "Writing submissions, listening/reading answers, and detailed practice history stay private unless a future opt-in setting is added."
+    },
     "deferNote": "Data export and account deletion are coming soon. Contact support if you need them today."
   }
 }

@@ -14,6 +14,7 @@ from api.models.admin import (
     AdminCohortRow,
     AdminDauPoint,
     AdminPlanDistribution,
+    AdminTeamActivityPoint,
 )
 from api.permissions import require_role
 from services.admin import metrics_service
@@ -58,3 +59,15 @@ def get_plan_distribution() -> list[AdminPlanDistribution]:
 )
 def get_cohorts(weeks: int = Query(8, ge=1, le=52)) -> list[AdminCohortRow]:
     return [AdminCohortRow(**row) for row in metrics_service.signup_cohorts(weeks)]
+
+
+@router.get(
+    "/metrics/team-activity",
+    response_model=list[AdminTeamActivityPoint],
+    dependencies=[Depends(require_role("platform_admin"))],
+)
+def get_team_activity(weeks: int = Query(8, ge=1, le=52)) -> list[AdminTeamActivityPoint]:
+    return [
+        AdminTeamActivityPoint(**row)
+        for row in metrics_service.team_activity_series(weeks)
+    ]

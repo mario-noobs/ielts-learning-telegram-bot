@@ -141,6 +141,11 @@
     "upgrade": "Nâng cấp lên Pro"
   },
   "privacy": {
+    "team": {
+      "heading": "Chia sẻ trong team",
+      "description": "Team chỉ chia sẻ tiến độ tổng quan: vai trò, ngày hoạt động, streak, phút học trong tuần, số từ đã ôn và số từ cần ôn.",
+      "privateDetails": "Bài Writing, câu trả lời Listening/Reading và lịch sử luyện tập chi tiết vẫn riêng tư trừ khi sau này có cài đặt cho phép chia sẻ."
+    },
     "deferNote": "Xuất dữ liệu và xoá tài khoản sẽ có sớm. Liên hệ support nếu bạn cần ngay hôm nay."
   }
 }

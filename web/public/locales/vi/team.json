@@ -14,6 +14,11 @@
     "creating": "Đang tạo...",
     "limit": "Hiện tại mỗi tài khoản chỉ tạo được một team beta."
   },
+  "beta": {
+    "createLimit": "Giới hạn beta: mỗi tài khoản một team và tối đa 5 ghế. Tùy chọn nâng cấp sẽ được thêm sau.",
+    "seatsRemaining": "Team beta này còn {count} ghế.",
+    "full": "Team beta này đã đầy. Tùy chọn nâng cấp sau này sẽ tăng giới hạn ghế."
+  },
   "workspace": {
     "title": "Không gian team",
     "roleLabel": "Vai trò của bạn",
@@ -35,6 +40,19 @@
     "wordsMastered": "Từ đã nhớ",
     "quizCount": "Bài quiz",
     "empty": "Tuần này team chưa có hoạt động. Lượt ôn, quiz, writing, listening và reading sẽ hiện ở đây."
+  },
+  "progress": {
+    "title": "Tiến độ thành viên",
+    "description": "Chủ team và admin chỉ thấy trạng thái tổng quan, đủ để biết ai có thể cần hỗ trợ.",
+    "member": "Thành viên",
+    "lastActive": "Hoạt động gần nhất",
+    "weeklyMinutes": "Phút tuần này",
+    "wordsReviewed": "Từ đã ôn",
+    "dueWords": "Từ cần ôn",
+    "streak": "Streak",
+    "streakDays": "{count} ngày",
+    "noActivity": "Chưa hoạt động",
+    "privacy": "Bài làm riêng, câu trả lời và lịch sử luyện tập chi tiết không được chia sẻ."
   },
   "members": {
     "title": "Thành viên",
@@ -58,7 +76,8 @@
   "join": {
     "heading": "Tham gia {team}",
     "subtitle": "Đã dùng {count}/{limit} ghế",
-    "privacy": "Khi tham gia, team có thể xem tiến độ tổng quan như hoạt động, streak và số lượt ôn. Bài làm chi tiết vẫn riêng tư.",
+    "privacy": "Khi tham gia, team có thể xem tiến độ tổng quan như hoạt động, streak, số lượt ôn, số từ cần ôn và phút học trong tuần. Bài Writing, Listening, Reading và câu trả lời chi tiết vẫn riêng tư.",
+    "beta": "Team beta giới hạn 5 ghế. Nếu team đã đầy, hãy chờ chủ team có tùy chọn nâng cấp sau.",
     "signIn": "Đăng nhập để tham gia",
     "accept": "Tham gia team",
     "accepting": "Đang tham gia...",
@@ -67,6 +86,7 @@
   },
   "empty": {
     "title": "Chưa có team",
-    "description": "Tạo team ngay, sau đó mời thành viên từ không gian team."
+    "description": "Tạo team ngay, sau đó mời thành viên từ không gian team.",
+    "joinHint": "Nếu có link mời, hãy mở link đó để xem team và đăng nhập. Nếu chưa có link, bạn có thể tạo team beta riêng tại đây."
   }
 }
