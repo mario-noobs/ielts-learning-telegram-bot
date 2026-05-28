@@ -44,7 +44,7 @@
   },
   "todaysPlan": {
     "heading": "Kế hoạch hôm nay",
-    "subline": "{total} / {cap} phút",
+    "subline": "Thời lượng ước tính: {total} phút",
     "allDone": {
       "title": "Hoàn thành kế hoạch hôm nay!",
       "description": "Mai quay lại để tiếp tục streak nhé.",
