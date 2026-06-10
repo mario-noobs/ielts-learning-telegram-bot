@@ -17,6 +17,7 @@ from api.routes.auth_local import router as auth_local_router
 from api.routes.groups import router as groups_router
 from api.routes.health import router as health_router
 from api.routes.listening import router as listening_router
+from api.routes.mario import router as mario_router
 from api.routes.me import router as me_router
 from api.routes.plan import router as plan_router
 from api.routes.progress import router as progress_router
@@ -198,6 +199,7 @@ def create_app() -> FastAPI:
     app.include_router(reading_router)
     app.include_router(readiness_router)
     app.include_router(me_router)
+    app.include_router(mario_router)
     app.include_router(teams_router)
     app.include_router(team_knowledge_router)
     app.include_router(groups_router)

@@ -20,6 +20,7 @@ export const NAMESPACES = [
   'landing',
   'link',
   'listening',
+  'mario',
   'plan',
   'progress',
   'reading',

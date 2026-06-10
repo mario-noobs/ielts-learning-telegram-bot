@@ -1,0 +1,45 @@
+{
+  "personaName": "Mario",
+  "aria": {
+    "region": "Mario helper",
+    "panel": "Mario study helper"
+  },
+  "actions": {
+    "openPanel": "Open Mario",
+    "closePanel": "Close Mario",
+    "dismissSession": "Hide for now",
+    "optOut": "Turn off",
+    "reviewDue": "Review due cards",
+    "dailyWords": "Daily words",
+    "practiceWriting": "Practice Writing",
+    "practiceListening": "Practice Listening",
+    "readingLab": "Reading lab",
+    "viewProgress": "View progress",
+    "vocab": "Vocabulary hub",
+    "settings": "Open settings",
+    "setTargetBand": "Set target band",
+    "setWeeklyGoal": "Set weekly goal"
+  },
+  "greeting": {
+    "home": "Hi {name}, want a focused next step for Band {target_band}?",
+    "daily": "Start with a small word set, {name}.",
+    "review": "Your due cards are the fastest win right now.",
+    "vocab": "Build your vocabulary path from here.",
+    "write": "Ready to get sharper Writing feedback?",
+    "listening": "A short Listening drill will keep your ear warm.",
+    "reading": "Try one focused Reading passage and review the misses.",
+    "progress": "Use progress to choose the next weakest skill.",
+    "settings": "Tune your goals so Mario can guide you better."
+  },
+  "panel": {
+    "defaultMessage": "Pick a focused next step and keep your IELTS rhythm moving.",
+    "actionsHeading": "Next step"
+  },
+  "nudge": {
+    "title": "Ready for a short session?",
+    "body": "A quick review now helps tomorrow feel easier."
+  },
+  "highlight": {
+    "label": "Suggested"
+  }
+}
