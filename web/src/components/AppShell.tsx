@@ -110,8 +110,11 @@ export default function AppShell() {
   const planId = profile?.plan ?? 'free'
 
   // Width + label visibility — when collapsed, force icon-only on lg too.
-  const railWidthCls = collapsed ? 'md:w-20' : 'md:w-20 lg:w-60'
+  const railWidthCls = collapsed ? 'md:w-[88px]' : 'md:w-[88px] lg:w-64'
   const showLabels = !collapsed
+  const railItemBase = collapsed
+    ? 'relative flex h-11 w-11 items-center justify-center rounded-2xl'
+    : 'relative flex h-11 w-11 items-center justify-center rounded-2xl lg:h-10 lg:w-full lg:justify-start lg:gap-3 lg:px-3'
 
   // Account-card data (avatar initial + display name).
   const displayName =
@@ -135,44 +138,46 @@ export default function AppShell() {
         {/* Desktop side rail (≥md) */}
         <nav
           aria-label={t('nav.mainNav')}
-          className={`hidden md:flex md:flex-col ${railWidthCls} md:border-r md:border-border md:py-4 md:px-2 md:sticky md:top-0 md:h-dvh md:shrink-0`}
+          className={`hidden md:flex md:flex-col ${railWidthCls} md:border-r md:border-border md:bg-surface-raised/80 md:py-4 md:px-3 md:sticky md:top-0 md:h-dvh md:shrink-0`}
         >
           {/* Header — brand mark + wordmark (lg-expanded) + collapse toggle.
               Toggle moves with the brand instead of floating at the bottom,
               following the pattern used by Linear/Vercel sidebars. */}
           {!collapsed ? (
             <>
-              <div className="hidden lg:flex items-center gap-2 px-3 py-2 mb-3">
+              <div className="hidden lg:flex h-12 items-center gap-2 rounded-2xl border border-border bg-bg/80 px-3 mb-5 shadow-sm">
                 <LogoMark size="sm" />
                 <p className="text-base font-semibold text-fg">{t('brand.name')}</p>
                 <button
                   type="button"
                   onClick={() => setCollapsed(true)}
                   aria-label={t('nav.sidebar.collapse')}
-                  className="ml-auto p-1 rounded-md text-muted-fg hover:bg-surface hover:text-fg transition-colors"
+                  className="ml-auto rounded-xl p-1.5 text-muted-fg hover:bg-surface hover:text-fg transition-colors"
                 >
                   <Icon name="ChevronLeft" size="sm" variant="muted" />
                 </button>
               </div>
-              <div className="flex lg:hidden items-center justify-center px-2 py-2 mb-2">
+              <div className="flex lg:hidden items-center justify-center mb-5">
                 <LogoMark size="sm" />
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-2 px-2 py-2 mb-2">
+            <div className="flex flex-col items-center gap-2 mb-5">
               <LogoMark size="sm" />
               <button
                 type="button"
                 onClick={() => setCollapsed(false)}
                 aria-label={t('nav.sidebar.expand')}
-                className="hidden lg:inline-flex p-1 rounded-md text-muted-fg hover:bg-surface hover:text-fg transition-colors"
+                className="hidden lg:inline-flex rounded-xl p-1.5 text-muted-fg hover:bg-surface hover:text-fg transition-colors"
               >
                 <Icon name="ChevronRight" size="sm" variant="muted" />
               </button>
             </div>
           )}
 
-          <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5">
+          <ul className={`flex flex-1 min-h-0 flex-col overflow-y-auto gap-1 ${
+            collapsed ? 'items-center' : 'items-center lg:items-stretch'
+          }`}>
             {tabs.map((tab) => {
               if (tab.disabled) {
                 const ariaLabel = tab.disabledAriaKey ? t(tab.disabledAriaKey) : t(tab.labelKey)
@@ -184,11 +189,11 @@ export default function AppShell() {
                       aria-label={ariaLabel}
                       tabIndex={-1}
                       title={collapsed ? ariaLabel : undefined}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-fg opacity-50 cursor-not-allowed"
+                      className={`${railItemBase} text-muted-fg opacity-45 cursor-not-allowed`}
                     >
                       <Icon name={tab.icon} size="lg" variant="muted" />
                       {showLabels && (
-                        <span className="hidden lg:inline-flex lg:items-center lg:gap-2 font-medium">
+                        <span className="hidden lg:inline-flex lg:items-center lg:gap-2 text-sm font-medium">
                           {t(tab.labelKey)}
                           <span className="rounded-full bg-muted-fg/10 px-2 py-0.5 text-[10px] uppercase tracking-wide">
                             {t('nav.comingSoon')}
@@ -206,15 +211,15 @@ export default function AppShell() {
                     to={tab.to}
                     aria-current={active ? 'page' : undefined}
                     title={collapsed ? t(tab.labelKey) : undefined}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-fast ${
+                    className={`${railItemBase} transition-colors duration-fast ${
                       active
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-fg hover:bg-surface hover:text-fg'
+                        ? 'bg-primary/10 text-primary ring-1 ring-primary/15 shadow-sm'
+                        : 'text-muted-fg hover:bg-bg hover:text-fg'
                     }`}
                   >
                     <Icon name={tab.icon} size="lg" variant={active ? 'primary' : 'muted'} />
                     {showLabels && (
-                      <span className="hidden lg:inline font-medium">{t(tab.labelKey)}</span>
+                      <span className="hidden lg:inline text-sm font-medium">{t(tab.labelKey)}</span>
                     )}
                   </NavLink>
                 </li>
@@ -222,13 +227,12 @@ export default function AppShell() {
             })}
           </ul>
 
-          {/* Account block — single cohesive card at lg-expanded; stacked
-              icon column at md and lg-collapsed. Replaces the previous
-              loose stack of badge + admin + signout + toggle. */}
-          <div className="mt-3 pt-3 border-t border-border">
+          {/* Account block — single cohesive card at lg-expanded; compact
+              dock at md and lg-collapsed. */}
+          <div className="mt-4 pt-4 border-t border-border">
             {!collapsed && (
               <div className="hidden lg:block space-y-1">
-                <div className="rounded-xl border border-border p-3 space-y-2.5">
+                <div className="rounded-2xl border border-border bg-bg/80 p-3 space-y-2.5 shadow-sm">
                   <div className="flex items-center gap-2.5">
                     <span
                       aria-hidden="true"
@@ -246,17 +250,20 @@ export default function AppShell() {
                       type="button"
                       onClick={logout}
                       aria-label={t('nav.signOut')}
-                      className="rounded-md p-1.5 text-muted-fg hover:bg-surface-raised hover:text-danger transition-colors"
+                      className="rounded-xl p-1.5 text-muted-fg hover:bg-surface hover:text-danger transition-colors"
                     >
                       <Icon name="LogOut" size="md" variant="muted" />
                     </button>
                   </div>
-                  <PlanBadge plan={planId} />
+                  <div className="flex items-center justify-between gap-2">
+                    <PlanBadge plan={planId} />
+                    <LanguageSwitcher persistToServer />
+                  </div>
                 </div>
                 {showAdminEntry && (
                   <NavLink
                     to="/admin"
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-fg hover:bg-surface hover:text-primary transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-muted-fg hover:bg-bg hover:text-primary transition-colors"
                   >
                     <Icon name="ShieldCheck" size="sm" variant="muted" />
                     <span>{t('nav.tabs.admin')}</span>
@@ -265,43 +272,49 @@ export default function AppShell() {
               </div>
             )}
 
-            <div
-              className={`flex flex-col items-center gap-2 ${
-                collapsed ? '' : 'lg:hidden'
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                title={displayName}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold"
-              >
-                {initial}
-              </span>
-              <PlanBadge plan={planId} compact />
-              {showAdminEntry && (
-                <NavLink
-                  to="/admin"
-                  title={t('nav.tabs.admin')}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-fg hover:bg-surface hover:text-primary transition-colors"
+            <div className={`flex flex-col items-center ${collapsed ? '' : 'lg:hidden'}`}>
+              <div className="flex flex-col items-center gap-2 rounded-[22px] border border-border bg-bg/85 p-2 shadow-sm">
+                <div className="relative mb-0.5">
+                  <span
+                    aria-hidden="true"
+                    title={displayName}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold ring-1 ring-primary/20"
+                  >
+                    {initial}
+                  </span>
+                  <PlanBadge
+                    plan={planId}
+                    compact
+                    className="absolute -bottom-1 -right-1 shadow-sm ring-2 ring-surface-raised"
+                  />
+                </div>
+                <div className="h-px w-8 bg-border" />
+                <LanguageSwitcher persistToServer variant="rail" menuAlign="left" />
+                {showAdminEntry && (
+                  <NavLink
+                    to="/admin"
+                    title={t('nav.tabs.admin')}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-fg hover:bg-surface hover:text-primary transition-colors"
+                  >
+                    <Icon name="ShieldCheck" size="md" variant="muted" />
+                  </NavLink>
+                )}
+                <button
+                  type="button"
+                  onClick={logout}
+                  aria-label={t('nav.signOut')}
+                  title={t('nav.signOut')}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-fg hover:bg-surface hover:text-danger transition-colors"
                 >
-                  <Icon name="ShieldCheck" size="md" variant="muted" />
-                </NavLink>
-              )}
-              <button
-                type="button"
-                onClick={logout}
-                aria-label={t('nav.signOut')}
-                title={t('nav.signOut')}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-fg hover:bg-surface hover:text-danger transition-colors"
-              >
-                <Icon name="LogOut" size="md" variant="muted" />
-              </button>
+                  <Icon name="LogOut" size="md" variant="muted" />
+                </button>
+              </div>
             </div>
           </div>
         </nav>
 
         <main id="main" className="flex-1 min-w-0 pb-20 md:pb-0">
-          <div className="flex items-center justify-end px-4 pt-3 md:px-6">
+          <div className="flex items-center justify-end px-4 pt-3 md:hidden">
             <LanguageSwitcher persistToServer />
           </div>
           <UpgradeBanner />

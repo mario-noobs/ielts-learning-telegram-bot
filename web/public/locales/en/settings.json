@@ -55,6 +55,10 @@
     "streak": "Streak",
     "timezone": "Timezone"
   },
+  "session": {
+    "heading": "Signed in on this device",
+    "description": "Sign out when you are done, especially on a shared computer."
+  },
   "goals": {
     "targetBand": "Target band"
   },

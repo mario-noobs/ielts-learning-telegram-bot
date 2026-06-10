@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from sqlalchemy import func, select, update
 
 import config
@@ -20,7 +20,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     try:
         _ph.verify(hashed, plain)
         return True
-    except VerifyMismatchError:
+    except (InvalidHashError, VerificationError, VerifyMismatchError):
         return False
 
 

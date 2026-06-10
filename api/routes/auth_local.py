@@ -10,6 +10,10 @@ from api.errors import ERR, ApiError
 router = APIRouter(prefix="/api/v1/auth/local", tags=["local-auth"])
 
 _PASSWORD_RE = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,}$")
+_DUMMY_PASSWORD_HASH = (
+    "$argon2id$v=19$m=65536,t=3,p=4$elnTIYBFwx5aVJrsAkCauw"
+    "$NNOAtWVG7m1OfoocxLGnEnyTKCah3fKmWECW4717Rxk"
+)
 
 ACCESS_COOKIE = "access_token"
 REFRESH_COOKIE = "refresh_token"
@@ -151,8 +155,7 @@ async def login(body: dict, request: Request, response: Response):
             ).scalar_one_or_none()
 
             # Always run verify to avoid timing oracle even when user not found
-            dummy_hash = "$argon2id$v=19$m=65536,t=3,p=4$dummydummydummydummydummydummy$dummydummydummydummydummydummydummy"
-            stored_hash = user.password_hash if user else dummy_hash
+            stored_hash = user.password_hash if user else _DUMMY_PASSWORD_HASH
             ok = local_auth_service.verify_password(password, stored_hash)
             if not ok or user is None:
                 local_auth_service.record_login_attempt(session, email, ip)

@@ -55,6 +55,10 @@
     "streak": "Streak",
     "timezone": "Múi giờ"
   },
+  "session": {
+    "heading": "Đang đăng nhập trên thiết bị này",
+    "description": "Đăng xuất khi học xong, nhất là khi dùng máy tính chung."
+  },
   "goals": {
     "targetBand": "Band mục tiêu"
   },

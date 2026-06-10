@@ -19,13 +19,15 @@ interface Props {
   /** Persist to the server profile when the user is signed in. */
   persistToServer?: boolean
   /** Layout hint — controls the button label visibility. */
-  variant?: 'icon' | 'compact'
+  variant?: 'icon' | 'compact' | 'rail'
+  menuAlign?: 'left' | 'right'
   className?: string
 }
 
 export default function LanguageSwitcher({
   persistToServer = false,
   variant = 'icon',
+  menuAlign = 'right',
   className = '',
 }: Props) {
   const { t } = useTranslation('common')
@@ -87,6 +89,7 @@ export default function LanguageSwitcher({
   }
 
   const label = t('nav.language', { defaultValue: 'Language' })
+  const isRail = variant === 'rail'
 
   return (
     <div ref={menuRef} className={`relative ${className}`}>
@@ -97,22 +100,30 @@ export default function LanguageSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={label}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-sm font-medium text-fg hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className={
+          isRail
+            ? 'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface-raised text-fg hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+            : 'inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-sm font-medium text-fg hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+        }
       >
         <Flag code={active} />
         {variant === 'compact' && (
           <span className="hidden sm:inline">{LABELS[active]}</span>
         )}
-        <span className="text-xs font-semibold uppercase tracking-wide">
-          {active}
-        </span>
+        {!isRail && (
+          <span className="text-xs font-semibold uppercase tracking-wide">
+            {active}
+          </span>
+        )}
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label={label}
-          className="absolute right-0 z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-border bg-surface-raised shadow-lg"
+          className={`absolute z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-border bg-surface-raised shadow-lg ${
+            menuAlign === 'left' ? 'left-0' : 'right-0'
+          }`}
         >
           {SUPPORTED_LOCALES.map((code) => {
             const isActive = code === active

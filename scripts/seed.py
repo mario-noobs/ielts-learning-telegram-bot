@@ -13,9 +13,7 @@ Data sources:
   - seeds/groups.json          (1 demo group)
   - seeds/challenges.json      ({group_id -> list of challenge docs})
 
-Also creates Firebase Auth users in the emulator via the emulator's
-identitytoolkit REST endpoint. These dependencies are stdlib-only aside from
-firebase-admin and requests.
+Also creates Firebase Auth users in the emulator via firebase-admin.
 """
 
 from __future__ import annotations
@@ -28,10 +26,12 @@ from pathlib import Path
 from typing import Any
 
 import firebase_admin
-import requests
+from firebase_admin import auth, credentials
 from firebase_admin import firestore
+from google.auth.credentials import AnonymousCredentials
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 SEEDS_DIR = ROOT / "seeds"
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ielts-bot-dev")
@@ -46,6 +46,18 @@ DEMO_AUTH_USERS = [
     {"uid": "demo-teacher-auth", "email": "teacher@ielts.test",
      "password": "demo1234", "displayName": "Demo Teacher"},
 ]
+
+
+class _EmulatorCredential(credentials.Base):
+    def get_credential(self):
+        return AnonymousCredentials()
+
+
+def _ensure_admin_app() -> None:
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(
+            _EmulatorCredential(), options={"projectId": PROJECT_ID}
+        )
 
 
 def _die(msg: str) -> None:
@@ -68,8 +80,7 @@ def _init_firestore():
             "FIRESTORE_EMULATOR_HOST is not set. Run via `make seed` or export "
             "FIRESTORE_EMULATOR_HOST=localhost:8080 first."
         )
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(options={"projectId": PROJECT_ID})
+    _ensure_admin_app()
     return firestore.client()
 
 
@@ -88,42 +99,27 @@ def _parse_dt(value: Any) -> Any:
 
 
 def seed_auth() -> None:
-    """Upsert demo users in the Firebase Auth emulator via REST.
-
-    The Auth emulator's identitytoolkit endpoints accept any bearer token;
-    we pass 'owner' as the standard emulator admin token. Calls are idempotent:
-    if the user already exists we delete-then-create to keep a known password.
-    """
-    base = f"http://{AUTH_HOST}/identitytoolkit.googleapis.com/v1"
-    admin_base = (
-        f"http://{AUTH_HOST}/emulator/v1/projects/{PROJECT_ID}/accounts"
-    )
-    headers = {"Authorization": "Bearer owner"}
+    """Create deterministic demo users in the Firebase Auth emulator."""
+    if "FIREBASE_AUTH_EMULATOR_HOST" not in os.environ:
+        _die(
+            "FIREBASE_AUTH_EMULATOR_HOST is not set. Run via `make seed` or export "
+            "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 first."
+        )
+    _ensure_admin_app()
 
     # Wipe existing accounts to keep seed deterministic. This only affects the
     # local emulator — it has no effect on any real Firebase project.
-    try:
-        requests.delete(admin_base, headers=headers, timeout=5)
-    except requests.RequestException as exc:
-        print(f"WARN: could not clear emulator accounts: {exc}", file=sys.stderr)
+    for page in auth.list_users().iterate_all():
+        auth.delete_user(page.uid)
 
     for user in DEMO_AUTH_USERS:
-        payload = {
-            "localId": user["uid"],
-            "email": user["email"],
-            "password": user["password"],
-            "displayName": user["displayName"],
-            "emailVerified": True,
-        }
-        url = f"{base}/accounts:signUp?key=fake-api-key"
-        r = requests.post(url, json=payload, timeout=5)
-        if r.status_code >= 400:
-            # Already exists — that's fine in the idempotent case.
-            body = r.text
-            if "EMAIL_EXISTS" in body or "DUPLICATE_LOCAL_ID" in body:
-                print(f"  auth: {user['email']} already exists (ok)")
-                continue
-            _die(f"auth seed failed for {user['email']}: {body}")
+        auth.create_user(
+            uid=user["uid"],
+            email=user["email"],
+            password=user["password"],
+            display_name=user["displayName"],
+            email_verified=True,
+        )
         print(f"  auth: created {user['email']} (uid={user['uid']})")
 
 
@@ -137,6 +133,53 @@ def seed_users(db) -> None:
         if auth_uid := user.get("auth_uid"):
             db.collection("auth_mapping").document(auth_uid).set({"user_id": uid})
         print(f"  users: {uid}")
+
+
+def seed_postgres_users() -> None:
+    from services import local_auth_service
+    from services.db import get_sync_session
+    from services.db.models.user import User
+
+    auth_by_email = {user["email"]: user for user in DEMO_AUTH_USERS}
+    users = _load("users.json")
+
+    with get_sync_session() as session, session.begin():
+        for user in users:
+            auth_user = auth_by_email.get(user["email"])
+            password_hash = (
+                local_auth_service.hash_password(auth_user["password"])
+                if auth_user else None
+            )
+            values = {
+                "name": user.get("name", ""),
+                "username": user.get("username", ""),
+                "email": user.get("email"),
+                "auth_uid": user.get("auth_uid"),
+                "group_id": user.get("group_id"),
+                "target_band": user.get("target_band", 7.0),
+                "topics": user.get("topics", []),
+                "daily_time": user.get("daily_time"),
+                "timezone": user.get("timezone"),
+                "streak": user.get("streak", 0),
+                "last_active": _parse_dt(user.get("last_active")),
+                "total_words": user.get("total_words", 0),
+                "total_quizzes": user.get("total_quizzes", 0),
+                "total_correct": user.get("total_correct", 0),
+                "challenge_wins": user.get("challenge_wins", 0),
+                "created_at": _parse_dt(user.get("created_at")),
+                "password_hash": password_hash,
+                "local_auth": auth_user is not None,
+                "email_verified": auth_user is not None,
+            }
+
+            row = session.get(User, user["id"])
+            if row is None:
+                session.add(User(id=user["id"], **values))
+            else:
+                for key, value in values.items():
+                    setattr(row, key, value)
+
+            print(f"  postgres users: {user['id']}")
 
 
 def seed_vocabulary(db) -> None:
@@ -220,6 +263,8 @@ def main() -> int:
     seed_writing_history(db)
     seed_groups(db)
     seed_challenges(db)
+    print("→ Postgres")
+    seed_postgres_users()
 
     print("Done.")
     print()

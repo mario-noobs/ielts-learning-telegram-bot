@@ -31,7 +31,7 @@ const toastVariants = cva(
     'pointer-events-auto relative flex w-full items-start gap-3',
     'rounded-xl border p-4 shadow-md',
     'data-[state=open]:animate-in data-[state=closed]:animate-out',
-    'data-[state=closed]:fade-out-80 data-[state=open]:slide-in-from-bottom-2',
+    'data-[state=closed]:fade-out-80 data-[state=open]:slide-in-from-top-2',
     'data-[swipe=move]:transition-none',
   ].join(' '),
   {
@@ -173,7 +173,7 @@ export function ToastProvider({
         ))}
         <ToastPrimitive.Viewport
           className={cn(
-            'fixed bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:max-w-sm',
+            'fixed right-0 top-0 z-[100] flex max-h-screen w-full flex-col gap-2 p-4 sm:max-w-sm',
             'outline-none',
           )}
         />

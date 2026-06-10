@@ -936,17 +936,35 @@ export default function SettingsPage() {
         </>
       )}
 
-      {/* Logout — always visible, especially useful on mobile where the
-          sidebar sign-out button is not rendered. */}
-      <div className="pt-4 border-t border-border">
-        <button
-          type="button"
-          onClick={logout}
-          className="flex items-center gap-2 text-sm font-medium text-danger hover:text-danger/80 transition-colors"
-        >
-          <Icon name="LogOut" size="sm" variant="danger" />
-          {t('common:nav.signOut')}
-        </button>
+      {/* Session action — always visible, especially useful on mobile where
+          the sidebar sign-out button is not rendered. */}
+      <div className="rounded-xl border border-danger/20 bg-danger/5 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+              <Icon name="LogOut" size="md" variant="danger" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-fg">
+                {t('session.heading', {
+                  defaultValue: 'Signed in on this device',
+                })}
+              </p>
+              <p className="mt-1 text-sm text-muted-fg">
+                {t('session.description', {
+                  defaultValue: 'Sign out when you are done, especially on a shared computer.',
+                })}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-danger/30 bg-surface-raised px-4 text-sm font-semibold text-danger hover:bg-danger/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+          >
+            {t('common:nav.signOut')}
+          </button>
+        </div>
       </div>
     </div>
   )

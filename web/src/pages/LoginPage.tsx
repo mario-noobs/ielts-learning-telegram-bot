@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import LoadingScreen from '../components/LoadingScreen'
 import LogoMark from '../components/brand/LogoMark'
+import { useToast } from '../components/ui'
 import { useAuth, type LocalRegisterData } from '../contexts/AuthContext'
 import { localizeError } from '../lib/apiError'
 import { externalBrowserUrl, isInAppBrowser, shouldUseRedirectAuth } from '../lib/browser'
@@ -52,11 +53,11 @@ const STRENGTH_COLOR = [
 export default function LoginPage() {
   const { t } = useTranslation('common')
   const { user, profile, loading, signInWithGoogle, signInLocal, registerLocal } = useAuth()
+  const { toast } = useToast()
   const [searchParams] = useSearchParams()
 
   const [mode, setMode] = useState<Mode>('options')
   const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
   const inAppBrowser = isInAppBrowser()
   const redirectGoogleAuth = shouldUseRedirectAuth()
   const currentHref = typeof window === 'undefined' ? '' : window.location.href
@@ -85,26 +86,30 @@ export default function LoginPage() {
   const safeNext = next?.startsWith('/') && !next.startsWith('//') ? next : '/'
   if (user || profile) return <Navigate to={safeNext} replace />
 
-  const clearError = () => setFormError(null)
+  const notifyError = (description: string) => {
+    toast({
+      title: t('status.error'),
+      description,
+      variant: 'danger',
+      duration: 4000,
+    })
+  }
 
   const handleLoginChange = (e: ChangeEvent<HTMLInputElement>) => {
-    clearError()
     setLoginFields(f => ({ ...f, [e.target.name]: e.target.value }))
   }
 
   const handleRegChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    clearError()
     setRegFields(f => ({ ...f, [e.target.name]: e.target.value }))
   }
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    setFormError(null)
     try {
       await signInLocal(loginFields.email, loginFields.password)
     } catch (err) {
-      setFormError(localizeError(err))
+      notifyError(localizeError(err))
     } finally {
       setSubmitting(false)
     }
@@ -113,7 +118,6 @@ export default function LoginPage() {
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    setFormError(null)
     try {
       await registerLocal({
         email: regFields.email,
@@ -124,7 +128,7 @@ export default function LoginPage() {
         address: regFields.address || undefined,
       })
     } catch (err) {
-      setFormError(localizeError(err))
+      notifyError(localizeError(err))
     } finally {
       setSubmitting(false)
     }
@@ -132,15 +136,14 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setSubmitting(true)
-    setFormError(null)
     try {
       await signInWithGoogle({ redirect: redirectGoogleAuth })
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? ''
       if (code === 'auth/disallowed-useragent' || code === 'auth/operation-not-supported-in-this-environment') {
-        setFormError(t('auth.inAppBrowserWarning') + ' ' + t('auth.inAppBrowserHint'))
+        notifyError(t('auth.inAppBrowserWarning') + ' ' + t('auth.inAppBrowserHint'))
       } else {
-        setFormError(localizeError(err))
+        notifyError(localizeError(err))
       }
     } finally {
       setSubmitting(false)
@@ -158,7 +161,7 @@ export default function LoginPage() {
       await navigator.clipboard.writeText(currentHref)
       setCopied(true)
     } catch {
-      setFormError(t('auth.copyLinkFailed'))
+      notifyError(t('auth.copyLinkFailed'))
     }
   }
 
@@ -254,11 +257,6 @@ export default function LoginPage() {
                 {t('auth.openBrowserManualHint')}
               </p>
 
-              {formError && (
-                <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
-                  {formError}
-                </p>
-              )}
             </>
           )}
 
@@ -368,12 +366,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {formError && (
-                  <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
-                    {formError}
-                  </p>
-                )}
-
                 <button
                   type="submit"
                   disabled={submitting}
@@ -386,12 +378,12 @@ export default function LoginPage() {
               <div className="mt-5 flex flex-col items-center gap-2">
                 <p className="text-xs text-muted-fg">
                   {t('auth.dontHaveAccount')}{' '}
-                  <button onClick={() => { setMode('register'); clearError() }} className="font-medium text-primary hover:underline">
+                  <button onClick={() => setMode('register')} className="font-medium text-primary hover:underline">
                     {t('auth.signUpLink')}
                   </button>
                 </p>
                 <button
-                  onClick={() => { setMode('options'); clearError() }}
+                  onClick={() => setMode('options')}
                   className="text-xs text-muted-fg hover:text-fg"
                 >
                   {t('auth.useGoogleInstead')}
@@ -568,12 +560,6 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {formError && (
-                  <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
-                    {formError}
-                  </p>
-                )}
-
                 <button
                   type="submit"
                   disabled={submitting}
@@ -586,12 +572,12 @@ export default function LoginPage() {
               <div className="mt-5 flex flex-col items-center gap-2">
                 <p className="text-xs text-muted-fg">
                   {t('auth.alreadyHaveAccount')}{' '}
-                  <button onClick={() => { setMode('login'); clearError() }} className="font-medium text-primary hover:underline">
+                  <button onClick={() => setMode('login')} className="font-medium text-primary hover:underline">
                     {t('auth.signInLink')}
                   </button>
                 </p>
                 <button
-                  onClick={() => { setMode('options'); clearError() }}
+                  onClick={() => setMode('options')}
                   className="text-xs text-muted-fg hover:text-fg"
                 >
                   {t('auth.useGoogleInstead')}

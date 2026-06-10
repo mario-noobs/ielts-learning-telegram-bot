@@ -55,7 +55,7 @@ export default function AiUsageWidget() {
     return (
       <section
         aria-label={t('aiUsage.title')}
-        className="rounded-2xl border border-border bg-surface-raised p-4"
+        className="rounded-2xl border border-border bg-surface-raised p-5"
       >
         <p className="text-sm text-muted-fg">{error}</p>
       </section>
@@ -66,7 +66,7 @@ export default function AiUsageWidget() {
     return (
       <section
         aria-label={t('aiUsage.title')}
-        className="rounded-2xl border border-border bg-surface-raised p-4"
+        className="rounded-2xl border border-border bg-surface-raised p-5"
         data-testid="ai-usage-loading"
       >
         <div className="h-4 w-1/3 animate-pulse rounded bg-surface" />
@@ -90,7 +90,7 @@ export default function AiUsageWidget() {
   return (
     <section
       aria-label={t('aiUsage.title')}
-      className="rounded-2xl border border-border bg-surface-raised p-4 space-y-3"
+      className="rounded-2xl border border-border bg-surface-raised p-5 space-y-3"
       data-testid="ai-usage-widget"
     >
       <div className="flex items-center justify-between gap-2">
