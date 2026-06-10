@@ -28,6 +28,10 @@ vi.mock('./QuotaExceededModal', () => ({
   default: () => null,
 }))
 
+vi.mock('./mario/MarioWidget', () => ({
+  default: () => null,
+}))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => {

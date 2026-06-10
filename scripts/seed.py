@@ -26,8 +26,7 @@ from pathlib import Path
 from typing import Any
 
 import firebase_admin
-from firebase_admin import auth, credentials
-from firebase_admin import firestore
+from firebase_admin import auth, credentials, firestore
 from google.auth.credentials import AnonymousCredentials
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -182,6 +181,18 @@ def seed_postgres_users() -> None:
             print(f"  postgres users: {user['id']}")
 
 
+def seed_feature_flags() -> None:
+    from services import feature_flag_service
+
+    feature_flag_service.set_flag(
+        "mario_onboarding",
+        enabled=True,
+        rollout_pct=100,
+        description="Enable Mario onboarding assistant in local dev.",
+    )
+    print("  feature flags: mario_onboarding")
+
+
 def seed_vocabulary(db) -> None:
     vocab = _load("vocabulary.json")
     now = datetime.now(timezone.utc)
@@ -265,6 +276,7 @@ def main() -> int:
     seed_challenges(db)
     print("→ Postgres")
     seed_postgres_users()
+    seed_feature_flags()
 
     print("Done.")
     print()

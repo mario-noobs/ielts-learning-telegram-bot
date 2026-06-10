@@ -6,6 +6,7 @@ import { useProfileLocaleSync } from '../lib/useProfileLocaleSync'
 import Icon, { IconName } from './Icon'
 import LanguageSwitcher from './LanguageSwitcher'
 import LogoMark from './brand/LogoMark'
+import MarioWidget from './mario/MarioWidget'
 import PlanBadge from './PlanBadge'
 import QuotaExceededModal from './QuotaExceededModal'
 import UpgradeBanner from './UpgradeBanner'
@@ -372,6 +373,7 @@ export default function AppShell() {
             )
           })()}
           <Outlet />
+          <MarioWidget />
           <QuotaExceededModal />
         </main>
       </div>

@@ -1,0 +1,45 @@
+{
+  "personaName": "Mario",
+  "aria": {
+    "region": "Trợ lý Mario",
+    "panel": "Trợ lý học tập Mario"
+  },
+  "actions": {
+    "openPanel": "Mở Mario",
+    "closePanel": "Đóng Mario",
+    "dismissSession": "Ẩn lúc này",
+    "optOut": "Tắt",
+    "reviewDue": "Ôn thẻ đến hạn",
+    "dailyWords": "Từ mỗi ngày",
+    "practiceWriting": "Luyện Writing",
+    "practiceListening": "Luyện Listening",
+    "readingLab": "Reading lab",
+    "viewProgress": "Xem tiến độ",
+    "vocab": "Kho từ vựng",
+    "settings": "Mở cài đặt",
+    "setTargetBand": "Đặt band mục tiêu",
+    "setWeeklyGoal": "Đặt mục tiêu tuần"
+  },
+  "greeting": {
+    "home": "Chào {name}, mình gợi ý bước học cho Band {target_band} nhé?",
+    "daily": "Bắt đầu bằng một nhóm từ nhỏ nhé, {name}.",
+    "review": "Ôn các thẻ đến hạn là bước nhanh nhất lúc này.",
+    "vocab": "Từ đây mình giúp bạn xây lộ trình từ vựng.",
+    "write": "Sẵn sàng nhận feedback Writing sắc hơn chưa?",
+    "listening": "Một bài Listening ngắn sẽ giúp giữ nhịp nghe.",
+    "reading": "Thử một bài Reading tập trung rồi xem lại lỗi sai.",
+    "progress": "Dùng tiến độ để chọn kỹ năng yếu tiếp theo.",
+    "settings": "Tinh chỉnh mục tiêu để Mario gợi ý chuẩn hơn."
+  },
+  "panel": {
+    "defaultMessage": "Chọn một bước học nhỏ để giữ nhịp luyện IELTS.",
+    "actionsHeading": "Bước tiếp theo"
+  },
+  "nudge": {
+    "title": "Sẵn sàng học nhanh không?",
+    "body": "Ôn vài phút bây giờ sẽ giúp ngày mai nhẹ hơn."
+  },
+  "highlight": {
+    "label": "Gợi ý"
+  }
+}
