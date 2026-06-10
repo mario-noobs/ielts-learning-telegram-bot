@@ -2,6 +2,7 @@ import type { IconName } from '../components/Icon'
 
 export const MARIO_STATE_ENDPOINT = '/api/v1/mario/state'
 export const MARIO_EVENTS_ENDPOINT = '/api/v1/mario/events'
+export const MARIO_CHAT_ENDPOINT = '/api/v1/mario/chat'
 
 export const MARIO_STORAGE_KEYS = {
   optOut: 'mario.v1.opt_out',
@@ -63,6 +64,15 @@ export interface MarioEventPayload {
   route: string
   suggestion_id?: string
   metadata?: Record<string, string | number | boolean | null | undefined>
+}
+
+export interface MarioChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface MarioChatResponse {
+  message: MarioChatMessage
 }
 
 const DEFAULT_ACTIONS: MarioActionChip[] = [

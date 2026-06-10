@@ -3,7 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { useMario } from '../hooks/useMario'
-import { MARIO_EVENTS_ENDPOINT, MARIO_STATE_ENDPOINT } from './marioTypes'
+import {
+  MARIO_CHAT_ENDPOINT,
+  MARIO_EVENTS_ENDPOINT,
+  MARIO_STATE_ENDPOINT,
+} from './marioTypes'
 
 const apiFetchMock = vi.fn()
 vi.mock('./api', () => ({
@@ -27,6 +31,13 @@ function Harness() {
       <button type="button" onClick={mario.optOut}>
         opt out
       </button>
+      <button type="button" onClick={() => void mario.sendChatMessage('Help me review')}>
+        send chat
+      </button>
+      <p data-testid="chat-status">{mario.chatStatus}</p>
+      {mario.chatMessages.map((message, index) => (
+        <p key={index}>{message.content}</p>
+      ))}
       {mario.actions.map((action) => (
         <button
           key={action.id}
@@ -80,6 +91,14 @@ describe('useMario', () => {
         })
       }
       if (path === MARIO_EVENTS_ENDPOINT) return Promise.resolve(undefined)
+      if (path === MARIO_CHAT_ENDPOINT) {
+        return Promise.resolve({
+          message: {
+            role: 'assistant',
+            content: 'Review your due cards first.',
+          },
+        })
+      }
       return Promise.reject(new Error(`unexpected path: ${path}`))
     })
   })
@@ -143,6 +162,23 @@ describe('useMario', () => {
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({ dismissed_onboarding: true }),
+      }),
+    )
+  })
+
+  it('sends chat messages to Mario with route context', async () => {
+    const user = userEvent.setup()
+    renderHarness('/learn/review')
+
+    await user.click(await screen.findByRole('button', { name: 'send chat' }))
+
+    expect(await screen.findByText('Help me review')).toBeInTheDocument()
+    expect(await screen.findByText('Review your due cards first.')).toBeInTheDocument()
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      MARIO_CHAT_ENDPOINT,
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"route":"/learn/review"'),
       }),
     )
   })

@@ -35,6 +35,14 @@
     "defaultMessage": "Chọn một bước học nhỏ để giữ nhịp luyện IELTS.",
     "actionsHeading": "Bước tiếp theo"
   },
+  "chat": {
+    "heading": "Chat với Mario",
+    "empty": "Hỏi về trang hiện tại, bước học tiếp theo, hoặc cách dùng các công cụ IELTS ở đây.",
+    "inputLabel": "Nhắn Mario",
+    "placeholder": "Hỏi Mario...",
+    "thinking": "Mario đang nghĩ...",
+    "send": "Gửi tin nhắn"
+  },
   "nudge": {
     "title": "Sẵn sàng học nhanh không?",
     "body": "Ôn vài phút bây giờ sẽ giúp ngày mai nhẹ hơn."

@@ -1,3 +1,4 @@
+import { FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Icon, { IconName } from '../Icon'
 import { useMario } from '../../hooks/useMario'
@@ -58,6 +59,7 @@ function nudgeBody(
 export default function MarioWidget() {
   const { t } = useTranslation('mario')
   const mario = useMario()
+  const [chatDraft, setChatDraft] = useState('')
 
   if (mario.hidden) return null
 
@@ -79,6 +81,15 @@ export default function MarioWidget() {
     : null
   const highlightTone = mario.highlight?.tone ?? 'primary'
   const hasSignal = Boolean(mario.nudge || mario.highlight)
+  const canSend = chatDraft.trim().length > 0 && mario.chatStatus !== 'sending'
+
+  const submitChat = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!canSend) return
+    const next = chatDraft
+    setChatDraft('')
+    await mario.sendChatMessage(next)
+  }
 
   return (
     <aside
@@ -90,7 +101,7 @@ export default function MarioWidget() {
         <section
           role="dialog"
           aria-label={t('aria.panel')}
-          className="w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-xl"
+          className="w-[min(26rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-xl"
         >
           <div className="flex items-start gap-3 border-b border-border bg-bg/70 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
@@ -110,7 +121,7 @@ export default function MarioWidget() {
             </button>
           </div>
 
-          <div className="space-y-4 p-4">
+          <div className="max-h-[min(34rem,calc(100vh-11rem))] space-y-4 overflow-y-auto p-4">
             {mario.nudge && (
               <div className="rounded-xl border border-primary/20 bg-primary/10 p-3">
                 <p className="text-sm font-medium text-fg">
@@ -121,6 +132,70 @@ export default function MarioWidget() {
                 </p>
               </div>
             )}
+
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase text-muted-fg">
+                {t('chat.heading')}
+              </p>
+              <div
+                aria-live="polite"
+                className="space-y-2"
+                data-testid="mario-chat-messages"
+              >
+                {mario.chatMessages.length === 0 && (
+                  <div className="rounded-xl bg-bg px-3 py-2 text-sm leading-5 text-muted-fg">
+                    {t('chat.empty')}
+                  </div>
+                )}
+                {mario.chatMessages.map((item, index) => (
+                  <div
+                    key={`${item.role}-${index}`}
+                    className={cn(
+                      'rounded-xl px-3 py-2 text-sm leading-5',
+                      item.role === 'user'
+                        ? 'ml-8 bg-primary text-primary-fg'
+                        : 'mr-8 bg-bg text-fg',
+                    )}
+                  >
+                    {item.content}
+                  </div>
+                ))}
+                {mario.chatStatus === 'sending' && (
+                  <div className="mr-8 flex items-center gap-2 rounded-xl bg-bg px-3 py-2 text-sm text-muted-fg">
+                    <Icon name="Loader2" size="sm" variant="muted" className="animate-spin" />
+                    {t('chat.thinking')}
+                  </div>
+                )}
+              </div>
+              <form onSubmit={submitChat} className="flex items-end gap-2">
+                <label htmlFor="mario-chat-input" className="sr-only">
+                  {t('chat.inputLabel')}
+                </label>
+                <textarea
+                  id="mario-chat-input"
+                  value={chatDraft}
+                  onChange={(event) => setChatDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      event.currentTarget.form?.requestSubmit()
+                    }
+                  }}
+                  rows={2}
+                  maxLength={800}
+                  placeholder={t('chat.placeholder')}
+                  className="min-h-[3rem] flex-1 resize-none rounded-xl border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  type="submit"
+                  disabled={!canSend}
+                  aria-label={t('chat.send')}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-fg hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Icon name="ArrowRight" size="md" variant="fg" className="text-primary-fg" />
+                </button>
+              </form>
+            </div>
 
             <div>
               <p className="mb-2 text-xs font-medium uppercase text-muted-fg">

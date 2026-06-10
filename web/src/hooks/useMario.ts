@@ -5,10 +5,13 @@ import {
   actionsForRoute,
   FALLBACK_MARIO_STATE,
   highlightForRoute,
+  MARIO_CHAT_ENDPOINT,
   MARIO_EVENTS_ENDPOINT,
   MARIO_STATE_ENDPOINT,
   MARIO_STORAGE_KEYS,
   MarioActionChip,
+  MarioChatMessage,
+  MarioChatResponse,
   MarioEventPayload,
   MarioEventType,
   MarioHighlight,
@@ -19,6 +22,7 @@ import {
 } from '../lib/marioTypes'
 
 type MarioStatus = 'idle' | 'loading' | 'ready' | 'error'
+type MarioChatStatus = 'idle' | 'sending' | 'error'
 
 export interface UseMarioResult {
   state: MarioState
@@ -28,6 +32,8 @@ export interface UseMarioResult {
   sessionHidden: boolean
   optedOut: boolean
   actions: MarioActionChip[]
+  chatMessages: MarioChatMessage[]
+  chatStatus: MarioChatStatus
   nudge: MarioNudge | null
   highlight: MarioHighlight | null
   openPanel: () => void
@@ -35,6 +41,7 @@ export interface UseMarioResult {
   dismissSession: () => void
   optOut: () => void
   selectAction: (action: MarioActionChip) => void
+  sendChatMessage: (content: string) => Promise<void>
 }
 
 function readStorage(storage: Storage | undefined, key: string): boolean {
@@ -66,6 +73,8 @@ export function useMario(): UseMarioResult {
   const navigate = useNavigate()
   const [state, setState] = useState<MarioState>(FALLBACK_MARIO_STATE)
   const [status, setStatus] = useState<MarioStatus>('idle')
+  const [chatStatus, setChatStatus] = useState<MarioChatStatus>('idle')
+  const [chatMessages, setChatMessages] = useState<MarioChatMessage[]>([])
   const [loadedRoute, setLoadedRoute] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [sessionHidden, setSessionHidden] = useState(() => (
@@ -180,6 +189,42 @@ export function useMario(): UseMarioResult {
     }
   }, [emitEvent, navigate])
 
+  const sendChatMessage = useCallback(async (content: string) => {
+    const trimmed = content.trim()
+    if (!trimmed || chatStatus === 'sending') return
+
+    const userMessage: MarioChatMessage = { role: 'user', content: trimmed }
+    const history = [...chatMessages, userMessage].slice(-8)
+    setChatMessages((current) => [...current, userMessage])
+    setChatStatus('sending')
+
+    try {
+      const response = await apiFetch<MarioChatResponse>(MARIO_CHAT_ENDPOINT, {
+        method: 'POST',
+        body: JSON.stringify({
+          message: trimmed,
+          route: pathname,
+          history,
+        }),
+      })
+      setChatMessages((current) => [...current, response.message])
+      setChatStatus('idle')
+      emitEvent('action_clicked', {
+        suggestion_id: 'chat_message',
+        metadata: { message_length: trimmed.length },
+      })
+    } catch {
+      setChatMessages((current) => [
+        ...current,
+        {
+          role: 'assistant',
+          content: "I couldn't reply just now. Please try again in a moment.",
+        },
+      ])
+      setChatStatus('error')
+    }
+  }, [chatMessages, chatStatus, emitEvent, pathname])
+
   return {
     state,
     status,
@@ -188,6 +233,8 @@ export function useMario(): UseMarioResult {
     sessionHidden,
     optedOut,
     actions,
+    chatMessages,
+    chatStatus,
     nudge,
     highlight,
     openPanel,
@@ -195,5 +242,6 @@ export function useMario(): UseMarioResult {
     dismissSession,
     optOut,
     selectAction,
+    sendChatMessage,
   }
 }

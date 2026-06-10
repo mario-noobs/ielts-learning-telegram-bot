@@ -7,7 +7,13 @@ import logging
 from fastapi import APIRouter, Depends, Query, Response
 
 from api.auth import get_current_user
-from api.models.mario import MarioEventRequest, MarioStateResponse
+from api.errors import ERR, ApiError
+from api.models.mario import (
+    MarioChatRequest,
+    MarioChatResponse,
+    MarioEventRequest,
+    MarioStateResponse,
+)
 from services import mario_service
 
 logger = logging.getLogger(__name__)
@@ -38,3 +44,18 @@ async def track_mario_event(
         metadata_keys,
     )
     return Response(status_code=204)
+
+
+@router.post("/chat", response_model=MarioChatResponse)
+async def chat_with_mario(
+    body: MarioChatRequest,
+    user: dict = Depends(get_current_user),
+) -> MarioChatResponse:
+    if not mario_service.is_enabled_for(user):
+        raise ApiError(ERR.forbidden)
+    return await mario_service.chat(
+        user,
+        message=body.message,
+        route=body.route,
+        history=body.history,
+    )

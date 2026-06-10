@@ -35,6 +35,14 @@
     "defaultMessage": "Pick a focused next step and keep your IELTS rhythm moving.",
     "actionsHeading": "Next step"
   },
+  "chat": {
+    "heading": "Chat with Mario",
+    "empty": "Ask about this page, your next study step, or how to use the IELTS tools here.",
+    "inputLabel": "Message Mario",
+    "placeholder": "Ask Mario...",
+    "thinking": "Mario is thinking...",
+    "send": "Send message"
+  },
   "nudge": {
     "title": "Ready for a short session?",
     "body": "A quick review now helps tomorrow feel easier."
