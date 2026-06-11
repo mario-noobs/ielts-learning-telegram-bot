@@ -81,7 +81,7 @@ export default function ProfilePanel({ profile, progress }: Props) {
   return (
     <aside
       aria-labelledby="profile-panel-heading"
-      className="flex flex-col gap-4 lg:sticky lg:top-4"
+      className="flex flex-col gap-4"
     >
       <h2 id="profile-panel-heading" className="sr-only">
         {t('profilePanel.statsHeading')}
